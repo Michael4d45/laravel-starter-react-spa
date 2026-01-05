@@ -450,9 +450,6 @@ export function FeaturesPage() {
 **File**: `resources/js/features/features/featuresLoaderEffect.ts`
 
 ```typescript
-// Re-export types from the Actions abstraction
-export type { FeaturesResponse } from '@/lib/actions';
-
 /**
  * Effect-based features loader that handles all API interactions
  * with proper error handling and type safety.

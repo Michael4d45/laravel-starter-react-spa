@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Auth;
 
+use App\Data\Response\AuthResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -21,9 +22,9 @@ class CreateToken
 
         $token = $user->createToken('api-token')->plainTextToken;
 
-        return response()->json([
+        return response()->json(AuthResponse::from([
             'token' => $token,
             'user' => $user,
-        ]);
+        ]));
     }
 }

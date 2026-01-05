@@ -3,7 +3,7 @@ import { ApiClient } from '@/lib/api/client';
 import { Effect } from 'effect';
 
 // Import generated schemas
-import { ContentPropsSchema } from '@/lib/schemas/generated-schema';
+import { ContentItemsSchema } from '@/lib/schemas/generated-schema';
 
 // Import Wayfinder-generated actions
 import ShowContent from '@/actions/App/Actions/Content/ShowContent';
@@ -19,6 +19,6 @@ export const ContentActions = {
     getContent: Effect.gen(function* () {
         const api = yield* ApiClient;
         const response = yield* mapApiErrors(api.get(ShowContent.url()));
-        return yield* decodeWithValidation(ContentPropsSchema, 'Content response')(response.data);
+        return yield* decodeWithValidation(ContentItemsSchema, 'Content response')(response.data);
     }),
 };

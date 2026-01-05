@@ -1,11 +1,18 @@
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
+import { ContentItems } from '@/lib/schemas/generated-schema';
 import toast from 'react-hot-toast';
 import { Link, useLoaderData } from 'react-router-dom';
-import { ContentResponse } from './contentLoaderEffect';
+
+/**
+ * React Router loader function that uses the Effect-based loader
+ */
+export async function contentLoader() {
+    return import('@/lib/actions').then(({ runAction, Actions }) => runAction(Actions.getContent));
+}
 
 export function ContentPage() {
-    const { content } = useLoaderData<ContentResponse>();
+    const { content } = useLoaderData<ContentItems>();
     const { isBlocked, blockReason } = useOfflineBlock();
 
     const handleCreateContent = () => {

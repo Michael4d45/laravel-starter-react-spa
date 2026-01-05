@@ -1,10 +1,9 @@
 import { decodeWithValidation, mapApiErrors, mapApiErrorsWithAuth, validatedPost } from '@/lib/actions';
 import { ApiClient } from '@/lib/api/client';
-import * as S from '@effect/schema/Schema';
 import { Effect } from 'effect';
 
 // Import generated schemas and types
-import { LoginRequestSchema, UserDataSchema } from '@/lib/schemas/generated-schema';
+import { AuthResponseSchema, LoginRequestSchema, RegisterRequestSchema, UserDataSchema } from '@/lib/schemas/generated-schema';
 
 // Import Wayfinder-generated actions
 import CreateToken from '@/actions/App/Actions/Auth/CreateToken';
@@ -14,29 +13,15 @@ import Register from '@/actions/App/Actions/Auth/Register';
 import ShowUser from '@/actions/App/Actions/Auth/ShowUser';
 
 // ============================================================================
-// Custom Auth Schemas (not auto-generated)
+// Schema Aliases for semantic clarity
 // ============================================================================
-
-export const RegisterRequestSchema = S.Struct({
-    name: S.String,
-    email: S.String,
-    password: S.String,
-    password_confirmation: S.String,
-});
-
-export const AuthResponseSchema = S.Struct({
-    token: S.String,
-    user: UserDataSchema,
-});
 
 // Alias for semantic clarity - same structure as AuthResponseSchema
 export const TokenResponseSchema = AuthResponseSchema;
 
 // ============================================================================
-// Types
+// Additional Type Imports (if needed)
 // ============================================================================
-
-export type RegisterRequest = S.Schema.Type<typeof RegisterRequestSchema>;
 
 // ============================================================================
 // Auth Actions

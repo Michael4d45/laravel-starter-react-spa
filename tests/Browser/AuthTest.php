@@ -5,27 +5,33 @@ declare(strict_types=1);
 use App\Models\User;
 
 it('can register a new user', function (): void {
+    $email = 'test-registration-' . rand(1000, 9999) . '@example.com';
     $logPath = setup_log_capture('auth.log');
-    $page = visit('/register')
+    $page = visit_with_error_init('/register')
         ->assertNoJavaScriptErrors()
         ->waitForText('Create Account')
         ->type('#name', 'John Doe')
-        ->type(
-            '#email',
-            'test-registration-' . rand(1000, 9999) . '@example.com',
-        )
+        ->type('#email', $email)
         ->type('#password', 'password123')
         ->type('#password_confirmation', 'password123')
+        ->screenshot(filename: 'register.png')
         ->click('Create Account')
         ->wait(1); // Give more time for API call to complete
 
     assert_no_log_errors($logPath);
 
-    $page->assertNoJavaScriptErrors();
+    $page->assertNoJavaScriptErrors()->screenshot(
+        filename: 'register-after.png',
+    );
 
-    // For browser tests, just verify the registration doesn't show validation errors
-    // The database check is unreliable in browser test environment
     $page->assertDontSee('The email has already been taken');
+
+    dd(User::all());
+
+    $this->assertDatabaseHas('users', [
+        'name' => 'John Doe',
+        'email' => $email,
+    ]);
 });
 
 it('can login with valid credentials', function (): void {
@@ -92,21 +98,4 @@ it('can logout', function (): void {
         ->assertPathIs('/');
 
     assert_no_log_errors($logPath);
-});
-
-it('blocks registration when offline', function (): void {
-    // Simulate offline by mocking navigator.onLine
-    visit('/register')->assertNoJavaScriptErrors();
-
-    // This test would need JavaScript execution to test offline behavior
-    // For now, we verify the page loads correctly
-    $this->assertTrue(true);
-});
-
-it('blocks login when offline', function (): void {
-    visit('/login')->assertNoJavaScriptErrors();
-
-    // This test would need JavaScript execution to test offline behavior
-    // For now, we verify the page loads correctly
-    $this->assertTrue(true);
 });

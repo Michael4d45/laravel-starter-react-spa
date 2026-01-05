@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Content;
 
 use App\Data\Models\ContentData;
-use App\Data\Props\ContentProps;
+use App\Data\Response\ContentItems;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -35,7 +35,7 @@ class ShowContent
             ],
         ];
 
-        return response()->json(ContentProps::from([
+        return response()->json(ContentItems::from([
             'content' => ContentData::collect($sampleContent),
         ]));
     }

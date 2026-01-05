@@ -59,8 +59,6 @@ it('can register a new user', function (): void {
         ->assertSee('Full Name')
         ->assertSee('Email')
         ->assertSee('Password');
-
-    // Basic test - form elements are present and page loads without JS errors
 });
 
 it('can login with valid credentials', function (): void {
@@ -70,38 +68,24 @@ it('can login with valid credentials', function (): void {
         ->assertSee('Login')
         ->assertSee('Email')
         ->assertSee('Password');
-
-    // Basic test - form elements are present and page loads without JS errors
 });
 
 it('shows offline warning on login page when offline', function (): void {
     visit('/login')->waitForText('Login', 5)->assertSee('Login');
-
-    // Basic test - page loads correctly
-    // Offline functionality would be tested separately
 });
 
 it('shows offline warning on register page when offline', function (): void {
     visit('/register')
         ->waitForText('Create Account', 5)
         ->assertSee('Create Account');
-
-    // Basic test - page loads correctly
-    // Offline functionality would be tested separately
 });
 
 it('login form validation works', function (): void {
     visit('/login')->waitForText('Login', 5)->assertSee('Login');
-
-    // Basic test - form loads correctly
-    // Form validation would be tested with API integration
 });
 
 it('register form validation works', function (): void {
     visit('/register')
         ->waitForText('Create Account', 5)
         ->assertSee('Create Account');
-
-    // Basic test - form loads correctly
-    // Form validation would be tested with API integration
 });

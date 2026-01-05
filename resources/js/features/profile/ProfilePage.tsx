@@ -1,9 +1,21 @@
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
+import { UserData } from '@/lib/schemas/generated-schema';
 import { useLoaderData } from 'react-router-dom';
 
+/**
+ * React Router loader function that uses the Effect-based loader
+ * This will automatically redirect to login if the user is not authenticated
+ */
+export async function profileLoader() {
+    return import('@/lib/actions').then(({ runActionForLoader, Actions }) => runActionForLoader(Actions.getUser));
+}
+
+/**
+ * Profile page component that displays user information and a logout button
+ */
 export function ProfilePage() {
-    const user = useLoaderData();
+    const user = useLoaderData<UserData>();
     const { logout } = useAuth();
 
     return (
