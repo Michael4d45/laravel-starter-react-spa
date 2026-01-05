@@ -1,0 +1,670 @@
+---
+alwaysApply: true
+---
+
+# Code Templates - Adding Features
+
+Quick reference guide for adding new features to this application.
+
+---
+
+## 1. Adding a New Route
+
+**File**: `routes/web.php`
+
+```php
+// Public route
+Route::get('/feature-name', ShowFeatureName::class)->name('feature.name');
+
+// Authenticated route
+Route::middleware('auth')->group(function (): void {
+    Route::get('/feature-name', ShowFeatureName::class)->name('feature.name');
+    Route::post('/feature-name', CreateFeatureName::class)->name('feature.name.store');
+    Route::get('/feature-name/{feature}', ShowFeatureDetail::class)->name('feature.name.show');
+    Route::get('/feature-name/{feature}/edit', ShowEditFeatureName::class)->name('feature.name.edit');
+});
+```
+
+---
+
+## 2. Creating an Action Class (Show Page)
+
+**File**: `app/Actions/FeatureName/ShowFeatureName.php`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\FeatureName;
+
+use App\Data\Models\YourModelData;
+use App\Data\Props\YourProps;
+use App\Models\YourModel;
+use App\Http\Requests\AuthRequest;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
+
+class ShowFeatureName
+{
+    /**
+     * Display the feature name view.
+     */
+    public function __invoke(
+        CreateQuestionRequest $data,
+        AuthRequest $request,
+    ): Response {
+        $user = $request->assertedUser();// If auth required
+
+        $items = YourModel::where('user_id', $user->id)
+            ->with(['relationship'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('feature-name/index', YourProps::from([
+            'items' => YourModelData::collect($items),
+        ]));
+    }
+}
+```
+
+---
+
+## 3. Creating an Action Class (Handle Form Submission)
+
+**File**: `app/Actions/FeatureName/CreateFeatureName.php`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\FeatureName;
+
+use App\Data\Requests\CreateFeatureNameRequest;
+use App\Models\YourModel;
+use App\Http\Requests\AuthRequest;
+use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
+
+class CreateFeatureName
+{
+    /**
+     * Handle the incoming request.
+     */
+    public function __invoke(CreateFeatureNameRequest $data, AuthRequest $request): Response
+    {
+        $user = $request->assertedUser();
+
+        $item = YourModel::create([
+            'user_id' => $user->id,
+            'field1' => $data->field1,
+            'field2' => $data->field2,
+        ]);
+
+        return Inertia::location(route('feature.name.show', $item));
+    }
+}
+```
+
+---
+
+## 4. Creating a Data Model
+
+**File**: `app/Data/Models/YourModelData.php`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Data\Models;
+
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Spatie\LaravelData\Attributes\AutoWhenLoadedLazy;
+use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Lazy;
+
+class YourModelData extends Data
+{
+    public function __construct(
+        public string $id,
+        public string $user_id,
+        public string $name,
+        public string|null $description,
+        public Carbon|null $created_at,
+        public Carbon|null $updated_at,
+        /** @var UserData $user */
+        #[AutoWhenLoadedLazy]
+        public Lazy|UserData $user,
+        /** @var Collection<array-key,RelatedModelData> $related_items */
+        #[AutoWhenLoadedLazy('relatedItems')]
+        public Collection|Lazy $related_items,
+    ) {}
+}
+```
+
+**Key Points**:
+- Extend `Data` from Spatie Laravel Data
+- Use `Lazy` for relationships to avoid N+1 queries
+- Use `#[AutoWhenLoadedLazy]` or `#[AutoWhenLoadedLazy('relationshipName')]` for relationships
+- Use `Collection|Lazy` for collection relationships
+- Add PHPDoc comments for type hints
+
+---
+
+## 5. Creating Props
+
+**File**: `app/Data/Props/YourProps.php`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Data\Props;
+
+use App\Data\Models\YourModelData;
+use Illuminate\Support\Collection;
+use Spatie\LaravelData\Data;
+
+class YourProps extends Data
+{
+    public function __construct(
+        public YourModelData $item,
+        /** @var Collection<array-key,YourModelData> $items */
+        public Collection $items,
+    ) {}
+}
+```
+
+**For Paginated Props**:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Data\Props;
+
+use App\Data\Models\YourModelData;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Spatie\LaravelData\Data;
+
+class YourPaginatedProps extends Data
+{
+    public function __construct(
+        /** @var LengthAwarePaginator<YourModelData> $items */
+        public LengthAwarePaginator $items,
+    ) {}
+}
+```
+
+**Usage in Action**:
+```php
+$items = YourModel::paginate(24);
+
+return Inertia::render('page', YourPaginatedProps::from([
+    'items' => YourModelData::collect($items, LengthAwarePaginator::class),
+]));
+```
+
+---
+
+## 6. Creating Request (Form Validation)
+
+**File**: `app/Data/Requests/CreateFeatureNameRequest.php`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Data\Requests;
+
+use Spatie\LaravelData\Attributes\Validation\Max;
+use Spatie\LaravelData\Attributes\Validation\Required;
+use Spatie\LaravelData\Attributes\Validation\StringType;
+use Spatie\LaravelData\Data;
+
+class CreateFeatureNameRequest extends Data
+{
+    public function __construct(
+        #[Required]
+        #[StringType]
+        #[Max(255)]
+        public string $name,
+        
+        #[StringType]
+        #[Max(1000)]
+        public string|null $description = null,
+        
+        public bool $is_public = false,
+    ) {}
+}
+```
+
+**Common Validation Attributes**:
+- `#[Required]` - Field is required
+- `#[Email]` - Must be valid email
+- `#[StringType]` - Must be string
+- `#[Max(255)]` - Maximum length
+- `#[Min(3)]` - Minimum length
+- `#[Numeric]` - Must be numeric
+- `#[BooleanType]` - Must be boolean
+
+---
+
+## 7. Creating Feature Test
+
+**File**: `tests/Feature/FeatureNameTest.php`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+it('can access feature name page', function (): void {
+    $user = User::factory()->create();
+    $response = $this->actingAs($user)->get(route('feature.name'));
+
+    $response->assertStatus(200)
+        ->assertInertia(fn($page) => $page->component('feature-name/index'));
+});
+
+it('can create feature name', function (): void {
+    $user = User::factory()->create();
+    $response = $this->actingAs($user)->post(route('feature.name.store'), [
+        'name' => 'Test Name',
+        'description' => 'Test Description',
+    ]);
+
+    $response->assertRedirect();
+    $this->assertDatabaseHas('your_models', [
+        'user_id' => $user->id,
+        'name' => 'Test Name',
+    ]);
+});
+
+it('requires authentication', function (): void {
+    $response = $this->get(route('feature.name'));
+    $response->assertRedirect(route('login'));
+});
+```
+
+---
+
+## 8. Creating Browser Test
+
+**File**: `tests/Browser/FeatureNameTest.php`
+
+Browser tests simulate real user interactions in a browser environment. Use them to test complete user flows and ensure JavaScript functionality works correctly.
+
+### Simple Tests
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use App\Models\User;
+
+it('displays feature name page', function (): void {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    visit(route('feature.name'))->assertNoJavaScriptErrors();
+});
+
+it('can interact with feature', function (): void {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    visit(route('feature.name'))
+        ->type('Test Name', 'name')
+        ->press('Submit')
+        ->assertSee('Test Name');
+});
+```
+
+### User Flow Test
+
+For comprehensive testing of complete user journeys, use detailed user flow tests:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use App\Models\User;
+use App\Models\RelatedModel;
+
+/**
+ * User Flow: The Feature Name Creator
+ *
+ * Story: Alex wants to create a new feature for their collection.
+ * They navigate to the create page, fill out the form with details,
+ * and successfully add the feature to their collection.
+ */
+it(
+    'allows a user to navigate to the create feature page and successfully add a new feature',
+    function (): void {
+        // Setup: Create necessary data for the test
+        $user = User::factory()->create();
+        $relatedData = RelatedModel::factory()->create();
+
+        $this->actingAs($user);
+
+        // Step 1: Navigate to the features index page
+        $page = visit(route('feature.index'))
+            ->assertNoJavaScriptErrors()
+            ->assertSee('My Features')
+            ->assertSee('Add Feature')
+            ->click('Add Feature')
+            ->waitForText('Create a new feature')
+            ->assertNoJavaScriptErrors();
+
+        // Step 2: Fill out the form
+        $page
+            ->type('name', 'Test Feature')
+            ->type('description', 'A test feature description')
+            ->select('related_id', $relatedData->id)
+            ->click('@submit-button')
+            ->waitForText('Feature created successfully')
+            ->assertNoJavaScriptErrors();
+
+        // Step 3: Verify redirect and database state
+        $page->assertPathIs('/features');
+
+        $this->assertDatabaseHas('features', [
+            'user_id' => $user->id,
+            'name' => 'Test Feature',
+            'description' => 'A test feature description',
+            'related_id' => $relatedData->id,
+        ]);
+
+        // Step 4: Verify the feature appears on the index page
+        $page
+            ->assertSee('Test Feature')
+            ->assertSee('A test feature description')
+            ->assertNoJavaScriptErrors();
+
+        // Optional: Take screenshot for debugging
+        $page->screenshot(filename: 'user-flow-feature-creation.png');
+    },
+);
+```
+
+**User Flow Test Best Practices**:
+- Include detailed comments explaining the user story and steps
+- Set up all necessary related data (factories, relationships)
+- Test complete navigation flows, not just isolated interactions
+- Use `waitForText()` and `assertNoJavaScriptErrors()` frequently
+- Test multiple scenarios in one comprehensive test when appropriate
+- Include database assertions to verify data persistence
+- Take screenshots for debugging complex interactions
+- Use descriptive test names that explain the complete user journey
+
+---
+
+## 9. Frontend Page Template (React/TypeScript)
+
+**File**: `resources/js/pages/feature-name/index.tsx`
+
+```tsx
+import Layout from '@/Layouts/Layout';
+
+export default function FeatureNameIndex({ items }: Props.YourProps) {
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-3xl font-bold mb-6">Feature Name</h1>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map((item) => (
+                    <div key={item.id} className="card">
+                        <h2>{item.name}</h2>
+                        {item.description && <p>{item.description}</p>}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+FeatureNameIndex.layout = (page: React.ReactNode) => <Layout>{page}</Layout>;
+```
+
+---
+
+## 10. Complete Feature Example: Adding a "Notes" Feature
+
+### Step 1: Create Migration
+```php
+// database/migrations/xxxx_create_notes_table.php
+Schema::create('notes', function (Blueprint $table) {
+    $table->uuid('id')->primary();
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->string('title');
+    $table->text('content')->nullable();
+    $table->timestampsTz();
+});
+```
+
+### Step 2: Create Eloquent Model
+```php
+// app/Models/Note.php
+/**
+ * User model for authentication and user management.
+ *
+ * @property string $id
+ * @property string $user_id
+ * @property string $title
+ * @property string|null $content
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $created_at
+ * @property-read User $user
+ */
+class Note extends Model
+{
+    /** @use HasFactory<\Database\Factories\NoteFactory> */
+    use HasFactory, HasUuids, Notifiable;
+
+    protected $fillable = ['user_id', 'title', 'content'];
+    
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+```
+
+### Step 3: Create Data Model
+```php
+// app/Data/Models/NoteData.php
+class NoteData extends Data
+{
+    public function __construct(
+        public string $id,
+        public string $user_id,
+        public string $title,
+        public string|null $content,
+        public Carbon|null $created_at,
+        public Carbon|null $updated_at,
+        #[AutoWhenLoadedLazy]
+        public Lazy|UserData $user,
+    ) {}
+}
+```
+
+### Step 4: Create Props
+```php
+// app/Data/Props/NotesProps.php
+class NotesProps extends Data
+{
+    public function __construct(
+        /** @var Collection<array-key,NoteData> $notes */
+        public Collection $notes,
+    ) {}
+}
+
+// app/Data/Props/NoteProps.php
+class NoteProps extends Data
+{
+    public function __construct(
+        public NoteData $note,
+    ) {}
+}
+```
+
+### Step 5: Create Request
+```php
+// app/Data/Requests/CreateNoteRequest.php
+class CreateNoteRequest extends Data
+{
+    public function __construct(
+        #[Required]
+        #[Max(255)]
+        public string $title,
+        public string|null $content = null,
+    ) {}
+}
+```
+
+### Step 6: Create Actions
+```php
+// app/Actions/Notes/ShowNotes.php
+class ShowNotes
+{
+    public function __invoke(AuthRequest $request): InertiaResponse
+    {
+        $user = $request->assertedUser();
+
+        $notes = Note::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('notes/index', NotesProps::from([
+            'notes' => NoteData::collect($notes),
+        ]));
+    }
+}
+
+// app/Actions/Notes/CreateNote.php
+class CreateNote
+{
+    public function __invoke(CreateNoteRequest $data, AuthRequest $request): Response
+    {
+        $user = $request->assertedUser();
+
+        $note = Note::create([
+            'user_id' => $user->id,
+            'title' => $data->title,
+            'content' => $data->content,
+        ]);
+
+        return Inertia::location(route('notes.index'));
+    }
+}
+```
+
+### Step 7: Add Routes
+```php
+// routes/web.php
+Route::middleware('auth')->group(function (): void {
+    Route::get('/notes', ShowNotes::class)->name('notes.index');
+    Route::post('/notes', CreateNote::class)->name('notes.store');
+});
+```
+
+### Step 8: Create Tests
+```php
+// tests/Feature/NotesTest.php
+it('can access notes page', function (): void {
+    $user = User::factory()->create();
+    $response = $this->actingAs($user)->get(route('notes.index'));
+    $response->assertStatus(200)->assertInertia(fn($page) => $page->component('notes/index'));
+});
+```
+
+### Step 9: Create Frontend Page
+```tsx
+// resources/js/pages/notes/index.tsx
+export default function NotesIndex({ notes }: Props.NotesProps) {
+    // ... render notes
+}
+
+NotesIndex.layout = (page: React.ReactNode) => <Layout>{page}</Layout>;
+```
+
+---
+
+## Quick Checklist
+
+When adding a new feature:
+
+- [ ] Create Eloquent Model (if new entity)
+- [ ] Create Data Model (`app/Data/Models/`)
+- [ ] Create Props (`app/Data/Props/`)
+- [ ] Create Request (if form submission)
+- [ ] Create Action classes (`app/Actions/`)
+- [ ] Add routes (`routes/web.php`)
+- [ ] Create Feature test (`tests/Feature/`)
+- [ ] Create Browser test (`tests/Browser/`)
+- [ ] Create frontend page (`resources/js/pages/`)
+- [ ] Types auto-generate (run build if needed)
+
+---
+
+## Common Patterns
+
+### Loading Relationships
+```php
+$items = Model::with(['relationship1', 'relationship2.subRelationship'])
+    ->where('user_id', $user->id)
+    ->get();
+```
+
+### Pagination
+```php
+$items = Model::paginate(24);
+return Inertia::render('page', Props::from([
+    'items' => ModelData::collect($items, LengthAwarePaginator::class),
+]));
+```
+
+### Search/Filter
+```php
+$query = Model::query();
+if ($request->has('search')) {
+    $query->where('name', 'like', "%{$request->search}%");
+}
+$items = $query->get();
+```
+
+### Redirect After Action
+```php
+// Redirect to show page
+return Inertia::location(route('feature.show', $item));
+
+// Redirect to index
+return Inertia::location(route('feature.index'));
+
+// Redirect with flash message
+return redirect()->route('feature.index')
+    ->with('success', 'Item created successfully');
+```
+
+---
+
+## Type Generation
+
+TypeScript types are auto-generated from PHP Data classes. After creating new Data models, Props, or requests:
+
+1. Types are generated automatically
+2. NEVER run: `php artisan data:typescript`
+3. Types appear in `resources/js/types/generated.d.ts`

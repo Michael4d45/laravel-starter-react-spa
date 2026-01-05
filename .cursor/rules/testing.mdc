@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+Don't pipe tests.
+
+Good: php artisan test
+Bad: php artisan test | head -50
+Bad: php artisan test | tail -50
+Bad: php artisan test | grep "somthing"

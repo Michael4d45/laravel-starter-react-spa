@@ -1,0 +1,10 @@
+parameters:
+    paths:
+        - app/
+        - database/
+        - routes/
+
+    level: 9
+    checkUninitializedProperties: true
+    checkOctaneCompatibility: true
+    checkModelProperties: true

@@ -1,0 +1,59 @@
+name: "react-spa"
+
+services:
+  pgsql:
+    restart: unless-stopped
+    image: ivanlonel/postgis-with-extensions:latest
+    container_name: react-spa-pgsql
+    ports:
+      - '${DB_PORT}:5432'
+    environment:
+      POSTGRES_DB: '${DB_DATABASE}'
+      POSTGRES_USER: '${DB_USERNAME}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD}'
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"
+        ]
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 55
+
+  pgsql-test:
+    restart: unless-stopped
+    image: ivanlonel/postgis-with-extensions:latest
+    container_name: react-spa-pgsql-test
+    ports:
+      - '${DB_PORT_TEST}:5432'
+    environment:
+      POSTGRES_DB: '${DB_DATABASE}_test'
+      POSTGRES_USER: '${DB_USERNAME}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD}'
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"
+        ]
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 55
+
+  redis:
+    restart: unless-stopped
+    image: redis:latest
+    container_name: react-spa-redis
+    ports:
+      - '${REDIS_PORT}:6379'
+
+  # mailhog:
+  #   restart: unless-stopped
+  #   image: mailhog/mailhog:latest
+  #   container_name: react-spa-mailhog
+  #   ports:
+  #     - "1025:1025" # SMTP
+  #     - "8025:8025" # Web UI
