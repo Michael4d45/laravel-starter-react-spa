@@ -1,10 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ErrorBoundary } from 'react-error-boundary';
 import { RouterProvider } from 'react-router-dom';
+import { ErrorFallback } from './Errors';
 import { router } from './router';
 import './styles/globals.css';
-import { ErrorFallback } from './Errors';
-import { ErrorBoundary } from 'react-error-boundary';
 
 // Register service worker
 import { registerSW } from './lib/pwa/register';
@@ -21,5 +21,5 @@ root.render(
         <ErrorBoundary FallbackComponent={ErrorFallback}>
             <RouterProvider router={router} />
         </ErrorBoundary>
-    </StrictMode>
+    </StrictMode>,
 );

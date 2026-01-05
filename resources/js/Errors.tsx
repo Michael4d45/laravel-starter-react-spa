@@ -151,7 +151,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: { error: Error; res
                 </button>
                 <button
                     onClick={resetErrorBoundary}
-                    className="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:outline-none dark:bg-primary-500 dark:hover:bg-primary-600 dark:focus:ring-primary-400"
+                    className="bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 dark:bg-primary-500 dark:hover:bg-primary-600 dark:focus:ring-primary-400 rounded-md px-4 py-2 text-sm font-semibold text-white shadow focus:ring-2 focus:outline-none"
                 >
                     🔁 Try Again
                 </button>

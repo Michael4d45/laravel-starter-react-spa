@@ -2,116 +2,164 @@
 alwaysApply: true
 ---
 
-# Code Templates - Adding Features
+# Laravel React SPA - Code Templates & Feature Development Guide
 
-Quick reference guide for adding new features to this application.
+This guide provides comprehensive templates and best practices for adding new features to this Laravel + React + React Router application with Effect-based data loading.
 
 ---
 
-## 1. Adding a New Route
+## 📋 Feature Development Workflow
 
-**File**: `routes/web.php`
+### 1. Planning Phase
+- Define the feature requirements and user stories
+- Identify required database changes
+- Plan the API endpoints and data flow
+- Consider authentication/authorization needs
+
+### 2. Implementation Order
+1. **Database & Models** (migrations, Eloquent models)
+2. **Data Layer** (Data models, Props, Requests)
+3. **Business Logic** (Actions)
+4. **API Routes** (routes/api.php)
+5. **Frontend** (React components with Effect-based loading)
+6. **Routing** (React Router routes)
+7. **Testing** (Feature & Browser tests)
+
+---
+
+## 🛠️ Core Components
+
+### 1. API Routes
+
+**File**: `routes/api.php`
+
+This React SPA uses API-first architecture with JSON responses. Routes are organized in the `api.php` file and are prefixed with `/api/`.
 
 ```php
-// Public route
-Route::get('/feature-name', ShowFeatureName::class)->name('feature.name');
+<?php
 
-// Authenticated route
-Route::middleware('auth')->group(function (): void {
-    Route::get('/feature-name', ShowFeatureName::class)->name('feature.name');
-    Route::post('/feature-name', CreateFeatureName::class)->name('feature.name.store');
-    Route::get('/feature-name/{feature}', ShowFeatureDetail::class)->name('feature.name.show');
-    Route::get('/feature-name/{feature}/edit', ShowEditFeatureName::class)->name('feature.name.edit');
+use App\Actions\Features\ShowFeatures;
+use App\Actions\Features\CreateFeature;
+use App\Actions\Features\ShowFeature;
+use App\Actions\Features\UpdateFeature;
+use App\Actions\Features\DeleteFeature;
+use Illuminate\Support\Facades\Route;
+
+// Public routes (no authentication required)
+Route::get('/public-features', App\Actions\Features\ShowPublicFeatures::class)->name('api.public-features');
+
+// Authenticated routes (require login via Sanctum)
+Route::middleware('auth:sanctum')->group(function (): void {
+    // Index/List data
+    Route::get('/features', ShowFeatures::class)->name('api.features.index');
+
+    // Create new item
+    Route::post('/features', CreateFeature::class)->name('api.features.store');
+
+    // Show single item data
+    Route::get('/features/{feature}', ShowFeature::class)->name('api.features.show');
+
+    // Update item
+    Route::put('/features/{feature}', UpdateFeature::class)->name('api.features.update');
+
+    // Delete item
+    Route::delete('/features/{feature}', DeleteFeature::class)->name('api.features.destroy');
 });
 ```
 
+**Key Characteristics**:
+- Routes return JSON data consumed by React components
+- Use `auth:sanctum` middleware for API authentication
+- Route names prefixed with `api.`
+- Frontend routing handled by React Router (no "create" or "edit" API routes)
+- Actions return structured data for Effect-based loading
+
 ---
 
-## 2. Creating an Action Class (Show Page)
+### 2. Action Classes
 
-**File**: `app/Actions/FeatureName/ShowFeatureName.php`
+#### Show/Index Action
+**File**: `app/Actions/Features/ShowFeatures.php`
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-namespace App\Actions\FeatureName;
+namespace App\Actions\Features;
 
-use App\Data\Models\YourModelData;
-use App\Data\Props\YourProps;
-use App\Models\YourModel;
-use App\Http\Requests\AuthRequest;
-use Inertia\Inertia;
-use Inertia\Response as InertiaResponse;
+use App\Data\Models\FeatureData;
+use App\Data\Props\FeaturesProps;
+use App\Models\Feature;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
-class ShowFeatureName
+class ShowFeatures
 {
     /**
-     * Display the feature name view.
+     * Display the features list.
      */
-    public function __invoke(
-        CreateQuestionRequest $data,
-        AuthRequest $request,
-    ): Response {
-        $user = $request->assertedUser();// If auth required
+    public function __invoke(Request $request): JsonResponse
+    {
+        $user = $request->user();
 
-        $items = YourModel::where('user_id', $user->id)
-            ->with(['relationship'])
+        $features = Feature::where('user_id', $user->id)
+            ->with(['relationships']) // Eager load to prevent N+1 queries
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return Inertia::render('feature-name/index', YourProps::from([
-            'items' => YourModelData::collect($items),
+        return response()->json(FeaturesProps::from([
+            'features' => FeatureData::collect($features),
         ]));
     }
 }
 ```
 
----
-
-## 3. Creating an Action Class (Handle Form Submission)
-
-**File**: `app/Actions/FeatureName/CreateFeatureName.php`
+#### Create/Store Action
+**File**: `app/Actions/Features/CreateFeature.php`
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-namespace App\Actions\FeatureName;
+namespace App\Actions\Features;
 
-use App\Data\Requests\CreateFeatureNameRequest;
-use App\Models\YourModel;
-use App\Http\Requests\AuthRequest;
-use Inertia\Inertia;
+use App\Data\Requests\CreateFeatureRequest;
+use App\Models\Feature;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class CreateFeatureName
+class CreateFeature
 {
     /**
-     * Handle the incoming request.
+     * Create a new feature.
      */
-    public function __invoke(CreateFeatureNameRequest $data, AuthRequest $request): Response
+    public function __invoke(CreateFeatureRequest $data, Request $request): JsonResponse
     {
-        $user = $request->assertedUser();
+        $user = $request->user();
 
-        $item = YourModel::create([
+        $feature = Feature::create([
             'user_id' => $user->id,
-            'field1' => $data->field1,
-            'field2' => $data->field2,
+            'name' => $data->name,
+            'description' => $data->description,
+            // Add other fields as needed
         ]);
 
-        return Inertia::location(route('feature.name.show', $item));
+        return response()->json([
+            'message' => 'Feature created successfully',
+            'feature' => FeatureData::from($feature),
+        ], 201);
     }
 }
 ```
 
 ---
 
-## 4. Creating a Data Model
+### 3. Data Models
 
-**File**: `app/Data/Models/YourModelData.php`
+**File**: `app/Data/Models/FeatureData.php`
 
 ```php
 <?php
@@ -126,7 +174,7 @@ use Spatie\LaravelData\Attributes\AutoWhenLoadedLazy;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Lazy;
 
-class YourModelData extends Data
+class FeatureData extends Data
 {
     public function __construct(
         public string $id,
@@ -135,28 +183,25 @@ class YourModelData extends Data
         public string|null $description,
         public Carbon|null $created_at,
         public Carbon|null $updated_at,
+
+        // Lazy-loaded relationships (only included when explicitly loaded)
         /** @var UserData $user */
         #[AutoWhenLoadedLazy]
         public Lazy|UserData $user,
-        /** @var Collection<array-key,RelatedModelData> $related_items */
-        #[AutoWhenLoadedLazy('relatedItems')]
-        public Collection|Lazy $related_items,
+
+        // Collection relationships
+        /** @var Collection<array-key,RelatedFeatureData> $related_features */
+        #[AutoWhenLoadedLazy('relatedFeatures')]
+        public Collection|Lazy $related_features,
     ) {}
 }
 ```
 
-**Key Points**:
-- Extend `Data` from Spatie Laravel Data
-- Use `Lazy` for relationships to avoid N+1 queries
-- Use `#[AutoWhenLoadedLazy]` or `#[AutoWhenLoadedLazy('relationshipName')]` for relationships
-- Use `Collection|Lazy` for collection relationships
-- Add PHPDoc comments for type hints
-
 ---
 
-## 5. Creating Props
+### 4. Props Classes
 
-**File**: `app/Data/Props/YourProps.php`
+**File**: `app/Data/Props/FeaturesProps.php`
 
 ```php
 <?php
@@ -165,22 +210,20 @@ declare(strict_types=1);
 
 namespace App\Data\Props;
 
-use App\Data\Models\YourModelData;
+use App\Data\Models\FeatureData;
 use Illuminate\Support\Collection;
 use Spatie\LaravelData\Data;
 
-class YourProps extends Data
+class FeaturesProps extends Data
 {
     public function __construct(
-        public YourModelData $item,
-        /** @var Collection<array-key,YourModelData> $items */
-        public Collection $items,
+        /** @var Collection<array-key,FeatureData> $features */
+        public Collection $features,
     ) {}
 }
 ```
 
-**For Paginated Props**:
-
+**For Single Item Props**:
 ```php
 <?php
 
@@ -188,33 +231,43 @@ declare(strict_types=1);
 
 namespace App\Data\Props;
 
-use App\Data\Models\YourModelData;
-use Illuminate\Pagination\LengthAwarePaginator;
+use App\Data\Models\FeatureData;
 use Spatie\LaravelData\Data;
 
-class YourPaginatedProps extends Data
+class FeatureProps extends Data
 {
     public function __construct(
-        /** @var LengthAwarePaginator<YourModelData> $items */
-        public LengthAwarePaginator $items,
+        public FeatureData $feature,
     ) {}
 }
 ```
 
-**Usage in Action**:
+**For Paginated Data**:
 ```php
-$items = YourModel::paginate(24);
+<?php
 
-return Inertia::render('page', YourPaginatedProps::from([
-    'items' => YourModelData::collect($items, LengthAwarePaginator::class),
-]));
+declare(strict_types=1);
+
+namespace App\Data\Props;
+
+use App\Data\Models\FeatureData;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Spatie\LaravelData\Data;
+
+class PaginatedFeaturesProps extends Data
+{
+    public function __construct(
+        /** @var LengthAwarePaginator<FeatureData> $features */
+        public LengthAwarePaginator $features,
+    ) {}
+}
 ```
 
 ---
 
-## 6. Creating Request (Form Validation)
+### 5. Request Validation Classes
 
-**File**: `app/Data/Requests/CreateFeatureNameRequest.php`
+**File**: `app/Data/Requests/CreateFeatureRequest.php`
 
 ```php
 <?php
@@ -223,259 +276,446 @@ declare(strict_types=1);
 
 namespace App\Data\Requests;
 
-use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Attributes\Validation\StringType;
+use Spatie\LaravelData\Attributes\Validation\Max;
+use Spatie\LaravelData\Attributes\Validation\Min;
+use Spatie\LaravelData\Attributes\Validation\Email;
+use Spatie\LaravelData\Attributes\Validation\BooleanType;
 use Spatie\LaravelData\Data;
 
-class CreateFeatureNameRequest extends Data
+class CreateFeatureRequest extends Data
 {
     public function __construct(
         #[Required]
         #[StringType]
+        #[Min(3)]
         #[Max(255)]
         public string $name,
-        
+
         #[StringType]
         #[Max(1000)]
         public string|null $description = null,
-        
-        public bool $is_public = false,
+
+        #[Email]
+        public string|null $contact_email = null,
+
+        #[BooleanType]
+        public bool $is_active = true,
     ) {}
 }
 ```
 
-**Common Validation Attributes**:
-- `#[Required]` - Field is required
-- `#[Email]` - Must be valid email
-- `#[StringType]` - Must be string
-- `#[Max(255)]` - Maximum length
-- `#[Min(3)]` - Minimum length
-- `#[Numeric]` - Must be numeric
-- `#[BooleanType]` - Must be boolean
+**Common Validation Rules**:
+- `#[Required]` - Field must be present
+- `#[StringType]` - Must be a string
+- `#[IntegerType]` - Must be an integer
+- `#[BooleanType]` - Must be a boolean
+- `#[Email]` - Must be valid email format
+- `#[Max(255)]` - Maximum length/value
+- `#[Min(3)]` - Minimum length/value
+- `#[Unique('table,column')]` - Must be unique in database
+- `#[Exists('table,column')]` - Must exist in database
 
 ---
 
-## 7. Creating Feature Test
+### 6. Eloquent Models
 
-**File**: `tests/Feature/FeatureNameTest.php`
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
-
-it('can access feature name page', function (): void {
-    $user = User::factory()->create();
-    $response = $this->actingAs($user)->get(route('feature.name'));
-
-    $response->assertStatus(200)
-        ->assertInertia(fn($page) => $page->component('feature-name/index'));
-});
-
-it('can create feature name', function (): void {
-    $user = User::factory()->create();
-    $response = $this->actingAs($user)->post(route('feature.name.store'), [
-        'name' => 'Test Name',
-        'description' => 'Test Description',
-    ]);
-
-    $response->assertRedirect();
-    $this->assertDatabaseHas('your_models', [
-        'user_id' => $user->id,
-        'name' => 'Test Name',
-    ]);
-});
-
-it('requires authentication', function (): void {
-    $response = $this->get(route('feature.name'));
-    $response->assertRedirect(route('login'));
-});
-```
-
----
-
-## 8. Creating Browser Test
-
-**File**: `tests/Browser/FeatureNameTest.php`
-
-Browser tests simulate real user interactions in a browser environment. Use them to test complete user flows and ensure JavaScript functionality works correctly.
-
-### Simple Tests
+**File**: `app/Models/Feature.php`
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-use App\Models\User;
+namespace App\Models;
 
-it('displays feature name page', function (): void {
-    $user = User::factory()->create();
-    $this->actingAs($user);
-    visit(route('feature.name'))->assertNoJavaScriptErrors();
-});
-
-it('can interact with feature', function (): void {
-    $user = User::factory()->create();
-    $this->actingAs($user);
-
-    visit(route('feature.name'))
-        ->type('Test Name', 'name')
-        ->press('Submit')
-        ->assertSee('Test Name');
-});
-```
-
-### User Flow Test
-
-For comprehensive testing of complete user journeys, use detailed user flow tests:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use App\Models\User;
-use App\Models\RelatedModel;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
 
 /**
- * User Flow: The Feature Name Creator
+ * Feature model representing user-created features.
  *
- * Story: Alex wants to create a new feature for their collection.
- * They navigate to the create page, fill out the form with details,
- * and successfully add the feature to their collection.
+ * @property string $id
+ * @property string $user_id
+ * @property string $name
+ * @property string|null $description
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User $user
+ * @property-read Collection<array-key,RelatedFeature> $related_features
  */
-it(
-    'allows a user to navigate to the create feature page and successfully add a new feature',
-    function (): void {
-        // Setup: Create necessary data for the test
-        $user = User::factory()->create();
-        $relatedData = RelatedModel::factory()->create();
+class Feature extends Model
+{
+    /** @use HasFactory<\Database\Factories\FeatureFactory> */
+    use HasFactory, HasUuids, Notifiable;
 
-        $this->actingAs($user);
+    protected $fillable = [
+        'user_id',
+        'name',
+        'description',
+        // Add other fillable fields
+    ];
 
-        // Step 1: Navigate to the features index page
-        $page = visit(route('feature.index'))
-            ->assertNoJavaScriptErrors()
-            ->assertSee('My Features')
-            ->assertSee('Add Feature')
-            ->click('Add Feature')
-            ->waitForText('Create a new feature')
-            ->assertNoJavaScriptErrors();
+    protected $casts = [
+        'is_active' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
-        // Step 2: Fill out the form
-        $page
-            ->type('name', 'Test Feature')
-            ->type('description', 'A test feature description')
-            ->select('related_id', $relatedData->id)
-            ->click('@submit-button')
-            ->waitForText('Feature created successfully')
-            ->assertNoJavaScriptErrors();
+    // Relationships
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
-        // Step 3: Verify redirect and database state
-        $page->assertPathIs('/features');
-
-        $this->assertDatabaseHas('features', [
-            'user_id' => $user->id,
-            'name' => 'Test Feature',
-            'description' => 'A test feature description',
-            'related_id' => $relatedData->id,
-        ]);
-
-        // Step 4: Verify the feature appears on the index page
-        $page
-            ->assertSee('Test Feature')
-            ->assertSee('A test feature description')
-            ->assertNoJavaScriptErrors();
-
-        // Optional: Take screenshot for debugging
-        $page->screenshot(filename: 'user-flow-feature-creation.png');
-    },
-);
+    public function relatedFeatures(): HasMany
+    {
+        return $this->hasMany(RelatedFeature::class);
+    }
+}
 ```
-
-**User Flow Test Best Practices**:
-- Include detailed comments explaining the user story and steps
-- Set up all necessary related data (factories, relationships)
-- Test complete navigation flows, not just isolated interactions
-- Use `waitForText()` and `assertNoJavaScriptErrors()` frequently
-- Test multiple scenarios in one comprehensive test when appropriate
-- Include database assertions to verify data persistence
-- Take screenshots for debugging complex interactions
-- Use descriptive test names that explain the complete user journey
 
 ---
 
-## 9. Frontend Page Template (React/TypeScript)
+## ⚛️ Frontend Templates
 
-**File**: `resources/js/pages/feature-name/index.tsx`
+### React Page Component with Data Loader
+**File**: `resources/js/features/features/FeaturesPage.tsx`
 
 ```tsx
-import Layout from '@/Layouts/Layout';
+import { Link, useLoaderData } from 'react-router-dom';
+import { Button } from '@/components/ui/Button';
+import { FeaturesResponse } from './featuresLoaderEffect';
 
-export default function FeatureNameIndex({ items }: Props.YourProps) {
+export function FeaturesPage() {
+    const { features } = useLoaderData<FeaturesResponse>();
+
     return (
-        <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold mb-6">Feature Name</h1>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map((item) => (
-                    <div key={item.id} className="card">
-                        <h2>{item.name}</h2>
-                        {item.description && <p>{item.description}</p>}
+        <div className="max-w-4xl mx-auto">
+            <div className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold">My Features</h1>
+                <Link to="/features/create">
+                    <Button>Create Feature</Button>
+                </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {features.map((feature) => (
+                    <div key={feature.id} className="bg-white rounded-lg shadow-md p-6">
+                        <h2 className="text-xl font-semibold mb-2">
+                            <Link
+                                to={`/features/${feature.id}`}
+                                className="hover:text-blue-600"
+                            >
+                                {feature.name}
+                            </Link>
+                        </h2>
+
+                        {feature.description && (
+                            <p className="text-gray-600 mb-4">{feature.description}</p>
+                        )}
+
+                        <div className="flex justify-between items-center text-sm text-gray-500">
+                            <span>{feature.created_at?.toLocaleDateString()}</span>
+                            <Link
+                                to={`/features/${feature.id}/edit`}
+                                className="text-blue-500 hover:text-blue-700"
+                            >
+                                Edit
+                            </Link>
+                        </div>
                     </div>
                 ))}
+
+                {features.length === 0 && (
+                    <div className="col-span-full text-center py-12">
+                        <p className="text-gray-500 mb-4">No features yet.</p>
+                        <Link to="/features/create">
+                            <Button variant="outline">Create your first feature</Button>
+                        </Link>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
+```
 
-FeatureNameIndex.layout = (page: React.ReactNode) => <Layout>{page}</Layout>;
+### Data Loader Effect
+**File**: `resources/js/features/features/featuresLoaderEffect.ts`
+
+```typescript
+// Re-export types from the Actions abstraction
+export type { FeaturesResponse } from '@/lib/actions';
+
+/**
+ * Effect-based features loader that handles all API interactions
+ * with proper error handling and type safety.
+ */
+export { Actions as featuresLoaderEffect } from '@/lib/actions';
+
+/**
+ * Convenience function to run the features loader effect
+ */
+export async function loadFeatures() {
+    return import('@/lib/actions').then(({ runAction, Actions }) =>
+        runAction(Actions.getFeatures)
+    );
+}
+
+/**
+ * React Router loader function that uses the Effect-based loader
+ */
+export async function featuresLoader() {
+    return import('@/lib/actions').then(({ runAction, Actions }) =>
+        runAction(Actions.getFeatures)
+    );
+}
+```
+
+### Create/Edit Form Component
+**File**: `resources/js/features/features/CreateFeaturePage.tsx`
+
+```tsx
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Button } from '@/components/ui/Button';
+import toast from 'react-hot-toast';
+import { runAction, Actions } from '@/lib/actions';
+
+export function CreateFeaturePage() {
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<{[key: string]: string[]}>({});
+
+    const navigate = useNavigate();
+
+    const getFieldError = (fieldName: string): string | null => {
+        return validationErrors[fieldName]?.[0] || null;
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        setIsLoading(true);
+        setValidationErrors({});
+
+        try {
+            await runAction(Actions.createFeature({
+                name,
+                description: description || undefined,
+            }));
+
+            toast.success('Feature created successfully!');
+            navigate('/features');
+        } catch (error) {
+            if (error && typeof error === 'object' && 'errors' in error) {
+                const apiError = error as { errors?: {[key: string]: string[]} };
+                setValidationErrors(apiError.errors || {});
+                toast.error('Please fix the errors below');
+            } else {
+                toast.error('Failed to create feature');
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="max-w-md mx-auto">
+            <div className="bg-white p-8 rounded-lg shadow-md">
+                <h1 className="text-2xl font-bold text-center mb-6">Create New Feature</h1>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                            Name *
+                        </label>
+                        <input
+                            type="text"
+                            id="name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                                getFieldError('name')
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'border-gray-300 focus:ring-blue-500'
+                            }`}
+                            required
+                        />
+                        {getFieldError('name') && (
+                            <p className="mt-1 text-sm text-red-600">{getFieldError('name')}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                            Description
+                        </label>
+                        <textarea
+                            id="description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            rows={4}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                                getFieldError('description')
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'border-gray-300 focus:ring-blue-500'
+                            }`}
+                        />
+                        {getFieldError('description') && (
+                            <p className="mt-1 text-sm text-red-600">{getFieldError('description')}</p>
+                        )}
+                    </div>
+
+                    <div className="flex items-center justify-end space-x-4">
+                        <Link to="/features">
+                            <Button type="button" variant="secondary">
+                                Cancel
+                            </Button>
+                        </Link>
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading ? 'Creating...' : 'Create Feature'}
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
 ```
 
 ---
 
-## 10. Complete Feature Example: Adding a "Notes" Feature
+## ⚙️ Effect-Based API Architecture
 
-### Step 1: Create Migration
+This application uses Effect-based data loading with structured error handling:
+
+### Actions Abstraction
+**File**: `resources/js/lib/actions.ts`
+
+```typescript
+import { Effect } from 'effect';
+
+// Schemas for type safety
+export const TaskSchema = S.Struct({
+    id: S.String,
+    title: S.String,
+    description: S.Union(S.String, S.Null),
+    is_completed: S.Boolean,
+    due_date: S.Union(S.String, S.Null),
+    created_at: S.String,
+    updated_at: S.String,
+});
+
+// Actions object with Effect-based API calls
+export const Actions = {
+    getTasks: Effect.gen(function* () {
+        const api = yield* ApiClient;
+        const route = ShowTasks.url();
+
+        const response = yield* api.get(route);
+        const tasks = yield* S.decode(TaskSchema, response.data);
+
+        return { tasks };
+    }).pipe(/* error handling */),
+
+    createTask: (data: CreateTaskRequest) => Effect.gen(function* () {
+        const api = yield* ApiClient;
+        const route = CreateTask.url();
+
+        const response = yield* api.post(route, data);
+        const task = yield* S.decode(TaskSchema, response.data);
+
+        return { task, message: response.message };
+    }).pipe(/* error handling */),
+};
+```
+
+### React Router Integration
+**File**: `resources/js/router.tsx`
+
+```typescript
+import { createBrowserRouter } from 'react-router-dom';
+import { tasksLoader } from './features/tasks/tasksLoaderEffect';
+
+export const router = createBrowserRouter([
+    {
+        path: '/tasks',
+        element: <TasksPage />,
+        loader: tasksLoader,
+        errorElement: <ErrorPage />,
+    },
+    {
+        path: '/tasks/create',
+        element: <CreateTaskPage />,
+    },
+]);
+```
+
+### Running Actions
+```typescript
+import { runAction, Actions } from '@/lib/actions';
+
+// In components or loaders
+const result = await runAction(Actions.getTasks());
+```
+
+## 📚 Complete Feature Example: Task Management
+
+### Step-by-Step Implementation
+
+#### 1. Migration
+```bash
+php artisan make:migration create_tasks_table
+```
+
 ```php
-// database/migrations/xxxx_create_notes_table.php
-Schema::create('notes', function (Blueprint $table) {
+// database/migrations/xxxx_create_tasks_table.php
+Schema::create('tasks', function (Blueprint $table) {
     $table->uuid('id')->primary();
     $table->foreignId('user_id')->constrained()->cascadeOnDelete();
     $table->string('title');
-    $table->text('content')->nullable();
+    $table->text('description')->nullable();
+    $table->boolean('is_completed')->default(false);
+    $table->timestamp('due_date')->nullable();
     $table->timestampsTz();
 });
 ```
 
-### Step 2: Create Eloquent Model
-```php
-// app/Models/Note.php
-/**
- * User model for authentication and user management.
- *
- * @property string $id
- * @property string $user_id
- * @property string $title
- * @property string|null $content
- * @property Carbon|null $updated_at
- * @property Carbon|null $created_at
- * @property-read User $user
- */
-class Note extends Model
-{
-    /** @use HasFactory<\Database\Factories\NoteFactory> */
-    use HasFactory, HasUuids, Notifiable;
+#### 2. Model
+```bash
+php artisan make:model Task -f
+```
 
-    protected $fillable = ['user_id', 'title', 'content'];
-    
+```php
+// app/Models/Task.php
+class Task extends Model
+{
+    use HasFactory, HasUuids;
+
+    protected $fillable = [
+        'user_id',
+        'title',
+        'description',
+        'is_completed',
+        'due_date',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_completed' => 'boolean',
+            'due_date' => 'datetime',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -483,188 +723,302 @@ class Note extends Model
 }
 ```
 
-### Step 3: Create Data Model
+#### 3. Data Classes
 ```php
-// app/Data/Models/NoteData.php
-class NoteData extends Data
+// app/Data/Models/TaskData.php
+class TaskData extends Data
 {
     public function __construct(
         public string $id,
         public string $user_id,
         public string $title,
-        public string|null $content,
+        public string|null $description,
+        public bool $is_completed,
+        public Carbon|null $due_date,
         public Carbon|null $created_at,
         public Carbon|null $updated_at,
         #[AutoWhenLoadedLazy]
         public Lazy|UserData $user,
     ) {}
 }
-```
 
-### Step 4: Create Props
-```php
-// app/Data/Props/NotesProps.php
-class NotesProps extends Data
+// app/Data/Props/TasksProps.php
+class TasksProps extends Data
 {
     public function __construct(
-        /** @var Collection<array-key,NoteData> $notes */
-        public Collection $notes,
+        /** @var Collection<array-key,TaskData> $tasks */
+        public Collection $tasks,
     ) {}
 }
 
-// app/Data/Props/NoteProps.php
-class NoteProps extends Data
-{
-    public function __construct(
-        public NoteData $note,
-    ) {}
-}
-```
-
-### Step 5: Create Request
-```php
-// app/Data/Requests/CreateNoteRequest.php
-class CreateNoteRequest extends Data
+// app/Data/Requests/CreateTaskRequest.php
+class CreateTaskRequest extends Data
 {
     public function __construct(
         #[Required]
         #[Max(255)]
         public string $title,
-        public string|null $content = null,
+
+        #[Max(1000)]
+        public string|null $description = null,
+
+        #[BooleanType]
+        public bool $is_completed = false,
+
+        public Carbon|null $due_date = null,
     ) {}
 }
 ```
 
-### Step 6: Create Actions
+#### 4. Actions
 ```php
-// app/Actions/Notes/ShowNotes.php
-class ShowNotes
+// app/Actions/Tasks/ShowTasks.php
+class ShowTasks
 {
-    public function __invoke(AuthRequest $request): InertiaResponse
+    /**
+     * Display the tasks list.
+     */
+    public function __invoke(Request $request): JsonResponse
     {
-        $user = $request->assertedUser();
+        $user = $request->user();
 
-        $notes = Note::where('user_id', $user->id)
+        $tasks = Task::where('user_id', $user->id)
+            ->orderBy('due_date')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return Inertia::render('notes/index', NotesProps::from([
-            'notes' => NoteData::collect($notes),
+        return response()->json(TasksProps::from([
+            'tasks' => TaskData::collect($tasks),
         ]));
     }
 }
 
-// app/Actions/Notes/CreateNote.php
-class CreateNote
+// app/Actions/Tasks/CreateTask.php
+class CreateTask
 {
-    public function __invoke(CreateNoteRequest $data, AuthRequest $request): Response
+    /**
+     * Create a new task.
+     */
+    public function __invoke(CreateTaskRequest $data, Request $request): JsonResponse
     {
-        $user = $request->assertedUser();
+        $user = $request->user();
 
-        $note = Note::create([
+        $task = Task::create([
             'user_id' => $user->id,
             'title' => $data->title,
-            'content' => $data->content,
+            'description' => $data->description,
+            'is_completed' => $data->is_completed,
+            'due_date' => $data->due_date,
         ]);
 
-        return Inertia::location(route('notes.index'));
+        return response()->json([
+            'message' => 'Task created successfully',
+            'task' => TaskData::from($task),
+        ], 201);
     }
 }
 ```
 
-### Step 7: Add Routes
+#### 5. API Routes
 ```php
-// routes/web.php
-Route::middleware('auth')->group(function (): void {
-    Route::get('/notes', ShowNotes::class)->name('notes.index');
-    Route::post('/notes', CreateNote::class)->name('notes.store');
+// routes/api.php
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('/tasks', ShowTasks::class)->name('api.tasks.index');
+    Route::post('/tasks', CreateTask::class)->name('api.tasks.store');
+    // Add other routes as needed
 });
 ```
 
-### Step 8: Create Tests
+#### 6. Effect-Based Actions
+```typescript
+// resources/js/lib/actions.ts (add to Actions object)
+export const Actions = {
+    // ... existing actions
+
+    getTasks: Effect.gen(function* () {
+        const api = yield* ApiClient;
+        const response = yield* api.get('/api/tasks');
+
+        const tasks = yield* S.decode(S.Array(TaskSchema))(response.data.tasks);
+        return { tasks };
+    }).pipe(/* error handling */),
+
+    createTask: (data: CreateTaskRequest) => Effect.gen(function* () {
+        const api = yield* ApiClient;
+        const response = yield* api.post('/api/tasks', data);
+
+        const task = yield* S.decode(TaskSchema)(response.data.task);
+        return { task, message: response.data.message };
+    }).pipe(/* error handling */),
+};
+```
+
+#### 7. React Router Routes
+```typescript
+// resources/js/router.tsx (add to router)
+{
+    path: '/tasks',
+    element: <TasksPage />,
+    loader: tasksLoader,
+    errorElement: <ErrorPage />,
+},
+{
+    path: '/tasks/create',
+    element: <CreateTaskPage />,
+},
+```
+
+#### 8. Tests
 ```php
-// tests/Feature/NotesTest.php
-it('can access notes page', function (): void {
+// tests/Feature/TasksTest.php
+it('can create tasks', function (): void {
     $user = User::factory()->create();
-    $response = $this->actingAs($user)->get(route('notes.index'));
-    $response->assertStatus(200)->assertInertia(fn($page) => $page->component('notes/index'));
+
+    $response = $this->actingAs($user)->postJson(route('api.tasks.store'), [
+        'title' => 'Complete project',
+        'description' => 'Finish the Laravel project',
+        'is_completed' => false,
+    ]);
+
+    $response->assertCreated();
+    $this->assertDatabaseHas('tasks', [
+        'user_id' => $user->id,
+        'title' => 'Complete project',
+        'is_completed' => false,
+    ]);
 });
 ```
 
-### Step 9: Create Frontend Page
+#### 9. Frontend
 ```tsx
-// resources/js/pages/notes/index.tsx
-export default function NotesIndex({ notes }: Props.NotesProps) {
-    // ... render notes
+// resources/js/features/tasks/TasksPage.tsx
+import { useLoaderData } from 'react-router-dom';
+import { TasksResponse } from './tasksLoaderEffect';
+
+export function TasksPage() {
+    const { tasks } = useLoaderData<TasksResponse>();
+
+    return (
+        <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold mb-6">My Tasks</h1>
+
+            <div className="space-y-4">
+                {tasks.map((task) => (
+                    <div key={task.id} className={`p-4 rounded-lg border ${
+                        task.is_completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                    }`}>
+                        <div className="flex items-center space-x-3">
+                            <input
+                                type="checkbox"
+                                checked={task.is_completed}
+                                className="rounded"
+                                // Add toggle functionality
+                            />
+                            <div className={task.is_completed ? 'line-through text-gray-500' : ''}>
+                                <h3 className="font-medium">{task.title}</h3>
+                                {task.description && (
+                                    <p className="text-sm text-gray-600">{task.description}</p>
+                                )}
+                                {task.due_date && (
+                                    <p className="text-xs text-gray-500">
+                                        Due: {new Date(task.due_date).toLocaleDateString()}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 }
-
-NotesIndex.layout = (page: React.ReactNode) => <Layout>{page}</Layout>;
 ```
 
 ---
 
-## Quick Checklist
+## ✅ Feature Development Checklist
 
-When adding a new feature:
-
-- [ ] Create Eloquent Model (if new entity)
-- [ ] Create Data Model (`app/Data/Models/`)
-- [ ] Create Props (`app/Data/Props/`)
-- [ ] Create Request (if form submission)
-- [ ] Create Action classes (`app/Actions/`)
-- [ ] Add routes (`routes/web.php`)
-- [ ] Create Feature test (`tests/Feature/`)
-- [ ] Create Browser test (`tests/Browser/`)
-- [ ] Create frontend page (`resources/js/pages/`)
-- [ ] Types auto-generate (run build if needed)
+- [ ] **Planning**: Define requirements and user stories
+- [ ] **Database**: Create migration and update model
+- [ ] **Data Layer**: Create Data models, Props, and Request classes
+- [ ] **Business Logic**: Implement Action classes
+- [ ] **Routing**: Add routes to `routes/api.php`
+- [ ] **Frontend**: Create React components with proper TypeScript types
+- [ ] **Testing**: Write comprehensive feature and browser tests
+- [ ] **Validation**: Ensure all input is validated on both client and server
+- [ ] **Authorization**: Verify proper access controls
+- [ ] **Performance**: Check for N+1 queries and optimize as needed
+- [ ] **UI/UX**: Test responsive design and accessibility
+- [ ] **Documentation**: Update relevant documentation
 
 ---
 
-## Common Patterns
+---
 
-### Loading Relationships
-```php
-$items = Model::with(['relationship1', 'relationship2.subRelationship'])
-    ->where('user_id', $user->id)
-    ->get();
+## 🎯 TypeScript Types in Effect-Based Architecture
+
+### Effect Schema Types
+```typescript
+// Define schemas with Effect for runtime validation and type safety
+export const FeatureSchema = S.Struct({
+    id: S.String,
+    name: S.String,
+    description: S.Union(S.String, S.Null),
+    created_at: S.String,
+    updated_at: S.String,
+});
+
+// Generate types from schemas
+export type Feature = S.Schema.Type<typeof FeatureSchema>;
+export type FeaturesResponse = { features: Feature[] };
 ```
 
-### Pagination
-```php
-$items = Model::paginate(24);
-return Inertia::render('page', Props::from([
-    'items' => ModelData::collect($items, LengthAwarePaginator::class),
-]));
-```
+### Component Props Types
+```tsx
+import { useLoaderData } from 'react-router-dom';
 
-### Search/Filter
-```php
-$query = Model::query();
-if ($request->has('search')) {
-    $query->where('name', 'like', "%{$request->search}%");
+export function FeaturesPage() {
+    const { features } = useLoaderData<FeaturesResponse>();
+
+    return (
+        <div>
+            {features.map((feature) => (
+                <div key={feature.id}>{feature.name}</div>
+            ))}
+        </div>
+    );
 }
-$items = $query->get();
-```
-
-### Redirect After Action
-```php
-// Redirect to show page
-return Inertia::location(route('feature.show', $item));
-
-// Redirect to index
-return Inertia::location(route('feature.index'));
-
-// Redirect with flash message
-return redirect()->route('feature.index')
-    ->with('success', 'Item created successfully');
 ```
 
 ---
 
-## Type Generation
+## 🐛 Debugging Effect-Based Architecture
 
-TypeScript types are auto-generated from PHP Data classes. After creating new Data models, Props, or requests:
+### Effect Debugging
+- Wrap Effects in `Effect.runPromise()` for debugging:
+```typescript
+// Debug an Effect
+const result = await Effect.runPromise(myEffect.pipe(
+    Effect.tap((data) => console.log('Effect data:', data)),
+    Effect.tapError((error) => console.error('Effect error:', error))
+));
+```
 
-1. Types are generated automatically
-2. NEVER run: `php artisan data:typescript`
-3. Types appear in `resources/js/types/generated.d.ts`
+- Use Effect's logging capabilities:
+```typescript
+import { Logger } from '@effect/platform';
+
+const myEffect = Effect.gen(function* () {
+    // ... effect logic
+}).pipe(
+    Logger.withMinimumLogLevel(LogLevel.Debug)
+);
+```
+
+### API Client Debugging
+- Check browser network tab for API requests and responses
+- Use React DevTools for component debugging
+- Check browser console for Effect errors and validation failures
+- Use `console.log()` in data loaders for debugging
+Remember: This guide is a living document. Update it as you discover better patterns and improve existing ones!
+

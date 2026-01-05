@@ -17,7 +17,7 @@ it('can register a new user', function (): void {
         ->type('#password', 'password123')
         ->type('#password_confirmation', 'password123')
         ->click('Create Account')
-        ->wait(3); // Give more time for API call to complete
+        ->wait(1); // Give more time for API call to complete
 
     assert_no_log_errors($logPath);
 
@@ -41,7 +41,7 @@ it('can login with valid credentials', function (): void {
         ->type('#email', 'test@example.com')
         ->type('#password', 'password123')
         ->click('Login')
-        ->wait(2)
+        ->wait(1)
         ->assertNoJavaScriptErrors()
         ->assertDontSee('Login failed'); // Should not show login error
 });
@@ -53,7 +53,7 @@ it('shows validation errors for invalid login', function (): void {
         ->type('#email', 'invalid@example.com')
         ->type('#password', 'wrongpassword')
         ->click('Login')
-        ->wait(2)
+        ->wait(1)
         ->assertNoJavaScriptErrors()
         ->assertPathIs('/login') // Should stay on login page with errors
         ->assertNoJavaScriptErrors();
@@ -68,7 +68,7 @@ it('shows validation errors for invalid registration', function (): void {
         ->type('#password', 'short')
         ->type('#password_confirmation', 'different')
         ->click('Create Account')
-        ->wait(2)
+        ->wait(1)
         ->assertNoJavaScriptErrors()
         ->assertPathIs('/register') // Should stay on register page with errors
         ->assertNoJavaScriptErrors();
@@ -88,8 +88,8 @@ it('can logout', function (): void {
         ->assertSee('Logout') // Confirm we're logged in
         ->click('Logout')
         ->assertNoJavaScriptErrors()
-        ->wait(2) // Wait for logout to complete
-        ->assertSee('Please login to view your profile.');
+        ->wait(1) // Wait for logout to complete
+        ->assertPathIs('/');
 
     assert_no_log_errors($logPath);
 });

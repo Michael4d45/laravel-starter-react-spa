@@ -1,5 +1,5 @@
-import { Workbox } from 'workbox-window';
 import toast from 'react-hot-toast';
+import { Workbox } from 'workbox-window';
 
 export const registerSW = () => {
     if ('serviceWorker' in navigator) {
@@ -20,20 +20,23 @@ export const registerSW = () => {
         });
 
         wb.addEventListener('waiting', () => {
-            toast((t) => (
-                <div className="flex items-center gap-2">
-                    <span>New version available!</span>
-                    <button
-                        className="px-3 py-1 bg-blue-500 text-white rounded-md"
-                        onClick={() => {
-                            wb.messageSkipWaiting();
-                            toast.dismiss(t.id);
-                        }}
-                    >
-                        Update
-                    </button>
-                </div>
-            ), { duration: Infinity });
+            toast(
+                (t) => (
+                    <div className="flex items-center gap-2">
+                        <span>New version available!</span>
+                        <button
+                            className="rounded-md bg-blue-500 px-3 py-1 text-white"
+                            onClick={() => {
+                                wb.messageSkipWaiting();
+                                toast.dismiss(t.id);
+                            }}
+                        >
+                            Update
+                        </button>
+                    </div>
+                ),
+                { duration: Infinity },
+            );
         });
 
         wb.register();

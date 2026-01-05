@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Auth\ConfirmPassword;
+use App\Actions\Auth\CreateToken;
 use App\Actions\Auth\HandleGoogleCallback;
 use App\Actions\Auth\Login;
 use App\Actions\Auth\Logout;
@@ -9,29 +10,19 @@ use App\Actions\Auth\Register;
 use App\Actions\Auth\ResetPassword;
 use App\Actions\Auth\SendEmailVerificationNotification;
 use App\Actions\Auth\SendPasswordResetLink;
+use App\Actions\Auth\ShowUser;
 use App\Actions\Auth\UpdatePassword;
 use App\Actions\Auth\VerifyEmail;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::get('/user', ShowUser::class)->middleware('auth:sanctum')->name(
+    'api.user',
+);
 
 // Create token for already authenticated user (used for browser tests and session auth)
-Route::get('/token', function (Request $request) {
-    $user = $request->user();
-    if (!$user) {
-        return response()->json(['message' => 'Unauthenticated'], 401);
-    }
-
-    $token = $user->createToken('api-token')->plainTextToken;
-
-    return response()->json([
-        'token' => $token,
-        'user' => $user,
-    ]);
-})->middleware('auth:sanctum');
+Route::get('/token', CreateToken::class)->middleware('auth:sanctum')->name(
+    'api.token',
+);
 
 Route::post('/login', Login::class)->name('api.login');
 Route::post('/register', Register::class)->name('api.register');
@@ -66,4 +57,6 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Content routes (no auth required for demo)
-Route::get('/content', App\Actions\Content\ShowContent::class)->name('api.content');
+Route::get('/content', App\Actions\Content\ShowContent::class)->name(
+    'api.content',
+);

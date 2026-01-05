@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth, AuthError } from '@/hooks/useAuth';
-import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { Button } from '@/components/ui/Button';
+import { AuthError, useAuth } from '@/hooks/useAuth';
+import { useOfflineBlock } from '@/hooks/useOfflineBlock';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { Link, useNavigate } from 'react-router-dom';
 
 export function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -13,7 +13,7 @@ export function RegisterPage() {
         password_confirmation: '',
     });
     const [isLoading, setIsLoading] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<{[key: string]: string[]}>({});
+    const [validationErrors, setValidationErrors] = useState<{ [key: string]: string[] }>({});
 
     const { register } = useAuth();
     const { isBlocked, blockReason } = useOfflineBlock();
@@ -25,7 +25,7 @@ export function RegisterPage() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -68,19 +68,19 @@ export function RegisterPage() {
     };
 
     return (
-        <div className="max-w-md mx-auto">
-            <div className="bg-white p-8 rounded-lg shadow-md">
-                <h1 className="text-2xl font-bold text-center mb-6">Create Account</h1>
+        <div className="mx-auto max-w-md">
+            <div className="rounded-lg bg-white p-8 shadow-md">
+                <h1 className="mb-6 text-center text-2xl font-bold">Create Account</h1>
 
                 {isBlocked && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
                         <p className="text-red-800">{blockReason}</p>
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700">
                             Full Name
                         </label>
                         <input
@@ -89,21 +89,17 @@ export function RegisterPage() {
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                                getFieldError('name')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
+                                getFieldError('name') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                             }`}
                             required
                             disabled={isBlocked}
                         />
-                        {getFieldError('name') && (
-                            <p className="mt-1 text-sm text-red-600">{getFieldError('name')}</p>
-                        )}
+                        {getFieldError('name') && <p className="mt-1 text-sm text-red-600">{getFieldError('name')}</p>}
                     </div>
 
                     <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
                             Email
                         </label>
                         <input
@@ -112,21 +108,17 @@ export function RegisterPage() {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                                getFieldError('email')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
+                                getFieldError('email') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                             }`}
                             required
                             disabled={isBlocked}
                         />
-                        {getFieldError('email') && (
-                            <p className="mt-1 text-sm text-red-600">{getFieldError('email')}</p>
-                        )}
+                        {getFieldError('email') && <p className="mt-1 text-sm text-red-600">{getFieldError('email')}</p>}
                     </div>
 
                     <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
                             Password
                         </label>
                         <input
@@ -135,22 +127,18 @@ export function RegisterPage() {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                                getFieldError('password')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
+                                getFieldError('password') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                             }`}
                             required
                             minLength={8}
                             disabled={isBlocked}
                         />
-                        {getFieldError('password') && (
-                            <p className="mt-1 text-sm text-red-600">{getFieldError('password')}</p>
-                        )}
+                        {getFieldError('password') && <p className="mt-1 text-sm text-red-600">{getFieldError('password')}</p>}
                     </div>
 
                     <div>
-                        <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="password_confirmation" className="mb-1 block text-sm font-medium text-gray-700">
                             Confirm Password
                         </label>
                         <input
@@ -159,10 +147,8 @@ export function RegisterPage() {
                             name="password_confirmation"
                             value={formData.password_confirmation}
                             onChange={handleChange}
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                                getFieldError('password_confirmation')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
+                                getFieldError('password_confirmation') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                             }`}
                             required
                             disabled={isBlocked}
@@ -172,11 +158,7 @@ export function RegisterPage() {
                         )}
                     </div>
 
-                    <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={isLoading || isBlocked}
-                    >
+                    <Button type="submit" className="w-full" disabled={isLoading || isBlocked}>
                         {isLoading ? 'Creating Account...' : 'Create Account'}
                     </Button>
                 </form>
@@ -184,7 +166,7 @@ export function RegisterPage() {
                 <div className="mt-6 text-center">
                     <p className="text-sm text-gray-600">
                         Already have an account?{' '}
-                        <Link to="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+                        <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
                             Sign in
                         </Link>
                     </p>

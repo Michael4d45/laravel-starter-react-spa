@@ -1,8 +1,8 @@
-import { Link, useLoaderData } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import toast from 'react-hot-toast';
-import { ContentResponse } from './contentLoader';
+import { Link, useLoaderData } from 'react-router-dom';
+import { ContentResponse } from './contentLoaderEffect';
 
 export function ContentPage() {
     const { content } = useLoaderData<ContentResponse>();
@@ -18,35 +18,33 @@ export function ContentPage() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
+        <div className="mx-auto max-w-4xl">
+            <div className="mb-8 flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Content List</h1>
                 <Link to="/">
                     <Button variant="secondary">Back to Home</Button>
                 </Link>
             </div>
 
-            <div className="flex gap-4 mb-6">
+            <div className="mb-6 flex gap-4">
                 <Button onClick={() => window.location.reload()} disabled={isBlocked}>
                     {isBlocked ? 'Refresh (Offline)' : 'Refresh Content'}
                 </Button>
-                <Button onClick={handleCreateContent}>
-                    Create New Content
-                </Button>
+                <Button onClick={handleCreateContent}>Create New Content</Button>
             </div>
 
             {content && content.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {content.map((item) => (
-                        <div key={item.id} className="bg-white p-6 rounded-lg shadow-md">
-                            <h2 className="text-xl font-semibold mb-2">{item.title}</h2>
+                        <div key={item.id} className="rounded-lg bg-white p-6 shadow-md">
+                            <h2 className="mb-2 text-xl font-semibold">{item.title}</h2>
                             <p className="text-gray-700">{item.body}</p>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div className="text-center p-8 bg-white rounded-lg shadow-md">
-                    <p className="text-gray-600 mb-4">
+                <div className="rounded-lg bg-white p-8 text-center shadow-md">
+                    <p className="mb-4 text-gray-600">
                         No content available.
                         {isBlocked && ' Check your connection to fetch new content.'}
                     </p>

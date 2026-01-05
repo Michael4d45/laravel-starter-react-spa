@@ -1,6 +1,6 @@
+import { Toaster } from 'react-hot-toast';
 import { Outlet } from 'react-router-dom';
 import { OfflineBanner } from './components/offline/OfflineBanner';
-import { Toaster } from 'react-hot-toast';
 
 export function App() {
     return (

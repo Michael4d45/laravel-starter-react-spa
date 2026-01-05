@@ -112,12 +112,14 @@
         "resources/js/**/*.d.ts",
         "resources/js/**/*.tsx",
         "resources/types/generated.d.ts",
+        "resources/js/lib/schemas/generated-schema.ts",
     ],
     "exclude": [
         "resources/js/routes",
         "resources/js/wayfinder",
         "resources/js/actions",
         "resources/types/generated.d.ts",
+        "resources/js/lib/schemas/generated-schema.ts",
         "vite.config.js"
     ]
 }

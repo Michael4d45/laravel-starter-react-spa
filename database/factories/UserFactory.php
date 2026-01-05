@@ -30,6 +30,7 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'is_guest' => false,
             'is_admin' => false,
+            'google_id' => null,
         ];
     }
 

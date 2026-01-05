@@ -45,7 +45,11 @@
         "workbox-strategies": "^7.4.0"
     },
     "dependencies": {
+        "@effect/platform": "^0.94.1",
+        "@effect/platform-node": "^0.104.0",
+        "@effect/schema": "^0.75.5",
         "clsx": "^2.1.1",
+        "effect": "^3.19.14",
         "idb": "^8.0.3",
         "lucide-react": "^0.562.0",
         "react": "^19.2.3",

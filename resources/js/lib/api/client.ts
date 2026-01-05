@@ -1,106 +1,191 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type AxiosError } from 'axios';
-import { openDB, type IDBPDatabase } from 'idb';
+import axios, { AxiosError, AxiosResponse } from 'axios';
+import { Context, Data, Effect, Layer } from 'effect';
+import { openDB } from 'idb';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/';
 const DB_NAME = 'api-cache-db';
 const STORE_NAME = 'api-responses';
 
-class ApiClient {
-    private axiosInstance: AxiosInstance;
-    private db: Promise<IDBPDatabase>;
+// Types
+export interface ApiRequest {
+    url: string;
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    data?: any;
+    headers?: Record<string, string>;
+}
 
-    constructor() {
-        this.axiosInstance = axios.create({
-            baseURL: API_BASE_URL,
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            withCredentials: true, // Important for Sanctum
-        });
+export interface ApiResponse<T = any> {
+    data: T;
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+}
 
-        this.db = openDB(DB_NAME, 1, {
-            upgrade(db) {
-                db.createObjectStore(STORE_NAME);
-            },
-        });
+// Errors
+export class ApiError extends Data.TaggedError('ApiError')<{
+    message: string;
+    status?: number;
+    data?: any;
+}> {}
 
-        this.setupInterceptors();
+export class NetworkError extends Data.TaggedError('NetworkError')<{
+    message: string;
+    originalError: Error;
+}> {}
+
+export class OfflineError extends Data.TaggedError('OfflineError')<{
+    message: string;
+}> {}
+
+// Service Interface
+export class ApiClient extends Context.Tag('ApiClient')<
+    ApiClient,
+    {
+        readonly request: <T = any>(request: ApiRequest) => Effect.Effect<ApiResponse<T>, ApiError | NetworkError | OfflineError>;
+        readonly get: <T = any>(
+            url: string,
+            headers?: Record<string, string>,
+        ) => Effect.Effect<ApiResponse<T>, ApiError | NetworkError | OfflineError>;
+        readonly post: <T = any>(
+            url: string,
+            data?: any,
+            headers?: Record<string, string>,
+        ) => Effect.Effect<ApiResponse<T>, ApiError | NetworkError | OfflineError>;
+        readonly put: <T = any>(
+            url: string,
+            data?: any,
+            headers?: Record<string, string>,
+        ) => Effect.Effect<ApiResponse<T>, ApiError | NetworkError | OfflineError>;
+        readonly delete: <T = any>(
+            url: string,
+            headers?: Record<string, string>,
+        ) => Effect.Effect<ApiResponse<T>, ApiError | NetworkError | OfflineError>;
     }
+>() {}
 
-    private setupInterceptors() {
-        this.axiosInstance.interceptors.request.use((config) => {
-            const token = localStorage.getItem('auth_token');
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
+// Cache Database Effect
+const getCacheDb = Effect.promise(() =>
+    openDB(DB_NAME, 1, {
+        upgrade(db) {
+            db.createObjectStore(STORE_NAME);
+        },
+    }),
+);
+
+// Cache utilities
+const getCacheKey = (url: string, method: string) => `${method}:${url}`;
+
+const getCachedResponse = (key: string) =>
+    Effect.gen(function* () {
+        const db = yield* getCacheDb;
+        const cached = yield* Effect.promise(() => db.get(STORE_NAME, key));
+        return cached;
+    });
+
+const setCachedResponse = (key: string, data: any) =>
+    Effect.gen(function* () {
+        const db = yield* getCacheDb;
+        yield* Effect.promise(() => db.put(STORE_NAME, data, key));
+    });
+
+// Main API request effect
+const makeApiRequest = <T = any>(request: ApiRequest): Effect.Effect<ApiResponse<T>, ApiError | NetworkError | OfflineError> =>
+    Effect.gen(function* () {
+        // Check if offline for non-GET requests
+        if (!navigator.onLine && request.method !== 'GET') {
+            return yield* Effect.fail(
+                new OfflineError({
+                    message: `Cannot perform ${request.method} request while offline`,
+                }),
+            );
+        }
+
+        const token = localStorage.getItem('auth_token');
+
+        try {
+            const axiosConfig = {
+                url: request.url,
+                method: request.method.toLowerCase() as any,
+                data: request.data,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...request.headers,
+                    ...(token && { Authorization: `Bearer ${token}` }),
+                },
+                withCredentials: true,
+            };
+
+            const response: AxiosResponse<T> = yield* Effect.promise(() => axios(axiosConfig));
+
+            // Cache successful GET responses
+            if (request.method === 'GET') {
+                const cacheKey = getCacheKey(request.url, request.method);
+                yield* setCachedResponse(cacheKey, response.data);
             }
-            return config;
-        });
 
-        this.axiosInstance.interceptors.response.use(
-            async (response) => {
-                // Cache successful GET responses
-                if (response.config.method === 'get') {
-                    const db = await this.db;
-                    await db.put(STORE_NAME, response.data, response.config.url);
-                }
-                return response;
-            },
-            async (error: AxiosError) => {
-                // Only handle offline/network errors for GET requests with cache fallback
-                if (!navigator.onLine && error.config?.method === 'get' && error.config.url) {
-                    console.warn('Request failed due to offline status, trying cache...');
-                    const db = await this.db;
-                    const cachedData = await db.get(STORE_NAME, error.config.url);
+            return {
+                data: response.data,
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers as Record<string, string>,
+            };
+        } catch (error) {
+            // Try cache fallback for GET requests when offline
+            if (!navigator.onLine && request.method === 'GET') {
+                try {
+                    const cacheKey = getCacheKey(request.url, request.method);
+                    const cachedData = yield* getCachedResponse(cacheKey);
                     if (cachedData) {
-                        console.log('Returning cached data for:', error.config.url);
-                        return Promise.resolve({
-                            ...error.response,
+                        return {
                             data: cachedData,
                             status: 200,
                             statusText: 'OK (Cached)',
                             headers: {},
-                            config: error.config,
-                            request: error.request,
-                        } as AxiosResponse);
+                        };
                     }
+                } catch (cacheError) {
+                    // Ignore cache errors
                 }
+            }
 
-                // For all other cases (including HTTP errors like 422), just reject with the original error
-                // This allows validation errors and other HTTP responses to be handled properly by the calling code
-                return Promise.reject(error);
-            },
-        );
-    }
+            if (error instanceof AxiosError) {
+                if (error.response) {
+                    // HTTP error response
+                    return yield* Effect.fail(
+                        new ApiError({
+                            message: error.response.data?.message || error.message,
+                            status: error.response.status,
+                            data: error.response.data,
+                        }),
+                    );
+                } else if (error.request) {
+                    // Network error
+                    return yield* Effect.fail(
+                        new NetworkError({
+                            message: 'Network request failed',
+                            originalError: error,
+                        }),
+                    );
+                }
+            }
 
-    async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-        try {
-            return await this.axiosInstance.get<T>(url, config);
-        } catch (error) {
-            // If the request fails and we are offline, the interceptor will try to return cached data.
-            // If no cached data, it will reject.
-            return Promise.reject(new Error((error as Error).message));
+            // Unknown error
+            return yield* Effect.fail(
+                new NetworkError({
+                    message: error instanceof Error ? error.message : 'Unknown error occurred',
+                    originalError: error instanceof Error ? error : new Error(String(error)),
+                }),
+            );
         }
-    }
+    });
 
-    async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-        return await this.axiosInstance.post<T>(url, data, config);
-    }
-
-    async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-        if (!navigator.onLine) {
-            throw new Error('Cannot perform PUT request while offline.');
-        }
-        return await this.axiosInstance.put<T>(url, data, config);
-    }
-
-    async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-        if (!navigator.onLine) {
-            throw new Error('Cannot perform DELETE request while offline.');
-        }
-        return await this.axiosInstance.delete<T>(url, config);
-    }
-}
-
-export const api = new ApiClient();
+// Layer
+export const ApiClientLive = Layer.succeed(ApiClient, {
+    request: makeApiRequest,
+    get: <T = any>(url: string, headers?: Record<string, string>) => makeApiRequest<T>({ url, method: 'GET', headers }),
+    post: <T = any>(url: string, data?: any, headers?: Record<string, string>) => makeApiRequest<T>({ url, method: 'POST', data, headers }),
+    put: <T = any>(url: string, data?: any, headers?: Record<string, string>) => makeApiRequest<T>({ url, method: 'PUT', data, headers }),
+    delete: <T = any>(url: string, headers?: Record<string, string>) => makeApiRequest<T>({ url, method: 'DELETE', headers }),
+});

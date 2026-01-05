@@ -5,3 +5,4 @@ phpstan.neon
 /resources/js/wayfinder
 /resources/js/types/enums.ts
 /resources/js/types/generated.d.ts
+/resources/js/lib/schemas/generated-schema.ts

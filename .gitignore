@@ -30,5 +30,6 @@ Thumbs.db
 boost.json
 reports/
 /resources/js/types/generated.d.ts
+/resources/js/lib/schemas/generated-schema.ts
 /resources/js/types/enums.ts
 tests/Browser/Screenshots

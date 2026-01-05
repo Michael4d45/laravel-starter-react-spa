@@ -102,7 +102,7 @@ export default [
             'reports',
             'resources/js/types/generated.d.ts',
             'resources/js/types/enums.ts',
-            'resources/types/generated.d.ts',
+            'resources/js/lib/schemas/generated-schema.ts',
         ],
     },
 
