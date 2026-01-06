@@ -10,6 +10,7 @@ use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Min;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Attributes\Validation\StringType;
+use Spatie\LaravelData\Attributes\Validation\Unique;
 use Spatie\LaravelData\Data;
 
 class RegisterRequest extends Data
@@ -24,6 +25,10 @@ class RegisterRequest extends Data
         #[Required]
         #[Email]
         #[Max(255)]
+        #[Unique(
+            table: 'users',
+            column: 'email',
+        )]
         public string $email,
 
         #[Required]
