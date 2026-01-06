@@ -1,5 +1,5 @@
 import { ActionResult, RunnableActions, type ValidationErrors } from '@/lib/actions';
-import { type UserData as User } from '@/lib/schemas/generated-schema';
+import { AuthResponse, UserData } from '@/types/effect-schemas';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 // User type is imported from Actions
 
 interface AuthState {
-    user: User | null;
+    user: UserData | null;
     isAuthenticated: boolean;
     isLoading: boolean;
 }
@@ -125,7 +125,7 @@ export function useAuth(options: { autoValidate?: boolean } = { autoValidate: tr
         initAuth();
     }, []);
 
-    const login = async (email: string, password: string): Promise<ActionResult<{ token: string; user: User }>> => {
+    const login = async (email: string, password: string): Promise<ActionResult<AuthResponse>> => {
         if (!navigator.onLine) {
             return {
                 success: false,
@@ -150,7 +150,7 @@ export function useAuth(options: { autoValidate?: boolean } = { autoValidate: tr
         }
     };
 
-    const register = async (name: string, email: string, password: string): Promise<ActionResult<{ token: string; user: User }>> => {
+    const register = async (name: string, email: string, password: string): Promise<ActionResult<AuthResponse>> => {
         if (!navigator.onLine) {
             return {
                 success: false,

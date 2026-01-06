@@ -32,4 +32,5 @@ reports/
 /resources/js/types/generated.d.ts
 /resources/js/lib/schemas/generated-schema.ts
 /resources/js/types/enums.ts
+/resources/js/types/effect-schemas.ts
 tests/Browser/Screenshots

@@ -26,7 +26,9 @@ export default defineConfig({
             formVariants: true,
             routes: false,
         }),
-        laravelDataTypes(),
+        laravelDataTypes({
+            refactorPaginators: false,
+        }),
         VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'robots.txt', 'pwa-192x192.png', 'pwa-512x512.png'],

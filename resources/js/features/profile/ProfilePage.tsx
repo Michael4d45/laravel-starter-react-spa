@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 import { ActionResult } from '@/lib/actions';
-import { UserData } from '@/lib/schemas/generated-schema';
+import { UserData } from '@/types/effect-schemas';
 import { useLoaderData } from 'react-router-dom';
 
 /**

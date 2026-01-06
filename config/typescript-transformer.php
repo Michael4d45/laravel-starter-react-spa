@@ -30,7 +30,7 @@ return [
      * for @typescript annotated and #[TypeScript] attributed classes to transform.
      */
     'collectors' => [
-        DataTypeScriptCollector::class,
+        \App\Collectors\EffectDataTypeScriptCollector::class,
         DefaultCollector::class,
         EnumCollector::class,
     ],
@@ -40,11 +40,7 @@ return [
      * a TypeScript representation of the PHP class.
      */
     'transformers' => [
-        DataTypeScriptTransformer::class,
-        SpatieStateTransformer::class,
-        EnumTransformer::class,
-        SpatieEnumTransformer::class,
-        DtoTransformer::class,
+        \App\Transformers\EffectSchemaTransformer::class,
     ],
 
     /*
@@ -64,14 +60,14 @@ return [
     /*
      * The package will write the generated TypeScript to this file.
      */
-    'output_file' => resource_path('js/types/generated.d.ts'),
+    'output_file' => resource_path('js/types/effect-schemas.ts'),
 
     /*
      * When the package is writing types to the output file, a writer is used to
      * determine the format. By default, this is the `TypeDefinitionWriter`.
      * But you can also use the `ModuleWriter` or implement your own.
      */
-    'writer' => TypeDefinitionWriter::class,
+    'writer' => \App\Writers\EffectSchemaWriter::class,
 
     /*
      * The generated TypeScript file can be formatted. We ship a Prettier formatter

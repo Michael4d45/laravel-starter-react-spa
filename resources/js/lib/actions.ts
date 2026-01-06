@@ -4,7 +4,7 @@ import { Cause, Effect, Exit } from 'effect';
 import { ApiClient, ApiClientLive, ApiError, NetworkError, OfflineError } from './api/client';
 
 // Import generated schemas and types
-import { AuthResponseSchema, ContentItemsSchema, LoginRequestSchema, RegisterRequestSchema, UserDataSchema } from '@/lib/schemas/generated-schema';
+import { AuthResponseSchema, ContentItemsSchema, LoginRequestSchema, RegisterRequestSchema, UserDataSchema } from '@/types/effect-schemas';
 
 // Import Wayfinder-generated actions
 import CreateToken from '@/actions/App/Actions/Auth/CreateToken';
@@ -65,21 +65,32 @@ export function decodeWithValidation<A, I>(schema: S.Schema<A, I>, label: string
 /**
  * Validated POST action helper for login/register style operations
  */
-export function validatedPost<Request, Response>(
+export function validatedPost<
+    Request,
+    Response,
+    EncodedResponse
+>(
     route: string,
     requestSchema: S.Schema<Request>,
-    responseSchema: S.Schema<Response>,
+    responseSchema: S.Schema<Response, EncodedResponse>,
     requestLabel: string,
     responseLabel: string,
 ) {
     return (request: Request) =>
         Effect.gen(function* () {
-            const validatedRequest = yield* decodeWithValidation(requestSchema, requestLabel)(request);
-            const api = yield* ApiClient;
-            const response = yield* mapApiErrors(api.post(route, validatedRequest));
-            return yield* decodeWithValidation(responseSchema, responseLabel)(response.data);
-        });
+            const validatedRequest =
+                yield* decodeWithValidation(requestSchema, requestLabel)(request)
+
+            const api = yield* ApiClient
+            const response =
+                yield* mapApiErrors(api.post(route, validatedRequest))
+
+            return yield* decodeWithValidation(responseSchema, responseLabel)(
+                response.data
+            )
+        })
 }
+
 
 // ============================================================================
 // Shared Types
@@ -104,13 +115,6 @@ export type ApiActionError =
     | { _tag: 'ApiFailure'; error: ApiError; message: string }
     | { _tag: 'NetworkError'; error: NetworkError; message: string }
     | { _tag: 'OfflineError'; error: OfflineError; message: string };
-
-// ============================================================================
-// Schema Aliases for semantic clarity
-// ============================================================================
-
-// Alias for semantic clarity - same structure as AuthResponseSchema
-const TokenResponseSchema = AuthResponseSchema;
 
 // ============================================================================
 // Effect-based API Actions
@@ -140,7 +144,7 @@ export const RunnableActions = {
     createToken: () => runAction(Effect.gen(function* () {
         const api = yield* ApiClient;
         const response = yield* mapApiErrors(api.get(CreateToken.url()));
-        return yield* decodeWithValidation(TokenResponseSchema, 'Token response')(response.data);
+        return yield* decodeWithValidation(AuthResponseSchema, 'Token response')(response.data);
     })),
 
     /**

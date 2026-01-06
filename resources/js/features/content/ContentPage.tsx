@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { ActionResult, RunnableActions } from '@/lib/actions';
-import { ContentItems } from '@/lib/schemas/generated-schema';
+import { ContentItems } from '@/types/effect-schemas';
 import toast from 'react-hot-toast';
 import { Link, useLoaderData } from 'react-router-dom';
 

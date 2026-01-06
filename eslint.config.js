@@ -100,9 +100,7 @@ export default [
             'laravelDataTypes.ts',
             'vite.config.js',
             'reports',
-            'resources/js/types/generated.d.ts',
-            'resources/js/types/enums.ts',
-            'resources/js/lib/schemas/generated-schema.ts',
+            'resources/js/types/effect-schemas.ts',
         ],
     },
 

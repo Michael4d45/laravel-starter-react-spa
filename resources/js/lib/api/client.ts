@@ -2,7 +2,6 @@ import axios, { AxiosError } from 'axios';
 import { Context, Data, Effect, Layer } from 'effect';
 import { openDB } from 'idb';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/';
 const DB_NAME = 'api-cache-db';
 const STORE_NAME = 'api-responses';
 
