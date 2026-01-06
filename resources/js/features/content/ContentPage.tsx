@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { ContentItems } from '@/types/effect-schemas';
-import { getConcurrencyAnnotation } from 'effect/SchemaAST';
 import toast from 'react-hot-toast';
 import { Link, useLoaderData } from 'react-router-dom';
 
@@ -35,17 +34,27 @@ export function ContentPage() {
             </div>
 
             <div className="mb-6 flex gap-4">
-                <Button onClick={() => window.location.reload()} disabled={isBlocked}>
+                <Button
+                    onClick={() => window.location.reload()}
+                    disabled={isBlocked}
+                >
                     {isBlocked ? 'Refresh (Offline)' : 'Refresh Content'}
                 </Button>
-                <Button onClick={handleCreateContent}>Create New Content</Button>
+                <Button onClick={handleCreateContent}>
+                    Create New Content
+                </Button>
             </div>
 
             {content && content.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {content.map((item) => (
-                        <div key={item.id} className="rounded-lg bg-white p-6 shadow-md">
-                            <h2 className="mb-2 text-xl font-semibold">{item.title}</h2>
+                        <div
+                            key={item.id}
+                            className="rounded-lg bg-white p-6 shadow-md"
+                        >
+                            <h2 className="mb-2 text-xl font-semibold">
+                                {item.title}
+                            </h2>
                             <p className="text-gray-700">{item.body}</p>
                         </div>
                     ))}
@@ -54,7 +63,8 @@ export function ContentPage() {
                 <div className="rounded-lg bg-white p-8 text-center shadow-md">
                     <p className="mb-4 text-gray-600">
                         No content available.
-                        {isBlocked && ' Check your connection to fetch new content.'}
+                        {isBlocked &&
+                            ' Check your connection to fetch new content.'}
                     </p>
                 </div>
             )}

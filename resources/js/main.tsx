@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
 import { RouterProvider } from 'react-router-dom';
 import { ErrorFallback } from './Errors';
+import { AuthProvider } from './contexts/AuthContext';
 import { router } from './router';
 import './styles/globals.css';
 
@@ -17,7 +18,9 @@ const root = createRoot(container);
 root.render(
     <StrictMode>
         <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <RouterProvider router={router} />
+            <AuthProvider>
+                <RouterProvider router={router} />
+            </AuthProvider>
         </ErrorBoundary>
     </StrictMode>,
 );

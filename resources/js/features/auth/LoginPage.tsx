@@ -1,14 +1,20 @@
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { useState } from 'react';
-import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
+
+type ValidationErrors = Record<string, readonly string[]>;
 
 export function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+    const [remember, setRemember] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+        {},
+    );
+
+    const { login, isLoading } = useAuth();
 
     const { isBlocked, blockReason } = useOfflineBlock();
     const navigate = useNavigate();
@@ -21,12 +27,21 @@ export function LoginPage() {
         e.preventDefault();
 
         if (isBlocked) {
-            toast.error(blockReason || 'Cannot login while offline');
+            alert(blockReason || 'Cannot login while offline');
             return;
         }
 
-        setIsLoading(true);
         setValidationErrors({}); // Clear previous errors
+
+        console.log(email, password, remember);
+        const result = await login({ email, password, remember });
+        if (result._tag === 'Success') {
+            navigate('/');
+        } else if (result._tag === 'ValidationError') {
+            setValidationErrors(result.errors);
+        } else {
+            alert(result.message);
+        }
     };
 
     return (
@@ -42,49 +57,99 @@ export function LoginPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="email"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
                             Email
                         </label>
                         <input
                             type="email"
                             id="email"
+                            name="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${getFieldError('email') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                                }`}
+                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
+                                getFieldError('email')
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'border-gray-300 focus:ring-blue-500'
+                            }`}
                             required
                             disabled={isBlocked}
                         />
-                        {getFieldError('email') && <p className="mt-1 text-sm text-red-600">{getFieldError('email')}</p>}
+                        {getFieldError('email') && (
+                            <p className="mt-1 text-sm text-red-600">
+                                {getFieldError('email')}
+                            </p>
+                        )}
                     </div>
 
                     <div>
-                        <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="password"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
                             Password
                         </label>
                         <input
                             type="password"
                             id="password"
+                            name="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${getFieldError('password') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                                }`}
+                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
+                                getFieldError('password')
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'border-gray-300 focus:ring-blue-500'
+                            }`}
                             required
                             disabled={isBlocked}
                         />
-                        {getFieldError('password') && <p className="mt-1 text-sm text-red-600">{getFieldError('password')}</p>}
+                        {getFieldError('password') && (
+                            <p className="mt-1 text-sm text-red-600">
+                                {getFieldError('password')}
+                            </p>
+                        )}
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={isLoading || isBlocked}>
+                    <div className="flex items-center">
+                        <input
+                            type="checkbox"
+                            id="remember"
+                            name="remember"
+                            checked={remember}
+                            onChange={(e) => setRemember(e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            disabled={isBlocked}
+                        />
+                        <label
+                            htmlFor="remember"
+                            className="ml-2 block text-sm text-gray-900"
+                        >
+                            Remember me
+                        </label>
+                    </div>
+
+                    <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isLoading || isBlocked}
+                    >
                         {isLoading ? 'Logging in...' : 'Login'}
                     </Button>
                 </form>
 
                 <div className="mt-6 space-y-2 text-center">
-                    <p className="text-sm text-gray-600">Demo credentials: any email/password combination will work</p>
+                    <p className="text-sm text-gray-600">
+                        Demo credentials: any email/password combination will
+                        work
+                    </p>
                     <p className="text-sm text-gray-600">
                         Don't have an account?{' '}
-                        <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                        <Link
+                            to="/register"
+                            className="font-medium text-blue-600 hover:text-blue-500"
+                        >
                             Sign up
                         </Link>
                     </p>

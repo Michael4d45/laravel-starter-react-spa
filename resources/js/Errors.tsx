@@ -69,7 +69,13 @@ export class JsonError extends Error {
     }
 }
 
-export function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+export function ErrorFallback({
+    error,
+    resetErrorBoundary,
+}: {
+    error: Error;
+    resetErrorBoundary: () => void;
+}) {
     if (import.meta.env.DEV) {
         console.error('🔥 Dev error caught:', error);
     }
@@ -97,10 +103,14 @@ export function ErrorFallback({ error, resetErrorBoundary }: { error: Error; res
             role="alert"
             className="relative mx-auto my-10 max-w-3xl rounded-xl border border-red-300 bg-red-50 p-6 text-red-800 shadow-xl dark:border-red-700 dark:bg-red-950 dark:text-red-200"
         >
-            <h1 className="mb-4 text-3xl font-bold text-red-700 dark:text-red-300">🚨 Application Error</h1>
+            <h1 className="mb-4 text-3xl font-bold text-red-700 dark:text-red-300">
+                🚨 Application Error
+            </h1>
 
             <div className="mb-6">
-                <p className="text-sm font-semibold tracking-wide text-red-500 uppercase dark:text-red-400">Message</p>
+                <p className="text-sm font-semibold tracking-wide text-red-500 uppercase dark:text-red-400">
+                    Message
+                </p>
                 <pre className="rounded-md bg-red-100 p-4 font-mono text-sm whitespace-pre-wrap text-red-900 dark:bg-red-900 dark:text-red-100">
                     {error.message}
                 </pre>
@@ -108,7 +118,9 @@ export function ErrorFallback({ error, resetErrorBoundary }: { error: Error; res
 
             {error instanceof JsonError && (
                 <div className="mb-6">
-                    <p className="text-sm font-semibold tracking-wide text-red-500 uppercase dark:text-red-400">JSON Error Details</p>
+                    <p className="text-sm font-semibold tracking-wide text-red-500 uppercase dark:text-red-400">
+                        JSON Error Details
+                    </p>
                     <pre className="rounded-md bg-red-100 p-4 font-mono text-sm whitespace-pre-wrap text-red-900 dark:bg-red-900 dark:text-red-100">
                         {JSON.stringify(error.json, null, 2)}
                     </pre>
@@ -117,16 +129,25 @@ export function ErrorFallback({ error, resetErrorBoundary }: { error: Error; res
 
             {parsedStack.length > 0 && (
                 <div className="mb-6">
-                    <p className="text-sm font-semibold tracking-wide text-red-500 uppercase dark:text-red-400">Parsed Stack Trace</p>
+                    <p className="text-sm font-semibold tracking-wide text-red-500 uppercase dark:text-red-400">
+                        Parsed Stack Trace
+                    </p>
                     <ul className="mt-2 max-h-64 space-y-1 overflow-auto rounded-md bg-red-100 p-4 font-mono text-xs text-red-900 dark:bg-red-900 dark:text-red-100">
                         {parsedStack.map((frame, i) => (
                             <li key={i} className="break-all">
-                                <span className="font-semibold">{frame.functionName}</span>{' '}
+                                <span className="font-semibold">
+                                    {frame.functionName}
+                                </span>{' '}
                                 {frame.file && (
                                     <>
-                                        in <span className="italic">{frame.file}</span>
-                                        {!isNaN(frame.line) && ` at line ${String(frame.line)}`}
-                                        {!isNaN(frame.column) && `, column ${String(frame.column)}`}
+                                        in{' '}
+                                        <span className="italic">
+                                            {frame.file}
+                                        </span>
+                                        {!isNaN(frame.line) &&
+                                            ` at line ${String(frame.line)}`}
+                                        {!isNaN(frame.column) &&
+                                            `, column ${String(frame.column)}`}
                                     </>
                                 )}
                             </li>
@@ -137,8 +158,12 @@ export function ErrorFallback({ error, resetErrorBoundary }: { error: Error; res
 
             {error.stack && (
                 <details className="mb-6 rounded-md bg-red-100 p-4 dark:bg-red-900">
-                    <summary className="cursor-pointer font-semibold text-red-700 dark:text-red-300">Raw Stack Trace</summary>
-                    <pre className="mt-2 text-xs whitespace-pre-wrap text-red-900 dark:text-red-100">{error.stack}</pre>
+                    <summary className="cursor-pointer font-semibold text-red-700 dark:text-red-300">
+                        Raw Stack Trace
+                    </summary>
+                    <pre className="mt-2 text-xs whitespace-pre-wrap text-red-900 dark:text-red-100">
+                        {error.stack}
+                    </pre>
                 </details>
             )}
 
@@ -158,7 +183,8 @@ export function ErrorFallback({ error, resetErrorBoundary }: { error: Error; res
             </div>
 
             <p className="mt-6 text-xs text-red-600 dark:text-red-400">
-                Still stuck? Try refreshing the page or inspect <code>window.__lastError</code> in devtools.
+                Still stuck? Try refreshing the page or inspect{' '}
+                <code>window.__lastError</code> in devtools.
             </p>
         </div>
     );
