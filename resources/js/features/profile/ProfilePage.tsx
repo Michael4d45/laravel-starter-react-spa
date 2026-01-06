@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
+import { ActionResult } from '@/lib/actions';
 import { UserData } from '@/lib/schemas/generated-schema';
 import { useLoaderData } from 'react-router-dom';
 
@@ -8,7 +9,17 @@ import { useLoaderData } from 'react-router-dom';
  * This will automatically redirect to login if the user is not authenticated
  */
 export async function profileLoader() {
-    return import('@/lib/actions').then(({ runActionForLoader, Actions }) => runActionForLoader(Actions.getUser));
+    return import('@/lib/actions').then(async ({ RunnableActions }) => {
+        const result = await RunnableActions.getUser();
+        return ActionResult.match(result, {
+            onSuccess: (data) => {
+                return data;
+            },
+            onFailure: (error) => {
+                throw new Error(`Profile loading failed: ${JSON.stringify(error)}`);
+            },
+        });
+    });
 }
 
 /**

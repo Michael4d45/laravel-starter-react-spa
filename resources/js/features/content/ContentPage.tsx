@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
+import { ActionResult, RunnableActions } from '@/lib/actions';
 import { ContentItems } from '@/lib/schemas/generated-schema';
 import toast from 'react-hot-toast';
 import { Link, useLoaderData } from 'react-router-dom';
@@ -8,7 +9,15 @@ import { Link, useLoaderData } from 'react-router-dom';
  * React Router loader function that uses the Effect-based loader
  */
 export async function contentLoader() {
-    return import('@/lib/actions').then(({ runAction, Actions }) => runAction(Actions.getContent));
+    const result = await RunnableActions.getContent();
+    return ActionResult.match(result, {
+        onSuccess: (data) => {
+            return data;
+        },
+        onFailure: (error) => {
+            throw new Error(`Content loading failed: ${JSON.stringify(error)}`);
+        },
+    });
 }
 
 export function ContentPage() {

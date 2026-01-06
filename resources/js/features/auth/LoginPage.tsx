@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/Button';
-import { handleAuthError, useAuth } from '@/hooks/useAuth';
+import { handleAuthResult, useAuth } from '@/hooks/useAuth';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
+import { type ValidationErrors } from '@/lib/actions';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
-import { type ValidationErrors } from '@/lib/actions';
 
 export function LoginPage() {
     const [email, setEmail] = useState('');
@@ -31,15 +31,15 @@ export function LoginPage() {
         setIsLoading(true);
         setValidationErrors({}); // Clear previous errors
 
-        try {
-            await login(email, password);
+        const result = await login(email, password);
+        const authData = handleAuthResult(result, setValidationErrors, 'Login failed. Please check your credentials.');
+
+        if (authData) {
             toast.success('Logged in successfully');
             navigate('/');
-        } catch (error: unknown) {
-            handleAuthError(error, setValidationErrors, 'Login failed. Please check your credentials.');
-        } finally {
-            setIsLoading(false);
         }
+
+        setIsLoading(false);
     };
 
     return (

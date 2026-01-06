@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/Button';
-import { handleAuthError, useAuth } from '@/hooks/useAuth';
+import { handleAuthResult, useAuth } from '@/hooks/useAuth';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
+import { type ValidationErrors } from '@/lib/actions';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
-import { type ValidationErrors } from '@/lib/actions';
 
 export function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -64,15 +64,15 @@ export function RegisterPage() {
         setIsLoading(true);
         setValidationErrors({}); // Clear previous errors
 
-        try {
-            await register(formData.name, formData.email, formData.password);
+        const result = await register(formData.name, formData.email, formData.password);
+        const authData = handleAuthResult(result, setValidationErrors, 'Registration failed. Please try again.');
+
+        if (authData) {
             toast.success('Account created successfully! Please login.');
             navigate('/login');
-        } catch (error: unknown) {
-            handleAuthError(error, setValidationErrors, 'Registration failed. Please try again.');
-        } finally {
-            setIsLoading(false);
         }
+
+        setIsLoading(false);
     };
 
     return (

@@ -1,13 +1,18 @@
 import { ParseError } from '@effect/schema/ParseResult';
 import * as S from '@effect/schema/Schema';
-import { Effect } from 'effect';
+import { Cause, Effect, Exit } from 'effect';
 import { ApiClient, ApiClientLive, ApiError, NetworkError, OfflineError } from './api/client';
 
-// Import custom schemas from actions (for validation in Actions)
+// Import generated schemas and types
+import { AuthResponseSchema, ContentItemsSchema, LoginRequestSchema, RegisterRequestSchema, UserDataSchema } from '@/lib/schemas/generated-schema';
 
-// Import feature-specific actions
-import { AuthActions } from './actions/auth.actions';
-import { ContentActions } from './actions/content.actions';
+// Import Wayfinder-generated actions
+import CreateToken from '@/actions/App/Actions/Auth/CreateToken';
+import Login from '@/actions/App/Actions/Auth/Login';
+import Logout from '@/actions/App/Actions/Auth/Logout';
+import Register from '@/actions/App/Actions/Auth/Register';
+import ShowUser from '@/actions/App/Actions/Auth/ShowUser';
+import ShowContent from '@/actions/App/Actions/Content/ShowContent';
 
 // ============================================================================
 // Error Handling Helpers
@@ -19,49 +24,28 @@ import { ContentActions } from './actions/content.actions';
 export const mapApiErrors = <A, R>(effect: Effect.Effect<A, ApiError | NetworkError | OfflineError, R>) =>
     effect.pipe(
         Effect.catchTags({
-            ApiError: (error) => Effect.fail({ _tag: 'ApiFailure', error } as const),
-            NetworkError: (error) => Effect.fail({ _tag: 'NetworkError', error } as const),
-            OfflineError: (error) => Effect.fail({ _tag: 'OfflineError', error } as const),
+            ApiError: (error) => {
+                if (error.status === 401) {
+                    return Effect.fail({ _tag: 'Unauthorized', message: 'Authentication required' } as const);
+                }
+                // Check if this is a Laravel validation error (422 with errors field)
+                if (error.status === 422 && error.data?.errors) {
+                    return Effect.fail({
+                        _tag: 'FormValidationError',
+                        errors: error.data.errors,
+                        message: error.data.message || 'Validation failed',
+                    } as const);
+                }
+                return Effect.fail({ _tag: 'ApiFailure', error, message: error.message } as const);
+            },
+            NetworkError: (error) => Effect.fail({ _tag: 'NetworkError', error, message: error.message } as const),
+            OfflineError: (error) => Effect.fail({ _tag: 'OfflineError', error, message: error.message } as const),
         }),
     ) as Effect.Effect<A, ApiActionError, R>;
 
 /**
  * Map API errors to domain errors (with auth handling for 401)
  */
-export const mapApiErrorsWithAuth = <A, R>(effect: Effect.Effect<A, ApiError | NetworkError | OfflineError, R>) =>
-    effect.pipe(
-        Effect.catchTags({
-            ApiError: (error) =>
-                error.status === 401 ? Effect.fail({ _tag: 'Unauthorized' } as const) : Effect.fail({ _tag: 'ApiFailure', error } as const),
-            NetworkError: (error) => Effect.fail({ _tag: 'NetworkError', error } as const),
-            OfflineError: (error) => Effect.fail({ _tag: 'OfflineError', error } as const),
-        }),
-    ) as Effect.Effect<A, ApiActionError, R>;
-
-/**
- * Error constructors for consistent error creation
- */
-export const Errors = {
-    unauthorized: () => ({ _tag: 'Unauthorized' }) as const,
-    validation: (error: ParseError) => ({ _tag: 'ValidationError', error }) as const,
-    formValidation: (errors: ValidationErrors) => ({ _tag: 'FormValidationError', errors }) as const,
-    apiFailure: (error: ApiError) => ({ _tag: 'ApiFailure', error }) as const,
-    network: (error: NetworkError) => ({ _tag: 'NetworkError', error }) as const,
-    offline: (error: OfflineError) => ({ _tag: 'OfflineError', error }) as const,
-};
-
-/**
- * Form error class for handling validation errors in React forms
- */
-export class FormError extends Error {
-    public errors?: ValidationErrors;
-
-    constructor(message: string, errors?: ValidationErrors) {
-        super(message);
-        this.name = 'FormError';
-        this.errors = errors;
-    }
-}
 
 /**
  * Decode with validation and consistent error handling
@@ -74,7 +58,7 @@ export function decodeWithValidation<A, I>(schema: S.Schema<A, I>, label: string
                     console.error(`${label} validation error:`, error);
                 }),
             ),
-            Effect.mapError((error) => ({ _tag: 'ValidationError', error }) as const),
+            Effect.mapError((error) => ({ _tag: 'ValidationError', error, message: `${label} validation failed` }) as const),
         );
 }
 
@@ -114,82 +98,146 @@ export interface ValidationErrors {
 // ============================================================================
 
 export type ApiActionError =
-    | { _tag: 'Unauthorized' }
-    | { _tag: 'ValidationError'; error: ParseError }
-    | { _tag: 'FormValidationError'; errors: ValidationErrors }
-    | { _tag: 'ApiFailure'; error: ApiError }
-    | { _tag: 'NetworkError'; error: NetworkError }
-    | { _tag: 'OfflineError'; error: OfflineError };
+    | { _tag: 'Unauthorized'; message: string }
+    | { _tag: 'ValidationError'; error: ParseError; message: string }
+    | { _tag: 'FormValidationError'; errors: ValidationErrors; message: string }
+    | { _tag: 'ApiFailure'; error: ApiError; message: string }
+    | { _tag: 'NetworkError'; error: NetworkError; message: string }
+    | { _tag: 'OfflineError'; error: OfflineError; message: string };
 
 // ============================================================================
-// Actions
+// Schema Aliases for semantic clarity
+// ============================================================================
+
+// Alias for semantic clarity - same structure as AuthResponseSchema
+const TokenResponseSchema = AuthResponseSchema;
+
+// ============================================================================
+// Effect-based API Actions
 // ============================================================================
 
 /**
- * Effect-based API Actions abstraction
- * Handles all API interactions with proper error handling and type safety
+ * Runnable API Actions - automatically execute Effects and return ActionResult
+ * Use these for direct calls like: const result = await getUser()
  */
-export const Actions = {
+export const RunnableActions = {
     // ============================================================================
     // Auth Actions
     // ============================================================================
-    ...AuthActions,
+
+    /**
+     * Get the current authenticated user
+     */
+    getUser: () => runAction(Effect.gen(function* () {
+        const api = yield* ApiClient;
+        const response = yield* mapApiErrors(api.get(ShowUser.url()));
+        return yield* decodeWithValidation(UserDataSchema, 'User')(response.data);
+    })),
+
+    /**
+     * Create a token for the currently authenticated user
+     */
+    createToken: () => runAction(Effect.gen(function* () {
+        const api = yield* ApiClient;
+        const response = yield* mapApiErrors(api.get(CreateToken.url()));
+        return yield* decodeWithValidation(TokenResponseSchema, 'Token response')(response.data);
+    })),
+
+    /**
+     * Login with email and password
+     */
+    login: (params: S.Schema.Type<typeof LoginRequestSchema>) => runAction(validatedPost(Login.url(), LoginRequestSchema, AuthResponseSchema, 'Login request', 'Login response')(params)),
+
+    /**
+     * Register a new user
+     */
+    register: (params: S.Schema.Type<typeof RegisterRequestSchema>) => runAction(validatedPost(Register.url(), RegisterRequestSchema, AuthResponseSchema, 'Register request', 'Register response')(params)),
+
+    /**
+     * Logout the current user
+     */
+    logout: () => runAction(Effect.gen(function* () {
+        const api = yield* ApiClient;
+        yield* mapApiErrors(api.post(Logout.url()));
+        return { success: true };
+    })),
 
     // ============================================================================
     // Content Actions
     // ============================================================================
-    ...ContentActions,
+
+    /**
+     * Get content items
+     */
+    getContent: () => runAction(Effect.gen(function* () {
+        const api = yield* ApiClient;
+        const response = yield* mapApiErrors(api.get(ShowContent.url()));
+        return yield* decodeWithValidation(ContentItemsSchema, 'Content response')(response.data);
+    })),
 };
 
-// ============================================================================
-// Convenience Functions (for backward compatibility)
-// ============================================================================
+/**
+ * Result type for Effect operations - either success data or structured error
+ */
+export type ActionResult<T> = { success: true; data: T } | { success: false; error: ApiActionError };
 
 /**
- * Run an Action Effect with the ApiClientLive layer
+ * Run an Action Effect and return structured result instead of throwing
+ * This is the proper Effect way - no try-catch needed in calling code
  */
-export function runAction<T>(effect: Effect.Effect<T, ApiActionError, ApiClient>): Promise<T> {
-    return Effect.runPromise(effect.pipe(Effect.provide(ApiClientLive)));
-}
-
-/**
- * Run an Action Effect and map errors to Response objects (for React Router loaders)
- */
-export async function runActionForLoader<T>(
-    effect: Effect.Effect<T, ApiActionError, ApiClient>,
-    mapError?: (error: ApiActionError) => Response,
-): Promise<T> {
-    try {
-        return await runAction(effect);
-    } catch (error: unknown) {
-        // Type-safe error checking
-        if (!error || typeof error !== 'object' || !('_tag' in error)) {
-            throw error;
+export async function runAction<T>(effect: Effect.Effect<T, ApiActionError, ApiClient>): Promise<ActionResult<T>> {
+    const exit = await Effect.runPromiseExit(effect.pipe(Effect.provide(ApiClientLive)));
+    if (Exit.isSuccess(exit)) {
+        return { success: true, data: exit.value };
+    } else {
+        // Extract the actual error from the Cause
+        const error = Cause.failureOrCause(exit.cause);
+        if (error._tag === 'Left') {
+            return { success: false, error: error.left };
+        } else {
+            // This shouldn't happen with our Effect types, but handle it gracefully
+            return {
+                success: false,
+                error: { _tag: 'NetworkError', error: { message: 'Unknown error occurred' } as any, message: 'Unknown error occurred' },
+            };
         }
-
-        const apiError = error as ApiActionError;
-
-        if (mapError) {
-            // eslint-disable-next-line @typescript-eslint/only-throw-error
-            throw mapError(apiError);
-        }
-
-        // Default error mapping - translate Effect errors to Response objects
-        if (apiError._tag === 'Unauthorized') {
-            // eslint-disable-next-line @typescript-eslint/only-throw-error
-            throw new Response('Unauthorized', {
-                status: 401,
-                statusText: 'Please log in to view this content',
-            });
-        }
-        if (apiError._tag === 'ValidationError') {
-            // eslint-disable-next-line @typescript-eslint/only-throw-error
-            throw new Response('Bad Response', {
-                status: 502,
-                statusText: 'Server returned invalid data format',
-            });
-        }
-
-        throw error;
     }
 }
+
+/**
+ * Utility functions for working with ActionResult
+ */
+export const ActionResult = {
+    /**
+     * Check if result is success and get data (type-safe)
+     */
+    isSuccess: <T>(result: ActionResult<T>): result is { success: true; data: T } => result.success,
+
+    /**
+     * Check if result is failure and get error (type-safe)
+     */
+    isFailure: <T>(result: ActionResult<T>): result is { success: false; error: ApiActionError } => !result.success,
+
+    /**
+     * Get data if success, undefined if failure
+     */
+    getData: <T>(result: ActionResult<T>): T | undefined => (result.success ? result.data : undefined),
+
+    /**
+     * Get error if failure, undefined if success
+     */
+    getError: <T>(result: ActionResult<T>): ApiActionError | undefined => (result.success ? undefined : result.error),
+
+    /**
+     * Pattern matching utility - provide handlers for success and failure
+     */
+    match: <T, R>(
+        result: ActionResult<T>,
+        handlers: {
+            onSuccess: (data: T) => R;
+            onFailure: (error: ApiActionError) => R;
+        },
+    ): R => {
+        return result.success ? handlers.onSuccess(result.data) : handlers.onFailure(result.error);
+    },
+};
