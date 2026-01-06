@@ -137,11 +137,11 @@ return [
     ],
 
     // Used in LogRequestResponse
-    'should_log_requests' => env('SHOULD_LOG_REQUESTS', false),
+    'should_log_requests' => (bool) env('SHOULD_LOG_REQUESTS', false),
 
-    'should_log_responses' => env('SHOULD_LOG_RESPONSES', false),
+    'should_log_responses' => (bool) env('SHOULD_LOG_RESPONSES', false),
 
-    'should_log_validation_errors' => env(
+    'should_log_validation_errors' => (bool) env(
         'SHOULD_LOG_VALIDATION_ERRORS',
         false,
     ),
@@ -153,5 +153,5 @@ return [
     ],
 
     // Used in AppServiceProvider
-    'should_log_db' => env('SHOULD_LOG_DB', false),
+    'should_log_db' => (bool) env('SHOULD_LOG_DB', false),
 ];

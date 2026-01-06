@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Auth;
 
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class Logout
@@ -15,7 +16,7 @@ class Logout
     public function __invoke(Request $request): Response
     {
         $token = $request->user()?->currentAccessToken();
-        if ($token) {
+        if ($token instanceof PersonalAccessToken) {
             $token->delete();
         }
         // For transient tokens (like in tests), we can't delete them but logout is still successful

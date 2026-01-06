@@ -34,11 +34,13 @@ export function LoginPage() {
             await login(email, password);
             toast.success('Logged in successfully');
             navigate('/');
-        } catch (error) {
-            if (error instanceof Error && 'errors' in error) {
-                const authError = error as AuthError;
-                setValidationErrors(authError.errors || {});
-                toast.error(authError.message || 'Login failed');
+        } catch (error: unknown) {
+            if (error instanceof AuthError) {
+                if (error.errors && Object.keys(error.errors).length > 0) {
+                    setValidationErrors(error.errors);
+                } else {
+                    toast.error(error.message || 'Login failed');
+                }
             } else {
                 toast.error('Login failed. Please check your credentials.');
             }

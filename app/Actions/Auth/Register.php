@@ -48,6 +48,7 @@ class Register
                 'email_verified_at' => now(),
                 'is_guest' => false,
                 'is_admin' => false,
+                'google_id' => null,
             ]);
         }
 

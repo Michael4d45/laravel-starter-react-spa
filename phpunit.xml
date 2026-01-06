@@ -41,10 +41,10 @@
         <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_DEBUG" value="false"/>
-        <env name="LOGGING_SHOULD_LOG_DB" value="false"/>
-        <env name="LOGGING_SHOULD_LOG_REQUESTS" value="false"/>
-        <env name="LOGGING_SHOULD_LOG_RESPONSES" value="false"/>
-        <env name="LOGGING_SHOULD_LOG_VALIDATION_ERRORS" value="false"/>
+        <env name="SHOULD_LOG_DB" value="false"/>
+        <env name="SHOULD_LOG_REQUESTS" value="false"/>
+        <env name="SHOULD_LOG_RESPONSES" value="false"/>
+        <env name="SHOULD_LOG_VALIDATION_ERRORS" value="false"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

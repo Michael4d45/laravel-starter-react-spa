@@ -111,26 +111,45 @@ export function useAuth(options: { autoValidate?: boolean } = { autoValidate: tr
             throw new Error('Cannot login while offline');
         }
 
+        let authResponse;
+        let authError: AuthError | null = null;
+
         try {
-            const authResponse = await runAction(Actions.login({ email, password, remember: false }));
-
-            localStorage.setItem('auth_token', authResponse.token);
-
-            setAuthState({
-                user: authResponse.user,
-                isAuthenticated: true,
-                isLoading: false,
-            });
+            authResponse = await runAction(Actions.login({ email, password, remember: false }));
         } catch (error: any) {
-            // Handle structured errors from Actions
-            if (error._tag === 'ApiFailure' && error.error.status) {
-                const responseData = error.error.data;
-                throw new AuthError(responseData?.message || 'Login failed', responseData?.errors || {});
+            // Parse the Effect FiberFailure error message (contains JSON with structured error)
+            if (typeof error.message === 'string' && error.message.startsWith('{')) {
+                try {
+                    const structuredError = JSON.parse(error.message);
+
+                    // Handle structured Effect errors
+                    if (structuredError._tag === 'ApiFailure' && structuredError.error?.data?.errors) {
+                        authError = new AuthError(structuredError.error.data.message || 'Login failed', structuredError.error.data.errors);
+                    }
+                } catch (parseError) {
+                    // Fall through to generic error
+                }
             }
 
-            // Re-throw other errors
-            throw error;
+            // Fallback for any other error
+            if (!authError) {
+                authError = new AuthError('Login failed. Please check your credentials.', {});
+            }
         }
+
+        // If we have an auth error, throw it now (outside the catch block)
+        if (authError) {
+            throw authError;
+        }
+
+        // Login successful
+        localStorage.setItem('auth_token', authResponse.token);
+
+        setAuthState({
+            user: authResponse.user,
+            isAuthenticated: true,
+            isLoading: false,
+        });
     };
 
     const register = async (name: string, email: string, password: string): Promise<void> => {
@@ -138,8 +157,11 @@ export function useAuth(options: { autoValidate?: boolean } = { autoValidate: tr
             throw new Error('Cannot register while offline');
         }
 
+        let authResponse;
+        let authError: AuthError | null = null;
+
         try {
-            const authResponse = await runAction(
+            authResponse = await runAction(
                 Actions.register({
                     name,
                     email,
@@ -147,25 +169,40 @@ export function useAuth(options: { autoValidate?: boolean } = { autoValidate: tr
                     password_confirmation: password,
                 }),
             );
-
-            // Registration successful - the API auto-logs in the user
-            localStorage.setItem('auth_token', authResponse.token);
-
-            setAuthState({
-                user: authResponse.user,
-                isAuthenticated: true,
-                isLoading: false,
-            });
         } catch (error: any) {
-            // Handle structured errors from Actions
-            if (error._tag === 'ApiFailure' && error.error.status) {
-                const responseData = error.error.data;
-                throw new AuthError(responseData?.message || 'Registration failed', responseData?.errors || {});
+            // Parse the Effect FiberFailure error message (contains JSON with structured error)
+            if (typeof error.message === 'string' && error.message.startsWith('{')) {
+                try {
+                    const structuredError = JSON.parse(error.message);
+
+                    // Handle structured Effect errors
+                    if (structuredError._tag === 'ApiFailure' && structuredError.error?.data?.errors) {
+                        authError = new AuthError(structuredError.error.data.message || 'Registration failed', structuredError.error.data.errors);
+                    }
+                } catch (parseError) {
+                    // Fall through to generic error
+                }
             }
 
-            // Re-throw other errors
-            throw error;
+            // Fallback for any other error
+            if (!authError) {
+                authError = new AuthError('Registration failed. Please try again.', {});
+            }
         }
+
+        // If we have an auth error, throw it now (outside the catch block)
+        if (authError) {
+            throw authError;
+        }
+
+        // Registration successful - the API auto-logs in the user
+        localStorage.setItem('auth_token', authResponse.token);
+
+        setAuthState({
+            user: authResponse.user,
+            isAuthenticated: true,
+            isLoading: false,
+        });
     };
 
     const logout = async () => {

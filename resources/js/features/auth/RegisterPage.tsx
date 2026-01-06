@@ -69,11 +69,11 @@ export function RegisterPage() {
             navigate('/login');
         } catch (error: unknown) {
             if (error instanceof AuthError) {
-                setValidationErrors(error.errors || {});
-            } else if (error instanceof Error && 'errors' in error) {
-                // Fallback for any error with errors property
-                const errorWithErrors = error as any;
-                setValidationErrors(errorWithErrors.errors || {});
+                if (error.errors && Object.keys(error.errors).length > 0) {
+                    setValidationErrors(error.errors);
+                } else {
+                    toast.error(error.message || 'Registration failed');
+                }
             } else {
                 toast.error('Registration failed. Please try again.');
             }

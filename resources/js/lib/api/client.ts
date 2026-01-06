@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosError } from 'axios';
 import { Context, Data, Effect, Layer } from 'effect';
 import { openDB } from 'idb';
 
@@ -88,6 +88,65 @@ const setCachedResponse = (key: string, data: any) =>
         yield* Effect.promise(() => db.put(STORE_NAME, data, key));
     });
 
+// Axios request with proper error handling
+const axiosRequest = <T>(config: any) =>
+    Effect.async<ApiResponse<T>, ApiError | NetworkError>((resume) => {
+        axios(config)
+            .then((response) => {
+                resume(
+                    Effect.succeed({
+                        data: response.data,
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: response.headers as Record<string, string>,
+                    }),
+                );
+            })
+            .catch((error) => {
+                if (error instanceof AxiosError) {
+                    if (error.response) {
+                        // HTTP error response
+                        const apiError = new ApiError({
+                            message: error.response.data?.message || error.message,
+                            status: error.response.status,
+                            data: error.response.data,
+                        });
+                        resume(Effect.fail(apiError));
+                    } else if (error.request) {
+                        // Network error
+                        resume(
+                            Effect.fail(
+                                new NetworkError({
+                                    message: 'Network request failed',
+                                    originalError: error,
+                                }),
+                            ),
+                        );
+                    } else {
+                        // Unknown axios error
+                        resume(
+                            Effect.fail(
+                                new NetworkError({
+                                    message: error.message || 'Unknown axios error',
+                                    originalError: error,
+                                }),
+                            ),
+                        );
+                    }
+                } else {
+                    // Unknown error
+                    resume(
+                        Effect.fail(
+                            new NetworkError({
+                                message: error instanceof Error ? error.message : 'Unknown error occurred',
+                                originalError: error instanceof Error ? error : new Error(String(error)),
+                            }),
+                        ),
+                    );
+                }
+            });
+    });
+
 // Main API request effect
 const makeApiRequest = <T = any>(request: ApiRequest): Effect.Effect<ApiResponse<T>, ApiError | NetworkError | OfflineError> =>
     Effect.gen(function* () {
@@ -102,83 +161,47 @@ const makeApiRequest = <T = any>(request: ApiRequest): Effect.Effect<ApiResponse
 
         const token = localStorage.getItem('auth_token');
 
-        try {
-            const axiosConfig = {
-                url: request.url,
-                method: request.method.toLowerCase() as any,
-                data: request.data,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    ...request.headers,
-                    ...(token && { Authorization: `Bearer ${token}` }),
-                },
-                withCredentials: true,
-            };
+        const axiosConfig = {
+            url: request.url,
+            method: request.method.toLowerCase() as any,
+            data: request.data,
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...request.headers,
+                ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            withCredentials: true,
+        };
 
-            const response: AxiosResponse<T> = yield* Effect.promise(() => axios(axiosConfig));
-
-            // Cache successful GET responses
-            if (request.method === 'GET') {
+        // Try cache fallback for GET requests when offline
+        if (!navigator.onLine && request.method === 'GET') {
+            try {
                 const cacheKey = getCacheKey(request.url, request.method);
-                yield* setCachedResponse(cacheKey, response.data);
-            }
-
-            return {
-                data: response.data,
-                status: response.status,
-                statusText: response.statusText,
-                headers: response.headers as Record<string, string>,
-            };
-        } catch (error) {
-            // Try cache fallback for GET requests when offline
-            if (!navigator.onLine && request.method === 'GET') {
-                try {
-                    const cacheKey = getCacheKey(request.url, request.method);
-                    const cachedData = yield* getCachedResponse(cacheKey);
-                    if (cachedData) {
-                        return {
-                            data: cachedData,
-                            status: 200,
-                            statusText: 'OK (Cached)',
-                            headers: {},
-                        };
-                    }
-                } catch (cacheError) {
-                    // Ignore cache errors
+                const cachedData = yield* getCachedResponse(cacheKey);
+                if (cachedData) {
+                    return {
+                        data: cachedData,
+                        status: 200,
+                        statusText: 'OK (Cached)',
+                        headers: {},
+                    };
                 }
+            } catch (cacheError) {
+                // Ignore cache errors
             }
-
-            if (error instanceof AxiosError) {
-                if (error.response) {
-                    // HTTP error response
-                    return yield* Effect.fail(
-                        new ApiError({
-                            message: error.response.data?.message || error.message,
-                            status: error.response.status,
-                            data: error.response.data,
-                        }),
-                    );
-                } else if (error.request) {
-                    // Network error
-                    return yield* Effect.fail(
-                        new NetworkError({
-                            message: 'Network request failed',
-                            originalError: error,
-                        }),
-                    );
-                }
-            }
-
-            // Unknown error
-            return yield* Effect.fail(
-                new NetworkError({
-                    message: error instanceof Error ? error.message : 'Unknown error occurred',
-                    originalError: error instanceof Error ? error : new Error(String(error)),
-                }),
-            );
         }
+
+        const response = yield* axiosRequest<T>(axiosConfig);
+
+        // Cache successful GET responses
+        if (request.method === 'GET') {
+            const cacheKey = getCacheKey(request.url, request.method);
+            yield* setCachedResponse(cacheKey, response.data);
+        }
+
+        return response;
     });
 
 // Layer
