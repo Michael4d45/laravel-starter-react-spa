@@ -1,7 +1,5 @@
 import { Button } from '@/components/ui/Button';
-import { handleAuthResult, useAuth } from '@/hooks/useAuth';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
-import { type ValidationErrors } from '@/lib/actions';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
@@ -12,7 +10,6 @@ export function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
-    const { login } = useAuth({ autoValidate: false });
     const { isBlocked, blockReason } = useOfflineBlock();
     const navigate = useNavigate();
 
@@ -30,16 +27,6 @@ export function LoginPage() {
 
         setIsLoading(true);
         setValidationErrors({}); // Clear previous errors
-
-        const result = await login(email, password);
-        const authData = handleAuthResult(result, setValidationErrors, 'Login failed. Please check your credentials.');
-
-        if (authData) {
-            toast.success('Logged in successfully');
-            navigate('/');
-        }
-
-        setIsLoading(false);
     };
 
     return (
@@ -63,9 +50,8 @@ export function LoginPage() {
                             id="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
-                                getFieldError('email') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                            }`}
+                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${getFieldError('email') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                                }`}
                             required
                             disabled={isBlocked}
                         />
@@ -81,9 +67,8 @@ export function LoginPage() {
                             id="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
-                                getFieldError('password') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                            }`}
+                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${getFieldError('password') ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                                }`}
                             required
                             disabled={isBlocked}
                         />

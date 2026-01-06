@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/hooks/useAuth';
-import { ActionResult } from '@/lib/actions';
 import { UserData } from '@/types/effect-schemas';
+import { Effect } from 'effect';
 import { useLoaderData } from 'react-router-dom';
 
 /**
@@ -9,17 +8,7 @@ import { useLoaderData } from 'react-router-dom';
  * This will automatically redirect to login if the user is not authenticated
  */
 export async function profileLoader() {
-    return import('@/lib/actions').then(async ({ RunnableActions }) => {
-        const result = await RunnableActions.getUser();
-        return ActionResult.match(result, {
-            onSuccess: (data) => {
-                return data;
-            },
-            onFailure: (error) => {
-                throw new Error(`Profile loading failed: ${JSON.stringify(error)}`);
-            },
-        });
-    });
+    // return getUser()
 }
 
 /**
@@ -27,8 +16,11 @@ export async function profileLoader() {
  */
 export function ProfilePage() {
     const user = useLoaderData<UserData>();
-    const { logout } = useAuth();
 
+    const logout = async () => {
+        // await logout();
+        console.log('logout');
+    };
     return (
         <div className="mx-auto max-w-md">
             <div className="rounded-lg bg-white p-8 shadow-md">
@@ -47,7 +39,7 @@ export function ProfilePage() {
                 </div>
 
                 <div className="mt-6">
-                    <Button variant="danger" onClick={logout} className="w-full">
+                    <Button variant="danger" onClick={logout()} className="w-full">
                         Logout
                     </Button>
                 </div>

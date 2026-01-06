@@ -11,7 +11,7 @@ class EffectSchemaWriter implements Writer
 {
     public function format(TypesCollection $collection): string
     {
-        $content = "import * as S from '@effect/schema/Schema';
+        $content = "import { Schema as S } from 'effect';
 
 export const PaginationLinks = S.Struct({
   url: S.Union(S.String, S.Null),

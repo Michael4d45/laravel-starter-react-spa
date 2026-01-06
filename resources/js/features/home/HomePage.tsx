@@ -1,9 +1,13 @@
 import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 
 export function HomePage() {
-    const { isAuthenticated, logout } = useAuth();
+    const isAuthenticated = true;
+
+    const logout = async () => {
+        // await logout();
+        console.log('logout');
+    };
 
     return (
         <div className="mx-auto max-w-4xl">
