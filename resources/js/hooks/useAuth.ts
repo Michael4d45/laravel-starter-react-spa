@@ -1,7 +1,8 @@
-import { Actions, runAction } from '@/lib/actions';
+import { Actions, FormError, runAction, type ValidationErrors } from '@/lib/actions';
 import { type UserData as User } from '@/lib/schemas/generated-schema';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 // User type is imported from Actions
 
@@ -11,17 +12,44 @@ interface AuthState {
     isLoading: boolean;
 }
 
-export interface ValidationErrors {
-    [key: string]: string[];
+/**
+ * Parse Effect errors into FormError instances
+ */
+function parseAuthError(error: any, fallbackMessage: string): FormError {
+    // Parse the Effect FiberFailure error message (contains JSON with structured error)
+    if (typeof error.message === 'string' && error.message.startsWith('{')) {
+        try {
+            const structuredError = JSON.parse(error.message);
+
+            // Handle structured Effect errors
+            if (structuredError._tag === 'ApiFailure' && structuredError.error?.data?.errors) {
+                return new FormError(structuredError.error.data.message || fallbackMessage, structuredError.error.data.errors);
+            }
+        } catch (parseError) {
+            // Fall through to generic error
+        }
+    }
+
+    // Fallback for any other error
+    return new FormError(fallbackMessage, {});
 }
 
-export class AuthError extends Error {
-    public errors?: ValidationErrors;
-
-    constructor(message: string, errors?: ValidationErrors) {
-        super(message);
-        this.name = 'AuthError';
-        this.errors = errors;
+/**
+ * Handle FormError in React components - set validation errors or show toast
+ */
+export function handleAuthError(
+    error: unknown,
+    setValidationErrors: (errors: ValidationErrors) => void,
+    fallbackMessage: string
+): void {
+    if (error instanceof FormError) {
+        if (error.errors && Object.keys(error.errors).length > 0) {
+            setValidationErrors(error.errors);
+        } else {
+            toast.error(error.message || fallbackMessage);
+        }
+    } else {
+        toast.error(fallbackMessage);
     }
 }
 
@@ -112,29 +140,12 @@ export function useAuth(options: { autoValidate?: boolean } = { autoValidate: tr
         }
 
         let authResponse;
-        let authError: AuthError | null = null;
+        let authError: FormError | null = null;
 
         try {
             authResponse = await runAction(Actions.login({ email, password, remember: false }));
         } catch (error: any) {
-            // Parse the Effect FiberFailure error message (contains JSON with structured error)
-            if (typeof error.message === 'string' && error.message.startsWith('{')) {
-                try {
-                    const structuredError = JSON.parse(error.message);
-
-                    // Handle structured Effect errors
-                    if (structuredError._tag === 'ApiFailure' && structuredError.error?.data?.errors) {
-                        authError = new AuthError(structuredError.error.data.message || 'Login failed', structuredError.error.data.errors);
-                    }
-                } catch (parseError) {
-                    // Fall through to generic error
-                }
-            }
-
-            // Fallback for any other error
-            if (!authError) {
-                authError = new AuthError('Login failed. Please check your credentials.', {});
-            }
+            authError = parseAuthError(error, 'Login failed. Please check your credentials.');
         }
 
         // If we have an auth error, throw it now (outside the catch block)
@@ -158,7 +169,7 @@ export function useAuth(options: { autoValidate?: boolean } = { autoValidate: tr
         }
 
         let authResponse;
-        let authError: AuthError | null = null;
+        let authError: FormError | null = null;
 
         try {
             authResponse = await runAction(
@@ -170,24 +181,7 @@ export function useAuth(options: { autoValidate?: boolean } = { autoValidate: tr
                 }),
             );
         } catch (error: any) {
-            // Parse the Effect FiberFailure error message (contains JSON with structured error)
-            if (typeof error.message === 'string' && error.message.startsWith('{')) {
-                try {
-                    const structuredError = JSON.parse(error.message);
-
-                    // Handle structured Effect errors
-                    if (structuredError._tag === 'ApiFailure' && structuredError.error?.data?.errors) {
-                        authError = new AuthError(structuredError.error.data.message || 'Registration failed', structuredError.error.data.errors);
-                    }
-                } catch (parseError) {
-                    // Fall through to generic error
-                }
-            }
-
-            // Fallback for any other error
-            if (!authError) {
-                authError = new AuthError('Registration failed. Please try again.', {});
-            }
+            authError = parseAuthError(error, 'Registration failed. Please try again.');
         }
 
         // If we have an auth error, throw it now (outside the catch block)

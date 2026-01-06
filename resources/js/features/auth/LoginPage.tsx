@@ -1,15 +1,16 @@
 import { Button } from '@/components/ui/Button';
-import { AuthError, useAuth } from '@/hooks/useAuth';
+import { handleAuthError, useAuth } from '@/hooks/useAuth';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
+import { type ValidationErrors } from '@/lib/actions';
 
 export function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<{ [key: string]: string[] }>({});
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
     const { login } = useAuth({ autoValidate: false });
     const { isBlocked, blockReason } = useOfflineBlock();
@@ -35,15 +36,7 @@ export function LoginPage() {
             toast.success('Logged in successfully');
             navigate('/');
         } catch (error: unknown) {
-            if (error instanceof AuthError) {
-                if (error.errors && Object.keys(error.errors).length > 0) {
-                    setValidationErrors(error.errors);
-                } else {
-                    toast.error(error.message || 'Login failed');
-                }
-            } else {
-                toast.error('Login failed. Please check your credentials.');
-            }
+            handleAuthError(error, setValidationErrors, 'Login failed. Please check your credentials.');
         } finally {
             setIsLoading(false);
         }

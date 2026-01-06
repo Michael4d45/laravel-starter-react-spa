@@ -44,10 +44,24 @@ export const mapApiErrorsWithAuth = <A, R>(effect: Effect.Effect<A, ApiError | N
 export const Errors = {
     unauthorized: () => ({ _tag: 'Unauthorized' }) as const,
     validation: (error: ParseError) => ({ _tag: 'ValidationError', error }) as const,
+    formValidation: (errors: ValidationErrors) => ({ _tag: 'FormValidationError', errors }) as const,
     apiFailure: (error: ApiError) => ({ _tag: 'ApiFailure', error }) as const,
     network: (error: NetworkError) => ({ _tag: 'NetworkError', error }) as const,
     offline: (error: OfflineError) => ({ _tag: 'OfflineError', error }) as const,
 };
+
+/**
+ * Form error class for handling validation errors in React forms
+ */
+export class FormError extends Error {
+    public errors?: ValidationErrors;
+
+    constructor(message: string, errors?: ValidationErrors) {
+        super(message);
+        this.name = 'FormError';
+        this.errors = errors;
+    }
+}
 
 /**
  * Decode with validation and consistent error handling
@@ -84,12 +98,25 @@ export function validatedPost<Request, Response>(
 }
 
 // ============================================================================
+// Shared Types
+// ============================================================================
+
+/**
+ * Standard validation errors format for forms and API responses
+ * Maps field names to arrays of error messages
+ */
+export interface ValidationErrors {
+    [key: string]: string[];
+}
+
+// ============================================================================
 // Domain Errors
 // ============================================================================
 
 export type ApiActionError =
     | { _tag: 'Unauthorized' }
     | { _tag: 'ValidationError'; error: ParseError }
+    | { _tag: 'FormValidationError'; errors: ValidationErrors }
     | { _tag: 'ApiFailure'; error: ApiError }
     | { _tag: 'NetworkError'; error: NetworkError }
     | { _tag: 'OfflineError'; error: OfflineError };

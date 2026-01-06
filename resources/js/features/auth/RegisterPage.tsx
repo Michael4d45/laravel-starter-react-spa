@@ -1,9 +1,10 @@
 import { Button } from '@/components/ui/Button';
-import { AuthError, useAuth } from '@/hooks/useAuth';
+import { handleAuthError, useAuth } from '@/hooks/useAuth';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
+import { type ValidationErrors } from '@/lib/actions';
 
 export function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -13,7 +14,7 @@ export function RegisterPage() {
         password_confirmation: '',
     });
     const [isLoading, setIsLoading] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<{ [key: string]: string[] }>({});
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
     const { register } = useAuth({ autoValidate: false });
     const { isBlocked, blockReason } = useOfflineBlock();
@@ -68,15 +69,7 @@ export function RegisterPage() {
             toast.success('Account created successfully! Please login.');
             navigate('/login');
         } catch (error: unknown) {
-            if (error instanceof AuthError) {
-                if (error.errors && Object.keys(error.errors).length > 0) {
-                    setValidationErrors(error.errors);
-                } else {
-                    toast.error(error.message || 'Registration failed');
-                }
-            } else {
-                toast.error('Registration failed. Please try again.');
-            }
+            handleAuthError(error, setValidationErrors, 'Registration failed. Please try again.');
         } finally {
             setIsLoading(false);
         }
