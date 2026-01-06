@@ -12,10 +12,10 @@ it('can register a new user', function (): void {
         ->waitForText('Create Account')
         ->type('#name', 'John Doe')
         ->type('#email', $email)
-        ->type('#password', 'password123')
-        ->type('#password_confirmation', 'password123')
+        ->type('#password', 'password1234')
+        ->type('#password_confirmation', 'password1234')
         ->screenshot(filename: 'register.png')
-        ->click('Create Account')
+        ->click('@create-account')
         ->wait(1); // Give more time for API call to complete
 
     assert_no_log_errors($logPath);
@@ -26,8 +26,6 @@ it('can register a new user', function (): void {
 
     $page->assertDontSee('The email has already been taken');
 
-    dd(User::all());
-
     $this->assertDatabaseHas('users', [
         'name' => 'John Doe',
         'email' => $email,
@@ -37,7 +35,7 @@ it('can register a new user', function (): void {
 it('can login with valid credentials', function (): void {
     $user = User::factory()->create([
         'email' => 'test@example.com',
-        'password' => bcrypt('password123'),
+        'password' => bcrypt('password1234'),
     ]);
 
     visit('/login')
@@ -45,7 +43,7 @@ it('can login with valid credentials', function (): void {
         ->waitForText('Login', 10)
         ->wait(1)
         ->type('#email', 'test@example.com')
-        ->type('#password', 'password123')
+        ->type('#password', 'password1234')
         ->click('Login')
         ->wait(1)
         ->assertNoJavaScriptErrors()
@@ -63,6 +61,103 @@ it('shows validation errors for invalid login', function (): void {
         ->assertNoJavaScriptErrors()
         ->assertPathIs('/login') // Should stay on login page with errors
         ->assertNoJavaScriptErrors();
+});
+
+it('validates password requirements during registration', function (): void {
+    visit('/register')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Create Account')
+        // Test password too short (less than 8 characters)
+        ->type('#name', 'John Doe')
+        ->type('#email', 'test@example.com')
+        ->type('#password', '123') // Too short
+        ->type('#password_confirmation', '123')
+        ->click('@create-account')
+        ->wait(2)
+        // Check that we're still on the registration page (validation prevented redirect)
+        ->assertPathIs('/register')
+        // Verify no JavaScript errors occurred during validation
+        ->assertNoJavaScriptErrors()
+        // Verify that no success toast or redirect occurred
+        ->assertDontSee('Account created successfully');
+});
+
+it('validates password confirmation matching during registration', function (): void {
+    visit('/register')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Create Account')
+        // Test password confirmation doesn't match
+        ->type('#name', 'John Doe')
+        ->type('#email', 'test@example.com')
+        ->type('#password', 'password123')
+        ->type('#password_confirmation', 'different123') // Doesn't match
+        ->click('@create-account')
+        ->wait(2)
+        // Check that we're still on the registration page (validation prevented redirect)
+        ->assertPathIs('/register')
+        // Verify no JavaScript errors occurred during validation
+        ->assertNoJavaScriptErrors()
+        // Verify that no success toast or redirect occurred
+        ->assertDontSee('Account created successfully');
+});
+
+it('validates both password length and confirmation during registration', function (): void {
+    visit('/register')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Create Account')
+        // Test both password too short AND confirmation doesn't match
+        ->type('#name', 'John Doe')
+        ->type('#email', 'test@example.com')
+        ->type('#password', '123456789')
+        ->type('#password_confirmation', '1234567890')
+        ->click('@create-account')
+        ->wait(2)
+        ->screenshot(filename: 'password-validation-failed1.png')
+        // Check that we're still on the registration page (validation prevented redirect)
+        ->assertPathIs('/register')
+        // Verify that the form still contains our invalid input (form wasn't cleared)
+        ->assertValue('#password', '123456789')
+        ->assertValue('#password_confirmation', '1234567890')
+        // Verify no JavaScript errors occurred during validation
+        ->assertNoJavaScriptErrors()
+        // Verify that no success toast or redirect occurred
+        ->assertDontSee('Account created successfully')
+        ->assertPathIs('/register')
+        // Take a screenshot to verify visual state
+        ->screenshot(filename: 'password-validation-failed2.png');
+});
+
+it('validates email uniqueness during registration', function (): void {
+    $user = User::factory()->create();
+
+    visit('/register')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Create Account')
+        // Test both password too short AND confirmation doesn't match
+        ->type('#name', 'John Doe')
+        ->type('#email', $user->email)
+        ->type('#password', '123456789')
+        ->type('#password_confirmation', '123456789')
+        ->click('@create-account')
+        ->wait(2)
+        ->screenshot(filename: 'email-validation-failed1.png')
+        // Check that we're still on the registration page (validation prevented redirect)
+        ->assertPathIs('/register')
+        // Verify that the form still contains our invalid input (form wasn't cleared)
+        ->assertValue('#email', $user->email)
+        ->assertValue('#password', '123456789')
+        ->assertValue('#password_confirmation', '123456789')
+        // Verify no JavaScript errors occurred during validation
+        ->assertNoJavaScriptErrors()
+        // Verify that no success toast or redirect occurred
+        ->assertDontSee('Account created successfully')
+        ->assertPathIs('/register')
+        // Wait a bit more for the validation error to be displayed
+        ->wait(3)
+        // Verify that validation error is displayed inline
+        ->assertSee('The email has already been taken')
+        // Take a screenshot to verify visual state
+        ->screenshot(filename: 'email-validation-failed2.png');
 });
 
 it('shows validation errors for invalid registration', function (): void {

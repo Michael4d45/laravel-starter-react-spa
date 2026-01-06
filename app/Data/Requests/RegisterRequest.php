@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\Requests;
 
+use Spatie\LaravelData\Attributes\Validation\Confirmed;
 use Spatie\LaravelData\Attributes\Validation\Email;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Min;
@@ -28,6 +29,7 @@ class RegisterRequest extends Data
         #[Required]
         #[StringType]
         #[Min(8)]
+        #[Confirmed]
         public string $password,
 
         #[Required]

@@ -11,7 +11,7 @@ export function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [validationErrors, setValidationErrors] = useState<{ [key: string]: string[] }>({});
 
-    const { login } = useAuth();
+    const { login } = useAuth({ autoValidate: false });
     const { isBlocked, blockReason } = useOfflineBlock();
     const navigate = useNavigate();
 

@@ -25,13 +25,13 @@ export class AuthError extends Error {
     }
 }
 
-export function useAuth() {
+export function useAuth(options: { autoValidate?: boolean } = { autoValidate: true }) {
     const navigate = useNavigate();
 
     // Initialize state based on token existence
     const getInitialState = (): AuthState => {
         const token = localStorage.getItem('auth_token');
-        if (token) {
+        if (token && options.autoValidate) {
             // We have a token, start with loading state while we validate it
             return {
                 user: null,

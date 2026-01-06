@@ -15,7 +15,7 @@ export function RegisterPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [validationErrors, setValidationErrors] = useState<{ [key: string]: string[] }>({});
 
-    const { register } = useAuth();
+    const { register } = useAuth({ autoValidate: false });
     const { isBlocked, blockReason } = useOfflineBlock();
     const navigate = useNavigate();
 
@@ -26,6 +26,14 @@ export function RegisterPage() {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+
+        // Clear validation error for this field when user starts typing
+        if (validationErrors[name]) {
+            setValidationErrors((prev) => {
+                const { [name]: removed, ...newErrors } = prev;
+                return newErrors;
+            });
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -37,13 +45,18 @@ export function RegisterPage() {
         }
 
         // Client-side validation
-        if (formData.password !== formData.password_confirmation) {
-            toast.error('Passwords do not match');
-            return;
-        }
+        const errors: { [key: string]: string[] } = {};
 
         if (formData.password.length < 8) {
-            toast.error('Password must be at least 8 characters');
+            errors.password = ['Password must be at least 8 characters'];
+        }
+
+        if (formData.password !== formData.password_confirmation) {
+            errors.password_confirmation = ['Passwords do not match'];
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
             return;
         }
 
@@ -54,11 +67,13 @@ export function RegisterPage() {
             await register(formData.name, formData.email, formData.password);
             toast.success('Account created successfully! Please login.');
             navigate('/login');
-        } catch (error) {
-            if (error instanceof Error && 'errors' in error) {
-                const authError = error as AuthError;
-                setValidationErrors(authError.errors || {});
-                toast.error(authError.message || 'Registration failed');
+        } catch (error: unknown) {
+            if (error instanceof AuthError) {
+                setValidationErrors(error.errors || {});
+            } else if (error instanceof Error && 'errors' in error) {
+                // Fallback for any error with errors property
+                const errorWithErrors = error as any;
+                setValidationErrors(errorWithErrors.errors || {});
             } else {
                 toast.error('Registration failed. Please try again.');
             }
@@ -158,7 +173,7 @@ export function RegisterPage() {
                         )}
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={isLoading || isBlocked}>
+                    <Button data-test="create-account" type="submit" className="w-full" disabled={isLoading || isBlocked}>
                         {isLoading ? 'Creating Account...' : 'Create Account'}
                     </Button>
                 </form>

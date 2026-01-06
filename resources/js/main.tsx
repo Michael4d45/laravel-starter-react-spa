@@ -6,9 +6,7 @@ import { ErrorFallback } from './Errors';
 import { router } from './router';
 import './styles/globals.css';
 
-// Register service worker
-import { registerSW } from './lib/pwa/register';
-registerSW();
+// Service worker is automatically registered by VitePWA plugin
 
 const container = document.getElementById('app');
 if (!container) {
