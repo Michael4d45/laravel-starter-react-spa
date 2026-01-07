@@ -1,7 +1,9 @@
 import {
     AuthResponseSchema,
     ContentDataSchema,
+    LoginRequest,
     LoginRequestSchema,
+    RegisterRequest,
     RegisterRequestSchema,
     UserDataSchema,
 } from '@/types/effect-schemas';
@@ -10,9 +12,7 @@ import {
     HttpApi,
     HttpApiClient,
     HttpApiEndpoint,
-    HttpApiError,
     HttpApiGroup,
-    HttpApiMiddleware,
     HttpClient,
     HttpClientRequest,
 } from '@effect/platform';
@@ -25,29 +25,13 @@ import ShowUser from '@/actions/App/Actions/Auth/ShowUser';
 import ShowContent from '@/actions/App/Actions/Content/ShowContent';
 import { authManager } from './auth';
 
-/* ============================================================================
- * Errors
- * ============================================================================
- */
-export class ValidationError extends Schema.TaggedError<ValidationError>()(
-    'ValidationError',
-    {
-        message: Schema.String,
-        errors: Schema.Record({
-            key: Schema.String,
-            value: Schema.Array(Schema.String),
-        }),
-    },
-) {}
-
-class LoggerError extends Schema.TaggedError<LoggerError>()(
-    'LoggerError',
-    {},
-) {}
-
-class Logger extends HttpApiMiddleware.Tag<Logger>()('Http/Logger', {
-    failure: LoggerError,
-}) {}
+export const ValidationErrorSchema = Schema.Struct({
+    _tag: Schema.Literal('ValidationError'),
+    errors: Schema.Record({
+        key: Schema.String,
+        value: Schema.Array(Schema.String),
+    }),
+})
 
 /* ============================================================================
  * API Definition
@@ -87,20 +71,12 @@ export const Api = HttpApi.make('BackendApi')
     .add(authGroup)
     .add(userGroup)
     .add(contentGroup)
-    .middleware(Logger)
-    .addError(ValidationError, { status: 422 })
-    .addError(HttpApiError.Unauthorized)
-    .addError(HttpApiError.NotFound);
+    .addError(ValidationErrorSchema, { status: 422 });
 
 /* ============================================================================
  * Form-Friendly Result
  * ============================================================================
  */
-export type FormResult<A> =
-    | { _tag: 'Success'; data: A }
-    | { _tag: 'ValidationError'; errors: Record<string, readonly string[]> }
-    | { _tag: 'FatalError'; message: string };
-
 const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const baseClient = HttpApiClient.make(Api, {
@@ -127,8 +103,7 @@ class ApiClientSingleton {
     /* ==========================================================================
      * Public API Methods
      * ========================================================================== */
-    login(payload: Schema.Schema.Type<typeof LoginRequestSchema>) {
-        console.log(payload);
+    login(payload: LoginRequest) {
         const effect = Effect.gen(function* () {
             const client = yield* baseClient;
 
@@ -137,18 +112,18 @@ class ApiClientSingleton {
                     _tag: 'Success' as const,
                     data,
                 })),
-                Effect.catchTag('ValidationError', (e) =>
-                    Effect.succeed({
+                Effect.catchTag("ValidationError", (e) => {
+                    return Effect.succeed({
                         _tag: 'ValidationError' as const,
                         errors: e.errors,
-                    }),
-                ),
-                Effect.catchAll((e) =>
-                    Effect.succeed({
+                    });
+                }),
+                Effect.catchAll((e) => {
+                    return Effect.succeed({
                         _tag: 'FatalError' as const,
-                        message: 'Something went wrong',
-                    }),
-                ),
+                        message: JSON.stringify(e),
+                    })
+                }),
             );
         });
         return Effect.runPromise(
@@ -156,26 +131,27 @@ class ApiClientSingleton {
         );
     }
 
-    register(payload: Schema.Schema.Type<typeof RegisterRequestSchema>) {
+    register(payload: RegisterRequest) {
         const effect = Effect.gen(function* () {
             const client = yield* baseClient;
+
             return yield* client.auth.register({ payload }).pipe(
                 Effect.map((data) => ({
                     _tag: 'Success' as const,
                     data,
                 })),
-                Effect.catchTag('ValidationError', (e) =>
-                    Effect.succeed({
+                Effect.catchTag("ValidationError", (e) => {
+                    return Effect.succeed({
                         _tag: 'ValidationError' as const,
                         errors: e.errors,
-                    }),
-                ),
-                Effect.catchAll((e) =>
-                    Effect.succeed({
+                    });
+                }),
+                Effect.catchAll((e) => {
+                    return Effect.succeed({
                         _tag: 'FatalError' as const,
-                        message: 'Something went wrong',
-                    }),
-                ),
+                        message: JSON.stringify(e),
+                    })
+                }),
             );
         });
         return Effect.runPromise(
@@ -186,23 +162,18 @@ class ApiClientSingleton {
     showUser() {
         const effect = Effect.gen(function* () {
             const client = yield* baseAuthClient;
+
             return yield* client.users.show().pipe(
                 Effect.map((data) => ({
                     _tag: 'Success' as const,
                     data,
                 })),
-                Effect.catchTag('ValidationError', (e) =>
-                    Effect.succeed({
-                        _tag: 'ValidationError' as const,
-                        errors: e.errors,
-                    }),
-                ),
-                Effect.catchAll((e) =>
-                    Effect.succeed({
+                Effect.catchAll((e) => {
+                    return Effect.succeed({
                         _tag: 'FatalError' as const,
-                        message: 'Something went wrong',
-                    }),
-                ),
+                        message: JSON.stringify(e),
+                    })
+                }),
             );
         });
         return Effect.runPromise(
@@ -212,24 +183,19 @@ class ApiClientSingleton {
 
     showContent() {
         const effect = Effect.gen(function* () {
-            const client = yield* baseAuthClient;
+            const client = yield* baseClient;
+
             return yield* client.content.show().pipe(
                 Effect.map((data) => ({
                     _tag: 'Success' as const,
                     data,
                 })),
-                Effect.catchTag('ValidationError', (e) =>
-                    Effect.succeed({
-                        _tag: 'ValidationError' as const,
-                        errors: e.errors,
-                    }),
-                ),
-                Effect.catchAll((e) =>
-                    Effect.succeed({
+                Effect.catchAll((e) => {
+                    return Effect.succeed({
                         _tag: 'FatalError' as const,
-                        message: 'Something went wrong',
-                    }),
-                ),
+                        message: JSON.stringify(e),
+                    })
+                }),
             );
         });
         return Effect.runPromise(
@@ -240,11 +206,3 @@ class ApiClientSingleton {
 
 // Export singleton instance
 export const ApiClient = new ApiClientSingleton();
-
-// const result = await ApiClient.login({
-//     email: "test@test.com",
-//     password: "test",
-//     remember: false
-// })
-
-// console.log(result)

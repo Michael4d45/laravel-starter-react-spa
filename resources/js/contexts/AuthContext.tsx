@@ -47,47 +47,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const login = async (credentials: LoginRequest) => {
         console.log(credentials);
         setIsLoading(true);
-        try {
-            const result = await ApiClient.login(credentials);
-            console.log(result);
-            if (result._tag === 'Success') {
-                authManager.setAuthData(result.data.token, result.data.user);
-                toast.success('Login successful!');
-            }
-            return result;
-        } catch (error) {
-            console.log(error);
-            return {
-                _tag: 'FatalError' as const,
-                message:
-                    error instanceof Error ? error.message : 'Login failed',
-            };
-        } finally {
-            setIsLoading(false);
+        const result = await ApiClient.login(credentials);
+        console.log(result);
+        if (result._tag === 'Success') {
+            authManager.setAuthData(result.data.token, result.data.user);
+            toast.success('Login successful!');
         }
+        setIsLoading(false);
+        return result;
     };
 
     const register = async (data: RegisterRequest) => {
         setIsLoading(true);
-        try {
-            const result = await ApiClient.register(data);
-
-            if (result._tag === 'Success') {
-                authManager.setAuthData(result.data.token, result.data.user);
-                toast.success('Account created successfully!');
-            }
-            return result;
-        } catch (error) {
-            return {
-                _tag: 'FatalError' as const,
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : 'Registration failed',
-            };
-        } finally {
-            setIsLoading(false);
+        const result = await ApiClient.register(data);
+        console.log(result);
+        if (result._tag === 'Success') {
+            authManager.setAuthData(result.data.token, result.data.user);
+            toast.success('Account created successfully!');
         }
+        setIsLoading(false);
+        return result;
     };
 
     const logout = () => {

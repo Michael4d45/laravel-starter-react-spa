@@ -41,7 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // For API requests, return JSON response
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
-                    'message' => 'Validation failed',
+                    '_tag' => 'ValidationError',
                     'errors' => $e->errors(),
                 ], 422);
             }

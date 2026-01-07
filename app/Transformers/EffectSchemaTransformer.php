@@ -137,7 +137,7 @@ class EffectSchemaTransformer extends DtoTransformer
 
         $schema = $baseType;
         if ($type?->allowsNull()) {
-            $schema = "S.optional({$schema})";
+            $schema = "S.Union({$schema}, S.Null)";
         }
 
         return "  {$name}: {$schema}";
