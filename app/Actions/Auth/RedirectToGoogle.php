@@ -6,7 +6,7 @@ namespace App\Actions\Auth;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Crypt;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -17,32 +17,44 @@ class RedirectToGoogle
      */
     public function __invoke(Request $request): RedirectResponse
     {
+        /** @var User|null $user */
         $user = $request->user();
 
         // If no session user, check for user_id in query parameters (from frontend)
-        if (!$user) {
+        if (!$user instanceof User) {
             $userId = $request->query('user_id');
-            if ($userId) {
+            if (is_string($userId)) {
                 $user = User::find($userId);
             }
         }
 
+        /** @var \Laravel\Socialite\Two\GoogleProvider $driver */
         // @phpstan-ignore method.notFound
-        $builder = Socialite::driver('google')->stateless()->scopes([
+        $driver = Socialite::driver('google')->stateless();
+
+        $driver->scopes([
             'openid',
             'profile',
             'email',
         ]);
 
-        // Include current user ID in state to maintain connection context
-        $state = $user ? ['user_id' => $user->id] : [];
-        $builder->with(['state' => json_encode($state)]);
+        // Create signed state to prevent tampering
+        // Include timestamp to prevent replay attacks
+        $stateData = [
+            'user_id' => $user instanceof User ? $user->id : null,
+            'timestamp' => now()->timestamp,
+        ];
+        $stateJson = json_encode($stateData);
+        $signedState = Crypt::encryptString(
+            $stateJson !== false ? $stateJson : '{}',
+        );
+        $driver->with(['state' => $signedState]);
 
         // Force re-consent if requested (useful if email was denied previously)
         if ($request->query('force_consent')) {
-            $builder->with(['prompt' => 'consent', 'access_type' => 'offline']);
+            $driver->with(['prompt' => 'consent', 'access_type' => 'offline']);
         }
 
-        return $builder->redirect();
+        return $driver->redirect();
     }
 }

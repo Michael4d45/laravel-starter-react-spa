@@ -3,10 +3,9 @@
 use App\Actions\Auth\ConfirmPassword;
 use App\Actions\Auth\CreateToken;
 use App\Actions\Auth\DisconnectGoogle;
-use App\Actions\Auth\HandleGoogleCallback;
+use App\Actions\Auth\GetOAuthToken;
 use App\Actions\Auth\Login;
 use App\Actions\Auth\Logout;
-use App\Actions\Auth\RedirectToGoogle;
 use App\Actions\Auth\Register;
 use App\Actions\Auth\ResetPassword;
 use App\Actions\Auth\SendEmailVerificationNotification;
@@ -22,6 +21,11 @@ Route::get('/user', ShowUser::class)->middleware('auth:sanctum')->name(
 
 // Create token for already authenticated user (used for OAuth callbacks and session auth)
 Route::get('/token', CreateToken::class)->middleware('auth')->name('api.token');
+
+// Retrieve OAuth token from session after successful callback (uses session, not bearer token)
+Route::get('/oauth-token', GetOAuthToken::class)->middleware('web')->name(
+    'api.oauth-token',
+);
 
 Route::post('/login', Login::class)->name('api.login');
 Route::post('/register', Register::class)->name('api.register');

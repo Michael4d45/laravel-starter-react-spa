@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Auth;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DisconnectGoogle
 {
@@ -18,13 +18,13 @@ class DisconnectGoogle
 
         if (!$user) {
             return response()->json([
-                'message' => 'Unauthenticated'
+                'message' => 'Unauthenticated',
             ], 401);
         }
 
         if (!$user->google_id) {
             return response()->json([
-                'message' => 'No Google account connected'
+                'message' => 'No Google account connected',
             ], 400);
         }
 

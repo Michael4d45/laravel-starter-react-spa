@@ -36,9 +36,19 @@ export async function profileLoader() {
  * Profile page component that displays user information and a logout button
  */
 export function ProfilePage() {
-    const user = useLoaderData<UserData>();
-    const { logout, googleLogin, disconnectGoogle, isLoading } = useAuth();
+    const {
+        user: authUser,
+        logout,
+        googleLogin,
+        disconnectGoogle,
+        isLoading,
+    } = useAuth();
+    const loaderUser = useLoaderData<UserData>();
     const navigate = useNavigate();
+
+    // Use the user from AuthContext if available, as it's the real-time source of truth.
+    // Fall back to loader data only if authUser is not available (which shouldn't happen here).
+    const user = authUser || loaderUser;
 
     const handleLogout = () => {
         logout();

@@ -34,13 +34,15 @@ class EffectSchemaTransformer extends DtoTransformer
         $schemaName = $class->getShortName() . 'Schema';
         $typeName = $class->getShortName();
 
+        /** @var array<\ReflectionProperty> $properties */
         $properties = $this->resolveProperties($class);
 
         // Collect enum schemas needed for this class
         $enumSchemas = $this->collectEnumSchemas($properties);
 
         $structBody = collect($properties)->map(
-            fn(\ReflectionProperty $property) => $this->transformProperty(
+            fn(mixed $property) => $this->transformProperty(
+                /** @var \ReflectionProperty $property */
                 $property,
             ),
         )->implode(",\n");

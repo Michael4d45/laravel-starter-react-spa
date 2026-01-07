@@ -1,6 +1,10 @@
 import { ApiClient } from '@/lib/apiClientSingleton';
 import { authManager, AuthState } from '@/lib/auth';
-import { LoginRequest, RegisterRequest } from '@/types/effect-schemas';
+import {
+    LoginRequest,
+    RegisterRequest,
+    UserData,
+} from '@/types/effect-schemas';
 import {
     createContext,
     ReactNode,
@@ -12,6 +16,7 @@ import toast from 'react-hot-toast';
 
 interface AuthContextType {
     authState: AuthState;
+    user: UserData | null;
     login: typeof ApiClient.login;
     register: typeof ApiClient.register;
     logout: () => void;
@@ -32,6 +37,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
     const [isLoading, setIsLoading] = useState(false);
 
+    // Provide the current user directly for easier consumption and reactivity
+    const user = authState.user;
+
     useEffect(() => {
         // Subscribe to auth state changes
         const unsubscribe = authManager.subscribe(setAuthState);
@@ -41,67 +49,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const urlParams = new URLSearchParams(window.location.search);
             const authParam = urlParams.get('auth');
             const messageParam = urlParams.get('message');
-            const tokenParam = urlParams.get('token');
-            const userParam = urlParams.get('user');
 
             if (authParam === 'success' || authParam === 'connected') {
-                // Check if token and user are provided directly in URL (new OAuth flow)
-                if (tokenParam && userParam) {
-                    try {
-                        // Store the initial data from URL
-                        const userData = JSON.parse(
-                            decodeURIComponent(userParam),
-                        );
-                        authManager.setAuthData(tokenParam, userData);
+                // OAuth successful - fetch token securely from API
+                try {
+                    const response = await fetch('/api/oauth-token', {
+                        method: 'GET',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin', // Include session cookies
+                    });
 
-                        // For account connections, refresh user data from server to ensure we have latest updates
-                        if (authParam === 'connected') {
-                            try {
-                                const freshUserData =
-                                    await ApiClient.showUser();
-                                if (freshUserData._tag === 'Success') {
-                                    authManager.setAuthData(
-                                        tokenParam,
-                                        freshUserData.data,
-                                    );
-                                }
-                            } catch (refreshError) {
-                                console.warn(
-                                    'Failed to refresh user data after connection:',
-                                    refreshError,
-                                );
-                                // Keep the URL data as fallback
-                            }
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.token && data.user) {
+                            // Update the auth manager (localStorage)
+                            authManager.setAuthData(data.token, data.user);
+
+                            // Force a state update to ensure all components re-render with new data
+                            setAuthState({
+                                token: data.token,
+                                user: data.user,
+                                isAuthenticated: true,
+                            });
+
+                            toast.success(
+                                authParam === 'success'
+                                    ? 'Successfully signed in with Google!'
+                                    : 'Google account connected successfully!',
+                            );
                         }
-
-                        toast.success(
-                            authParam === 'success'
-                                ? 'Successfully signed in with Google!'
-                                : 'Google account connected successfully!',
+                    } else {
+                        console.error('Failed to retrieve OAuth token');
+                        toast.error(
+                            'Authentication completed but failed to retrieve session.',
                         );
-                        // Clean up URL
-                        window.history.replaceState(
-                            {},
-                            '',
-                            window.location.pathname,
-                        );
-                        return;
-                    } catch (error) {
-                        console.error(
-                            'Failed to parse OAuth user data:',
-                            error,
-                        );
-                        // Fall back to session refresh
                     }
+                } catch (error) {
+                    console.error('OAuth token fetch error:', error);
+                    toast.error('Failed to complete authentication.');
                 }
 
-                // Fallback: OAuth successful but no direct token - try to refresh from session
-                await authManager.refreshAuthState();
-                toast.success(
-                    authParam === 'success'
-                        ? 'Successfully signed in with Google!'
-                        : 'Google account connected successfully!',
-                );
                 // Clean up URL
                 window.history.replaceState({}, '', window.location.pathname);
             } else if (authParam === 'error' && messageParam) {
@@ -180,6 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const value: AuthContextType = {
         authState,
+        user,
         login,
         register,
         logout,

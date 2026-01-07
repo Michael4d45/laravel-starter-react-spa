@@ -38,6 +38,14 @@ class LogRequests
             ]);
         }
 
-        return $next($request);
+        $response = $next($request);
+
+        return $response instanceof Response
+            ? $response
+            : response(
+                is_string($response)
+                    ? $response
+                    : (string) (is_scalar($response) ? $response : ''),
+            );
     }
 }

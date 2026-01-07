@@ -38,7 +38,7 @@ class ResetPassword
                 'password_confirmation',
                 'token',
             ),
-            function ($user) use ($request): void {
+            function (\App\Models\User $user) use ($request): void {
                 $user->forceFill([
                     'password' => Hash::make((string) $request->string(
                         'password',

@@ -25,7 +25,11 @@ class UserForm
             TextInput::make('password')
                 ->password()
                 ->dehydrateStateUsing(fn($state) => filled($state)
-                    ? bcrypt($state)
+                    ? bcrypt(
+                        is_string($state)
+                            ? $state
+                            : (string) (is_scalar($state) ? $state : ''),
+                    )
                     : null)
                 ->dehydrated(filled(...))
                 ->required(fn(string $context): bool => $context === 'create')
