@@ -23,9 +23,7 @@ it('profile page loads without JS errors when authenticated', function (): void 
 });
 
 it('profile page redirects to login when not authenticated', function (): void {
-    visit('/profile')
-        ->assertNoJavaScriptErrors()
-        ->assertPathIs('/login');
+    visit('/profile')->assertNoJavaScriptErrors()->assertPathIs('/login');
 });
 
 it('displays user information on profile page', function (): void {
@@ -118,29 +116,22 @@ it('displays complete profile content structure', function (): void {
     visit('/profile')
         ->assertNoJavaScriptErrors()
         ->waitForText('Profile', 10)
-
         // Verify main heading
         ->assertSee('Profile')
-
         // Verify name section structure
         ->assertSee('Name')
         ->assertSee('Alice Johnson')
-
         // Verify email section structure
         ->assertSee('Email')
         ->assertSee('alice.johnson@example.com')
-
         // Verify logout button
         ->assertSee('Logout')
-
         // Verify all expected content elements are present and visible
         ->assertSee('Alice Johnson') // User's name
         ->assertSee('alice.johnson@example.com') // User's email
-
         // Verify the page has all expected sections
         ->assertSee('Name') // Name label
         ->assertSee('Email') // Email label
-
         // Take screenshot to verify visual layout
         ->screenshot(filename: 'profile-content-structure.png');
 });

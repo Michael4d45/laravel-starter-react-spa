@@ -75,7 +75,10 @@ class LoggingHelper
     public static function maskHeaders(array $headers): array
     {
         $maskedHeaders = config()->array('logging.masked_headers', []);
-        $maskedHeaders = array_map('strtolower', array_filter($maskedHeaders, 'is_string'));
+        $maskedHeaders = array_map('strtolower', array_filter(
+            $maskedHeaders,
+            'is_string',
+        ));
 
         $masked = [];
         foreach ($headers as $name => $values) {
@@ -95,8 +98,10 @@ class LoggingHelper
      *
      * @param array<array-key, mixed> $maskedFields
      */
-    private static function shouldMaskField(string $field, array $maskedFields): bool
-    {
+    private static function shouldMaskField(
+        string $field,
+        array $maskedFields,
+    ): bool {
         $field = strtolower($field);
 
         foreach ($maskedFields as $pattern) {
@@ -107,7 +112,10 @@ class LoggingHelper
 
             // Support dot notation for nested fields
             if (str_contains($pattern, '.')) {
-                if (str_starts_with($field, $pattern . '.') || $field === $pattern) {
+                if (
+                    str_starts_with($field, $pattern . '.')
+                    || $field === $pattern
+                ) {
                     return true;
                 }
             } elseif ($field === $pattern) {

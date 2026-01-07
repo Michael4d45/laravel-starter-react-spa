@@ -38,6 +38,7 @@ export function ProfilePage() {
         logout();
         navigate('/');
     };
+
     return (
         <div className="mx-auto max-w-md">
             <div className="rounded-lg bg-white p-8 shadow-md">

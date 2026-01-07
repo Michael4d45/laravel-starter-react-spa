@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Models\User;
-
 beforeEach(function () {
     setup_log_capture('content.log');
 });
@@ -140,30 +138,23 @@ it('displays complete content page view', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
         ->waitForText('Content List', 10)
-
         // Verify main heading
         ->assertSee('Content List')
-
         // Verify navigation
         ->assertSee('Back to Home')
-
         // Verify action buttons
         ->assertSee('Refresh Content')
         ->assertSee('Create New Content')
-
         // Verify content grid exists and has content
         ->assertPresent('.grid')
         ->assertPresent('.bg-white')
-
         // Verify multiple content items are displayed
         ->assertSee('Welcome to the Content Page')
         ->assertSee('Another Content Item')
         ->assertSee('Third Content Item')
-
         // Verify content bodies are shown
         ->assertSee('This is a sample content item')
         ->assertSee('Here is another piece of content')
-
         // Take screenshot to verify visual layout
         ->screenshot(filename: 'content-page-complete-view.png');
 });
