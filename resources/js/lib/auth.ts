@@ -85,23 +85,14 @@ export class AuthManager {
     }
 
     /**
-     * Check if stored token is expired (basic check)
-     * In a real app, you'd decode the JWT and check the exp claim
+     * Check if stored token is expired
+     * Laravel Sanctum tokens don't have expiration by default, so we consider them valid
+     * unless they're missing or corrupted
      */
     isTokenExpired(): boolean {
         const token = this.getToken();
-        if (!token) return true;
-
-        try {
-            // Basic JWT decode (without verification - for client-side only)
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const currentTime = Math.floor(Date.now() / 1000);
-
-            return payload.exp && payload.exp < currentTime;
-        } catch {
-            // If we can't decode, consider it expired
-            return true;
-        }
+        // Sanctum tokens don't expire by default, so just check if token exists
+        return !token;
     }
 
     /**

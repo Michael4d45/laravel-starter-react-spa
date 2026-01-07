@@ -9,10 +9,7 @@ import { redirect, useLoaderData, useNavigate } from 'react-router-dom';
  * This will automatically redirect to login if the user is not authenticated
  */
 export async function profileLoader() {
-    // First try to restore authentication from server session (useful for tests)
-    await authManager.tryRestoreFromSession();
-
-    // Check if user is authenticated
+    // Check if user is authenticated (JWT tokens should persist in localStorage)
     const user = authManager.getUser();
     const token = authManager.getToken();
 
