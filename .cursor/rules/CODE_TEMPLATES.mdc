@@ -814,11 +814,3 @@ const myEffect = Effect.gen(function* () {
     Logger.withMinimumLogLevel(LogLevel.Debug)
 );
 ```
-
-### API Client Debugging
-- Check browser network tab for API requests and responses
-- Use React DevTools for component debugging
-- Check browser console for Effect errors and validation failures
-- Use `console.log()` in data loaders for debugging
-Remember: This guide is a living document. Update it as you discover better patterns and improve existing ones!
-

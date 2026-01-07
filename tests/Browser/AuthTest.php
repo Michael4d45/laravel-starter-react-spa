@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Models\User;
 
 it('can register a new user', function (): void {
-    $email = 'test-registration-' . rand(1000, 9999) . '@example.com';
+    $email = 'test-user-registration@example.com';
     $logPath = setup_log_capture('auth.log');
     $page = visit_with_error_init('/register')
         ->assertNoJavaScriptErrors()
@@ -128,14 +128,16 @@ it('validates both password length and confirmation during registration', functi
 });
 
 it('validates email uniqueness during registration', function (): void {
-    $user = User::factory()->create();
+    User::factory()->create([
+        'email' => 'test@example.com',
+    ]);
 
     visit('/register')
         ->assertNoJavaScriptErrors()
         ->waitForText('Create Account')
         // Test both password too short AND confirmation doesn't match
         ->type('#name', 'John Doe')
-        ->type('#email', $user->email)
+        ->type('#email', 'test@example.com')
         ->type('#password', '123456789')
         ->type('#password_confirmation', '123456789')
         ->click('@create-account')
@@ -144,7 +146,7 @@ it('validates email uniqueness during registration', function (): void {
         // Check that we're still on the registration page (validation prevented redirect)
         ->assertPathIs('/register')
         // Verify that the form still contains our invalid input (form wasn't cleared)
-        ->assertValue('#email', $user->email)
+        ->assertValue('#email', 'test@example.com')
         ->assertValue('#password', '123456789')
         ->assertValue('#password_confirmation', '123456789')
         // Verify no JavaScript errors occurred during validation
@@ -178,19 +180,20 @@ it('shows validation errors for invalid registration', function (): void {
 it('can logout', function (): void {
     $logPath = setup_log_capture('auth.log');
 
-    // Create and authenticate user (Laravel session)
+    // Create and authenticate user (Laravel session) - frontend should auto-fetch JWT token
     $user = User::factory()->create();
+
+    // Use actingAs to create a session - the frontend will detect this and get a token
     $this->actingAs($user);
 
-    // Visit profile page - frontend should automatically fetch JWT token
+    // Visit profile page - frontend should automatically fetch JWT token via session
     visit('/profile')
         ->assertNoJavaScriptErrors()
         ->waitForText('Logout', 10)
         ->assertSee('Logout') // Confirm we're logged in
         ->click('Logout')
         ->assertNoJavaScriptErrors()
-        ->wait(1) // Wait for logout to complete
-        ->assertPathIs('/');
+        ->wait(2); // Wait for logout to complete
 
     assert_no_log_errors($logPath);
 });

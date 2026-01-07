@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Middleware\LoggingHelper;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,31 +22,31 @@ class LogResponses
 
         if (
             config()->boolean('logging.should_log_responses')
-            && !$this->shouldIgnoreRoute($request)
+            && !LoggingHelper::shouldIgnoreRoute($request)
+            && $this->isJsonResponse($response)
         ) {
             $logData = [
                 'method' => $request->method(),
                 'url' => $request->fullUrl(),
                 'status_code' => $response->getStatusCode(),
                 'content_type' => $response->headers->get('content-type'),
-                'headers' => $response->headers->all(),
+                'headers' => LoggingHelper::maskHeaders($response->headers->all()),
                 'content_length' => strlen($response->getContent()),
                 'timestamp' => now()->toISOString(),
             ];
 
-            // Include response body for error responses (4xx and 5xx)
-            $statusCode = $response->getStatusCode();
-
-            if ($statusCode >= 400 && $statusCode < 600) {
-                // Handle JsonResponse vs regular Response differently
-                if ($response instanceof JsonResponse) {
-                    $logData['body'] = $response->getData(true); // Get the decoded data for script formatting
-                } else {
-                    $content = $response->getContent();
-                    // Try to decode JSON, otherwise use raw content
-                    $decoded = json_decode($content, true);
-                    $logData['body'] = $decoded !== null ? $decoded : $content;
-                }
+            // Handle JsonResponse vs regular Response differently
+            if ($response instanceof JsonResponse) {
+                $logData['body'] = LoggingHelper::maskSensitiveData($response->getData(
+                    true,
+                )); // Get the decoded data for script formatting
+            } else {
+                $content = $response->getContent();
+                // Try to decode JSON, otherwise use raw content
+                $decoded = json_decode($content, true);
+                $logData['body'] = $decoded !== null
+                    ? LoggingHelper::maskSensitiveData($decoded)
+                    : $content;
             }
 
             Log::info('Outgoing Response', $logData);
@@ -55,31 +56,22 @@ class LogResponses
     }
 
     /**
-     * Check if the current route should be ignored based on configured patterns.
+     * Check if the response is JSON.
      */
-    private function shouldIgnoreRoute(Request $request): bool
+    private function isJsonResponse(Response $response): bool
     {
-        $ignoreRoutes = config()->array('logging.ignore_routes', []);
+        // Check if it's a JsonResponse instance
+        if ($response instanceof JsonResponse) {
+            return true;
+        }
 
-        $path = $request->path();
-
-        foreach ($ignoreRoutes as $pattern) {
-            if (!is_string($pattern)) {
-                continue;
-            }
-
-            // Handle wildcard patterns
-            if (str_contains($pattern, '*')) {
-                $regex = str_replace(['.', '*'], ['\.', '.*'], $pattern);
-                // Convert [ext1|ext2|ext3] to (ext1|ext2|ext3) for proper regex grouping
-                $regex = preg_replace('/\[([^\]]+)\]/', '($1)', $regex);
-                if (preg_match('#^' . $regex . '$#', $path)) {
-                    return true;
-                }
-            } elseif ($path === $pattern) {
-                // Exact match for non-wildcard patterns
-                return true;
-            }
+        // Check content-type header
+        $contentType = $response->headers->get('content-type');
+        if (
+            $contentType
+            && str_contains(strtolower($contentType), 'application/json')
+        ) {
+            return true;
         }
 
         return false;

@@ -21,6 +21,7 @@ import { Effect, Schema } from 'effect';
 // Actions
 import Login from '@/actions/App/Actions/Auth/Login';
 import Register from '@/actions/App/Actions/Auth/Register';
+import Logout from '@/actions/App/Actions/Auth/Logout';
 import ShowUser from '@/actions/App/Actions/Auth/ShowUser';
 import ShowContent from '@/actions/App/Actions/Content/ShowContent';
 import { authManager } from './auth';
@@ -51,6 +52,10 @@ const authGroup = HttpApiGroup.make('auth')
         )
             .setPayload(RegisterRequestSchema)
             .addSuccess(AuthResponseSchema),
+    )
+    .add(
+        HttpApiEndpoint.post('logout', Logout.definition.url as `/${string}`)
+            .addSuccess(Schema.Struct({ message: Schema.String })),
     );
 
 const userGroup = HttpApiGroup.make('users').add(
@@ -77,7 +82,7 @@ export const Api = HttpApi.make('BackendApi')
  * Form-Friendly Result
  * ============================================================================
  */
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const baseUrl = ""; // Empty string to use relative paths
 
 const baseClient = HttpApiClient.make(Api, {
     baseUrl,
@@ -164,6 +169,28 @@ class ApiClientSingleton {
             const client = yield* baseAuthClient;
 
             return yield* client.users.show().pipe(
+                Effect.map((data) => ({
+                    _tag: 'Success' as const,
+                    data,
+                })),
+                Effect.catchAll((e) => {
+                    return Effect.succeed({
+                        _tag: 'FatalError' as const,
+                        message: JSON.stringify(e),
+                    })
+                }),
+            );
+        });
+        return Effect.runPromise(
+            effect.pipe(Effect.provide(FetchHttpClient.layer)),
+        );
+    }
+
+    logout() {
+        const effect = Effect.gen(function* () {
+            const client = yield* baseAuthClient;
+
+            return yield* client.auth.logout().pipe(
                 Effect.map((data) => ({
                     _tag: 'Success' as const,
                     data,

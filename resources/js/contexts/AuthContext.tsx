@@ -1,7 +1,6 @@
-import { ApiClient, FormResult } from '@/lib/apiClientSingleton';
+import { ApiClient } from '@/lib/apiClientSingleton';
 import { authManager, AuthState } from '@/lib/auth';
 import {
-    AuthResponse,
     LoginRequest,
     RegisterRequest,
 } from '@/types/effect-schemas';
@@ -16,8 +15,8 @@ import toast from 'react-hot-toast';
 
 interface AuthContextType {
     authState: AuthState;
-    login: (credentials: LoginRequest) => Promise<FormResult<AuthResponse>>;
-    register: (data: RegisterRequest) => Promise<FormResult<AuthResponse>>;
+    login: typeof ApiClient.login;
+    register: typeof ApiClient.register;
     logout: () => void;
     isLoading: boolean;
 }
@@ -45,10 +44,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }, []);
 
     const login = async (credentials: LoginRequest) => {
-        console.log(credentials);
         setIsLoading(true);
         const result = await ApiClient.login(credentials);
-        console.log(result);
         if (result._tag === 'Success') {
             authManager.setAuthData(result.data.token, result.data.user);
             toast.success('Login successful!');
@@ -60,7 +57,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const register = async (data: RegisterRequest) => {
         setIsLoading(true);
         const result = await ApiClient.register(data);
-        console.log(result);
         if (result._tag === 'Success') {
             authManager.setAuthData(result.data.token, result.data.user);
             toast.success('Account created successfully!');
@@ -69,7 +65,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return result;
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            // Call backend logout endpoint to invalidate server-side session/token
+            await ApiClient.logout();
+        } catch (error) {
+            console.warn('Backend logout failed, clearing client-side data anyway:', error);
+        }
+
+        // Clear client-side authentication data
         authManager.clearAuthData();
         toast.success('Logged out successfully');
     };

@@ -1,13 +1,29 @@
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/contexts/AuthContext';
+import { authManager } from '@/lib/auth';
 import { UserData } from '@/types/effect-schemas';
-import { useLoaderData } from 'react-router-dom';
+import { useLoaderData, useNavigate } from 'react-router-dom';
+import { redirect } from 'react-router-dom';
 
 /**
  * React Router loader function that uses the Effect-based loader
  * This will automatically redirect to login if the user is not authenticated
  */
 export async function profileLoader() {
-    // return getUser()
+    // First try to restore authentication from server session (useful for tests)
+    await authManager.tryRestoreFromSession();
+
+    // Check if user is authenticated
+    const user = authManager.getUser();
+    const token = authManager.getToken();
+
+    if (!user || !token) {
+        // Redirect to login if not authenticated
+        return redirect('/login');
+    }
+
+    // Return user data for the component
+    return user;
 }
 
 /**
@@ -15,10 +31,12 @@ export async function profileLoader() {
  */
 export function ProfilePage() {
     const user = useLoaderData<UserData>();
+    const { logout } = useAuth();
+    const navigate = useNavigate();
 
-    const logout = async () => {
-        // await logout();
-        console.log('logout');
+    const handleLogout = () => {
+        logout();
+        navigate('/');
     };
     return (
         <div className="mx-auto max-w-md">
@@ -44,7 +62,7 @@ export function ProfilePage() {
                 <div className="mt-6">
                     <Button
                         variant="danger"
-                        onClick={logout}
+                        onClick={handleLogout}
                         className="w-full"
                     >
                         Logout

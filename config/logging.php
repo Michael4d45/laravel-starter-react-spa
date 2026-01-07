@@ -152,6 +152,57 @@ return [
         '_boost/browser-logs',
     ],
 
+    /*
+     |--------------------------------------------------------------------------
+     | Masked Fields
+     |--------------------------------------------------------------------------
+     |
+     | Fields that should be masked in request/response logging to prevent
+     | sensitive data from being logged. Supports dot notation for nested arrays.
+     |
+     */
+    'masked_fields' => [
+        'password',
+        'password_confirmation',
+        'current_password',
+        'token',
+        'api_token',
+        'authorization',
+        'bearer_token',
+        'refresh_token',
+        'access_token',
+        'secret',
+        'key',
+        'private_key',
+        'credit_card',
+        'card_number',
+        'cvv',
+        'ssn',
+        'social_security',
+        'email_token',
+        'verification_code',
+        'otp',
+        'pin',
+    ],
+
+    /*
+     |--------------------------------------------------------------------------
+     | Masked Headers
+     |--------------------------------------------------------------------------
+     |
+     | HTTP headers that should be masked in request/response logging.
+     | Case-insensitive matching.
+     |
+     */
+    'masked_headers' => [
+        'authorization',
+        'x-api-key',
+        'x-auth-token',
+        'x-csrf-token',
+        'cookie',
+        'set-cookie',
+    ],
+
     // Used in AppServiceProvider
     'should_log_db' => (bool) env('SHOULD_LOG_DB', false),
 ];

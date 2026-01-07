@@ -17,10 +17,15 @@ it('logs requests when should_log_requests is enabled', function (): void {
     Log::shouldReceive('info')
         ->once()
         ->with('Incoming Request', \Mockery::on(function ($data) {
-            return isset($data['method'], $data['url'], $data['timestamp']);
+            return isset(
+                $data['method'],
+                $data['url'],
+                $data['query_params'],
+                $data['timestamp'],
+            );
         }));
 
-    $request = Request::create('/test', 'GET');
+    $request = Request::create('/test', 'POST', ['data' => 'test']);
     $middleware = new LogRequests;
 
     $response = $middleware->handle($request, function ($req) {
@@ -59,7 +64,7 @@ it('logs responses when should_log_responses is enabled', function (): void {
     $middleware = new LogResponses;
 
     $response = $middleware->handle($request, function ($req) {
-        return response('OK', 200);
+        return response()->json(['message' => 'OK'], 200);
     });
 
     expect($response->getStatusCode())->toBe(200);
@@ -132,13 +137,53 @@ it('logs requests for non-ignored routes even with ignore config', function (): 
     Log::shouldReceive('info')
         ->once()
         ->with('Incoming Request', \Mockery::on(function ($data) {
-            return isset($data['method'], $data['url']);
+            return isset($data['method'], $data['url'], $data['query_params']);
         }));
 
-    $request = Request::create('/api/users', 'GET');
+    $request = Request::create('/api/users', 'POST', ['name' => 'John']);
     $middleware = new LogRequests;
 
     $response = $middleware->handle($request, fn($req) => response('OK'));
+
+    expect($response->getStatusCode())->toBe(200);
+});
+
+it('does not log requests without a body or query params', function (): void {
+    Config::set('logging.should_log_requests', true);
+
+    Log::spy();
+
+    $request = Request::create('/test', 'GET');
+    $middleware = new LogRequests;
+
+    $response = $middleware->handle($request, function ($req) {
+        return response('OK');
+    });
+
+    expect($response->getStatusCode())->toBe(200);
+    Log::shouldNotHaveReceived('info');
+});
+
+it('logs requests with query parameters', function (): void {
+    Config::set('logging.should_log_requests', true);
+
+    Log::shouldReceive('info')
+        ->once()
+        ->with('Incoming Request', \Mockery::on(function ($data) {
+            return isset(
+                $data['method'],
+                $data['url'],
+                $data['query_params'],
+                $data['timestamp'],
+            );
+        }));
+
+    $request = Request::create('/test?param=value&other=test', 'GET');
+    $middleware = new LogRequests;
+
+    $response = $middleware->handle($request, function ($req) {
+        return response('OK');
+    });
 
     expect($response->getStatusCode())->toBe(200);
 });

@@ -33,7 +33,6 @@ export function LoginPage() {
 
         setValidationErrors({}); // Clear previous errors
 
-        console.log(email, password, remember);
         const result = await login({ email, password, remember });
         if (result._tag === 'Success') {
             navigate('/');
