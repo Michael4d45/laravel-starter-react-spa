@@ -224,7 +224,9 @@ export function RegisterPage() {
                             <div className="w-full border-t border-gray-300" />
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-card text-secondary">Or</span>
+                            <span className="bg-card text-secondary px-2">
+                                Or
+                            </span>
                         </div>
                     </div>
 
@@ -233,7 +235,7 @@ export function RegisterPage() {
                             type="button"
                             variant="outline"
                             onClick={() => googleLogin()}
-                            className="w-full flex items-center justify-center gap-2"
+                            className="flex w-full items-center justify-center gap-2"
                             disabled={isLoading || isBlocked}
                         >
                             <GoogleIcon />

@@ -4,8 +4,8 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { RouterProvider } from 'react-router-dom';
 import { ErrorFallback } from './Errors';
 import { AuthProvider } from './contexts/AuthContext';
-import { router } from './router';
 import { initializeTheme } from './hooks/useAppearance';
+import { router } from './router';
 import './styles/globals.css';
 
 // Service worker is automatically registered by VitePWA plugin

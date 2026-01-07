@@ -98,10 +98,13 @@ export class AuthManager {
     /**
      * Refresh authentication state (useful for checking token validity)
      */
-    refreshAuthState(): void {
+    async refreshAuthState(): Promise<void> {
         if (this.isTokenExpired()) {
             this.clearAuthData();
         }
+
+        // Try to restore authentication from session (useful after OAuth)
+        await this.tryRestoreFromSession();
     }
 
     /**

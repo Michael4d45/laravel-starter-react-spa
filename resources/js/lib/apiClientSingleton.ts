@@ -19,12 +19,13 @@ import {
 import { Effect, Schema } from 'effect';
 
 // Actions
+import DisconnectGoogle from '@/actions/App/Actions/Auth/DisconnectGoogle';
 import Login from '@/actions/App/Actions/Auth/Login';
 import Logout from '@/actions/App/Actions/Auth/Logout';
+import RedirectToGoogle from '@/actions/App/Actions/Auth/RedirectToGoogle';
 import Register from '@/actions/App/Actions/Auth/Register';
 import ShowUser from '@/actions/App/Actions/Auth/ShowUser';
 import ShowContent from '@/actions/App/Actions/Content/ShowContent';
-import RedirectToGoogle from '@/actions/App/Actions/Auth/RedirectToGoogle';
 import { authManager } from './auth';
 
 export const ValidationErrorSchema = Schema.Struct({
@@ -59,6 +60,17 @@ const authGroup = HttpApiGroup.make('auth')
             'logout',
             Logout.definition.url as `/${string}`,
         ).addSuccess(Schema.Struct({ message: Schema.String })),
+    )
+    .add(
+        HttpApiEndpoint.post(
+            'disconnectGoogle',
+            DisconnectGoogle.definition.url as `/${string}`,
+        ).addSuccess(
+            Schema.Struct({
+                message: Schema.String,
+                user: UserDataSchema,
+            }),
+        ),
     );
 
 const userGroup = HttpApiGroup.make('users').add(
@@ -211,6 +223,28 @@ class ApiClientSingleton {
         );
     }
 
+    disconnectGoogle() {
+        const effect = Effect.gen(function* () {
+            const client = yield* baseAuthClient;
+
+            return yield* client.auth.disconnectGoogle().pipe(
+                Effect.map((data) => ({
+                    _tag: 'Success' as const,
+                    data,
+                })),
+                Effect.catchAll((e) => {
+                    return Effect.succeed({
+                        _tag: 'FatalError' as const,
+                        message: JSON.stringify(e),
+                    });
+                }),
+            );
+        });
+        return Effect.runPromise(
+            effect.pipe(Effect.provide(FetchHttpClient.layer)),
+        );
+    }
+
     showContent() {
         const effect = Effect.gen(function* () {
             const client = yield* baseClient;
@@ -244,11 +278,18 @@ class ApiClientSingleton {
      * Initiate Google OAuth login/registration flow
      */
     googleLogin(forceConsent = false) {
-        window.location.href = RedirectToGoogle.url({
-            query: {
-                force_consent: forceConsent ? '1' : undefined
-            }
-        });
+        // Include current user ID in the OAuth redirect URL as a query parameter
+        // This will be picked up by RedirectToGoogle action
+        const user = authManager.getUser();
+        const query: Record<string, string> = {};
+        if (forceConsent) {
+            query.force_consent = '1';
+        }
+        if (user) {
+            query.user_id = user.id;
+        }
+
+        window.location.href = RedirectToGoogle.url({ query });
     }
 }
 

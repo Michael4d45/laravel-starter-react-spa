@@ -37,7 +37,7 @@ export async function profileLoader() {
  */
 export function ProfilePage() {
     const user = useLoaderData<UserData>();
-    const { logout, googleLogin } = useAuth();
+    const { logout, googleLogin, disconnectGoogle, isLoading } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -55,18 +55,18 @@ export function ProfilePage() {
                         <label className="text-secondary block text-sm font-medium">
                             Name
                         </label>
-                        <p className="mt-1 text-secondary">{user?.name}</p>
+                        <p className="text-secondary mt-1">{user?.name}</p>
                     </div>
 
                     <div>
                         <label className="text-secondary block text-sm font-medium">
                             Email
                         </label>
-                        <p className="mt-1 text-secondary">{user?.email}</p>
+                        <p className="text-secondary mt-1">{user?.email}</p>
                     </div>
 
                     <div className="border-t pt-4">
-                        <label className="text-secondary block text-sm font-medium mb-2">
+                        <label className="text-secondary mb-2 block text-sm font-medium">
                             Google Account
                         </label>
                         {user?.google_id ? (
@@ -75,18 +75,29 @@ export function ProfilePage() {
                                     <GoogleIcon />
                                     <span className="text-sm">Connected</span>
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => googleLogin(true)}
-                                    className="text-xs"
-                                >
-                                    Reconnect
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => googleLogin(true)}
+                                        className="text-xs"
+                                    >
+                                        Reconnect
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={disconnectGoogle}
+                                        disabled={isLoading}
+                                        className="text-xs text-red-600 hover:text-red-700"
+                                    >
+                                        Disconnect
+                                    </Button>
+                                </div>
                             </div>
                         ) : (
                             <div>
-                                <p className="text-secondary text-sm mb-2">
+                                <p className="text-secondary mb-2 text-sm">
                                     Connect your Google account for easier login
                                 </p>
                                 <Button
@@ -94,7 +105,10 @@ export function ProfilePage() {
                                     onClick={() => googleLogin()}
                                     className="flex items-center gap-2"
                                 >
-                                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                                    <svg
+                                        className="h-4 w-4"
+                                        viewBox="0 0 24 24"
+                                    >
                                         <path
                                             fill="currentColor"
                                             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

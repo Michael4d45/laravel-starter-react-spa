@@ -57,9 +57,7 @@ class ResetPassword
         // redirect them back to where they came from with their error message.
         return (
             $status === Password::PASSWORD_RESET
-                ? redirect()
-                    ->route('login')
-                    ->with('status', __((string) $status))
+                ? redirect('/login')->with('status', __((string) $status))
                 : back()
                     ->withInput($request->only('email'))
                     ->withErrors(['email' => __((string) $status)])
