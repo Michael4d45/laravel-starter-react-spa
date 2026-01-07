@@ -89,7 +89,7 @@ declare(strict_types=1);
 namespace App\Actions\Features;
 
 use App\Data\Models\FeatureData;
-use App\Data\Props\FeaturesProps;
+use App\Data\Response\FeaturesResponse;
 use App\Models\Feature;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -108,7 +108,7 @@ class ShowFeatures
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json(FeaturesProps::from([
+        return response()->json(FeaturesResponse::from([
             'features' => FeatureData::collect($features),
         ]));
     }
@@ -199,22 +199,22 @@ class FeatureData extends Data
 
 ---
 
-### 4. Props Classes
+### 4. Response Classes
 
-**File**: `app/Data/Props/FeaturesProps.php`
+**File**: `app/Data/Response/FeaturesResponse.php`
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-namespace App\Data\Props;
+namespace App\Data\Response;
 
 use App\Data\Models\FeatureData;
 use Illuminate\Support\Collection;
 use Spatie\LaravelData\Data;
 
-class FeaturesProps extends Data
+class FeaturesResponse extends Data
 {
     public function __construct(
         /** @var Collection<array-key,FeatureData> $features */
@@ -223,18 +223,18 @@ class FeaturesProps extends Data
 }
 ```
 
-**For Single Item Props**:
+**For Single Item Response**:
 ```php
 <?php
 
 declare(strict_types=1);
 
-namespace App\Data\Props;
+namespace App\Data\Response;
 
 use App\Data\Models\FeatureData;
 use Spatie\LaravelData\Data;
 
-class FeatureProps extends Data
+class FeatureResponse extends Data
 {
     public function __construct(
         public FeatureData $feature,
@@ -248,13 +248,13 @@ class FeatureProps extends Data
 
 declare(strict_types=1);
 
-namespace App\Data\Props;
+namespace App\Data\Response;
 
 use App\Data\Models\FeatureData;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Spatie\LaravelData\Data;
 
-class PaginatedFeaturesProps extends Data
+class PaginatedFeaturesResponse extends Data
 {
     public function __construct(
         /** @var LengthAwarePaginator<FeatureData> $features */
@@ -361,11 +361,17 @@ class Feature extends Model
         // Add other fillable fields
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
+    /**
+     * Get the attributes that should be cast.
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
+    }
 
     // Relationships
     public function user(): BelongsTo
@@ -542,8 +548,8 @@ class TaskData extends Data
     ) {}
 }
 
-// app/Data/Props/TasksProps.php
-class TasksProps extends Data
+// app/Data/Response/TasksResponse.php
+class TasksResponse extends Data
 {
     public function __construct(
         /** @var Collection<array-key,TaskData> $tasks */
@@ -587,7 +593,7 @@ class ShowTasks
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json(TasksProps::from([
+        return response()->json(TasksResponse::from([
             'tasks' => TaskData::collect($tasks),
         ]));
     }
@@ -629,32 +635,112 @@ Route::middleware('auth:sanctum')->group(function (): void {
 });
 ```
 
-#### 6. Effect-Based Actions
+#### 6. Effect-Based Actions with Wayfinder HttpApiClient
 ```typescript
-// resources/js/lib/actions.ts (add to Actions object)
-export const Actions = {
-    // ... existing actions
+// resources/js/lib/apiClientSingleton.ts
+import {
+    TaskSchema,
+    TasksResponseSchema,
+    CreateTaskRequest,
+    CreateTaskRequestSchema,
+} from '@/types/effect-schemas';
+import {
+    FetchHttpClient,
+    HttpApi,
+    HttpApiClient,
+    HttpApiEndpoint,
+    HttpApiGroup,
+} from '@effect/platform';
+import { Effect } from 'effect';
 
-    getTasks: Effect.gen(function* () {
-        const api = yield* ApiClient;
-        const response = yield* api.get('/api/tasks');
+// Define API groups and endpoints
+const tasksGroup = HttpApiGroup.make('tasks')
+    .add(
+        HttpApiEndpoint.get('index', '/api/tasks')
+            .addSuccess(TasksResponseSchema),
+    )
+    .add(
+        HttpApiEndpoint.post('store', '/api/tasks')
+            .setPayload(CreateTaskRequestSchema)
+            .addSuccess(TaskSchema),
+    );
 
-        const tasks = yield* S.decode(S.Array(TaskSchema))(response.data.tasks);
-        return { tasks };
-    }).pipe(/* error handling */),
+// Create API definition
+export const Api = HttpApi.make('BackendApi').add(tasksGroup);
 
-    createTask: (data: CreateTaskRequest) => Effect.gen(function* () {
-        const api = yield* ApiClient;
-        const response = yield* api.post('/api/tasks', data);
+// Create client instances
+const baseClient = HttpApiClient.make(Api, { baseUrl: '' });
 
-        const task = yield* S.decode(TaskSchema)(response.data.task);
-        return { task, message: response.data.message };
-    }).pipe(/* error handling */),
-};
+// Singleton class for API operations
+class ApiClientSingleton {
+    getTasks() {
+        const effect = Effect.gen(function* () {
+            const client = yield* baseClient;
+
+            return yield* client.tasks.index().pipe(
+                Effect.map((data) => ({
+                    _tag: 'Success' as const,
+                    data,
+                })),
+                Effect.catchAll((e) => Effect.succeed({
+                    _tag: 'FatalError' as const,
+                    message: JSON.stringify(e),
+                })),
+            );
+        });
+        return Effect.runPromise(
+            effect.pipe(Effect.provide(FetchHttpClient.layer)),
+        );
+    }
+
+    createTask(data: CreateTaskRequest) {
+        const effect = Effect.gen(function* () {
+            const client = yield* baseClient;
+
+            return yield* client.tasks.store({ payload: data }).pipe(
+                Effect.map((data) => ({
+                    _tag: 'Success' as const,
+                    data,
+                    message: 'Task created successfully',
+                })),
+                Effect.catchTag('ValidationError', (e) => Effect.succeed({
+                    _tag: 'ValidationError' as const,
+                    errors: e.errors,
+                })),
+                Effect.catchAll((e) => Effect.succeed({
+                    _tag: 'FatalError' as const,
+                    message: JSON.stringify(e),
+                })),
+            );
+        });
+        return Effect.runPromise(
+            effect.pipe(Effect.provide(FetchHttpClient.layer)),
+        );
+    }
+}
+
+export const ApiClient = new ApiClientSingleton();
 ```
 
-#### 7. React Router Routes
+#### 7. React Router Routes with Effect Loaders
 ```typescript
+// resources/js/features/tasks/TasksPage.tsx
+export async function tasksLoader() {
+    const result = await ApiClient.getTasks();
+    if (result._tag === 'Success') {
+        return result.data;
+    } else {
+        console.error('Failed to load tasks:', result.message);
+        return { tasks: [] };
+    }
+}
+
+export function TasksPage() {
+    const { tasks } = useLoaderData<TasksResponse>();
+
+    // Component implementation...
+}
+
 // resources/js/router.tsx (add to router)
 {
     path: '/tasks',
@@ -757,9 +843,10 @@ export function TasksPage() {
 
 ## 🎯 TypeScript Types in Effect-Based Architecture
 
-### Effect Schema Types
+### Effect Schema Types (Auto-generated)
 ```typescript
-// Define schemas with Effect for runtime validation and type safety
+// Schemas are auto-generated by Wayfinder from Laravel Data classes
+// Located in: resources/js/types/effect-schemas.ts
 export const FeatureSchema = S.Struct({
     id: S.String,
     name: S.String,
@@ -768,9 +855,9 @@ export const FeatureSchema = S.Struct({
     updated_at: S.String,
 });
 
-// Generate types from schemas
+// Types are derived from schemas for type safety
 export type Feature = S.Schema.Type<typeof FeatureSchema>;
-export type FeaturesResponse = { features: Feature[] };
+export type FeaturesResponse = S.Schema.Type<typeof FeaturesResponseSchema>;
 ```
 
 ### Component Props Types
@@ -788,6 +875,57 @@ export function FeaturesPage() {
         </div>
     );
 }
+```
+
+---
+
+## 🔧 Wayfinder Integration
+
+### Overview
+This application uses Laravel Wayfinder to generate type-safe TypeScript functions and schemas for Laravel routes and controllers. Wayfinder provides compile-time type safety and automatic synchronization between backend routes and frontend code.
+
+### Generated Files
+- **`resources/js/types/effect-schemas.ts`** - Auto-generated Effect schemas and types
+- **`resources/js/actions/`** - Generated controller action functions
+- **`resources/js/routes/`** - Generated route helper functions
+
+### HttpApiClient Architecture
+Wayfinder generates HttpApiClient instances that provide type-safe API calls:
+
+```typescript
+import { HttpApiGroup, HttpApiEndpoint } from '@effect/platform';
+
+// Define API groups with endpoints
+const authGroup = HttpApiGroup.make('auth')
+    .add(HttpApiEndpoint.post('login', '/api/login')
+        .setPayload(LoginRequestSchema)
+        .addSuccess(AuthResponseSchema));
+
+// Create API definition
+const Api = HttpApi.make('BackendApi').add(authGroup);
+
+// Create client
+const client = HttpApiClient.make(Api, { baseUrl: '' });
+
+// Use in effects
+const result = yield* client.auth.login({ payload: loginData });
+```
+
+### Schema Generation
+Schemas are automatically generated from your Laravel Data classes and provide runtime validation:
+
+```typescript
+// Generated from your Laravel Data classes
+export const FeatureSchema = S.Struct({
+    id: S.String,
+    name: S.String,
+    description: S.Union(S.String, S.Null),
+    created_at: S.String,
+    updated_at: S.String,
+});
+
+// Type-safe usage
+type Feature = S.Schema.Type<typeof FeatureSchema>;
 ```
 
 ---

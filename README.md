@@ -1,59 +1,209 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel React SPA
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modern **Laravel 12 + React 19** Single Page Application with **Effect-based data loading**, **PWA capabilities**, and **TypeScript** throughout. This project demonstrates best practices for building scalable web applications using cutting-edge technologies.
 
-## About Laravel
+## 🚀 Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Backend
+- **Laravel 12** - PHP web framework
+- **Laravel Sanctum** - API authentication
+- **Laravel Socialite** - OAuth integration (Google)
+- **Laravel Wayfinder** - TypeScript route generation
+- **Spatie Laravel Data** - Data transformation layer
+- **Pest** - Modern PHP testing framework
+- **Log** - Wide Events for logging, [michael4d45/context-logging](https://github.com/Michael4d45/Context-Logging)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Frontend
+- **React 19** - Modern React with latest features
+- **React Router 7** - Client-side routing
+- **Effect** - Functional programming for async operations
+- **TypeScript** - Static type checking
+- **Tailwind CSS 4** - Utility-first styling
+- **Lucide React** - Beautiful icons
+- **React Compiler** - No more memoization
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Development & Build Tools
+- **Vite 7** - Fast build tool and dev server
+- **ESLint** - Code linting
+- **Prettier** - Code formatting
+- **Playwright** - Browser testing
+- **PWA Support** - Offline functionality with Workbox
 
-## Learning Laravel
+## 📦 Key Features
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- ✅ **Effect-Based Architecture** - Modern functional programming approach
+- ✅ **Type Safety** - Full TypeScript integration between frontend and backend
+- ✅ **PWA Ready** - Offline support, service workers, and app installation
+- ✅ **Modern Authentication** - Laravel Sanctum + Social OAuth
+- ✅ **API-First Design** - JSON API with schema validation
+- ✅ **Component Architecture** - Reusable React components with proper separation
+- ✅ **Testing Suite** - Pest for backend, Playwright for browser testing
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🏗️ Architecture
 
-## Laravel Sponsors
+This application uses a modern, scalable architecture:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+1. **Laravel Backend** - RESTful API with Data classes and Actions
+2. **React Frontend** - Component-based UI with Effect for data management
+3. **Type Safety** - End-to-end TypeScript with auto-generated schemas
+4. **PWA Features** - Service workers and offline capabilities
+5. **Build Optimization** - Vite with code splitting and asset optimization
 
-### Premium Partners
+## 🛠️ Getting Started
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Prerequisites
+- PHP 8.5+
+- Node.js 18+
+- Composer
+- npm or yarn
 
-## Contributing
+### Installation
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd laravel-react-spa
+   ```
 
-## Code of Conduct
+2. **Install PHP dependencies**
+   ```bash
+   composer install
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+3. **Install Node dependencies**
+   ```bash
+   npm install
+   ```
 
-## Security Vulnerabilities
+4. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+5. **Database setup**
+   ```bash
+   php artisan migrate
+   ```
 
-## License
+6. **Build assets**
+   ```bash
+   npm run build
+   ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Development
+
+Start the development servers:
+```bash
+composer run dev
+```
+
+This will start:
+- Laravel server
+- Vite dev server
+- Queue worker
+- Hot reload for both frontend and backend
+
+#### Development Scripts
+
+**Composer Scripts:**
+- `composer run setup` - Complete project setup (install deps, generate key, migrate DB, build assets)
+- `composer run dev` - Start development servers with hot reload
+- `composer run test` - Run PHP tests with configuration clearing
+
+**NPM Scripts:**
+- `npm run build` - Build production assets with Vite
+- `npm run build:ssr` - Build for server-side rendering
+- `npm run dev` - Start Vite development server
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check code formatting
+- `npm run lint` - Run ESLint with auto-fix
+- `npm run types` - Check TypeScript types
+
+**Development Utilities:**
+- `./tmux-dev.sh` - Create TMUX session with 3-panel dev environment (logs, backend, frontend)
+  - Use `--docker` to include Docker panel
+  - Use `--no-attach` to create session without attaching
+- `./bin/check-hanging-tests.sh` - Identify hanging or non-completing browser tests
+- `./bin/clear-logs.sh` - Clear all application log files
+- `./bin/format-logs.sh [file]` - Format and monitor Laravel logs with syntax highlighting
+- `./bin/format-sql.sh [file]` - Format and monitor SQL queries with syntax highlighting
+
+### Production Build
+
+```bash
+npm run build
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+## 🧪 Testing
+
+Run the test suite:
+```bash
+php artisan test
+```
+
+## 📱 Progressive Web App (PWA)
+
+This application includes PWA features:
+- **Offline Support** - Cached assets and API responses
+- **App Installation** - Add to home screen capability
+- **Background Sync** - Queue requests when offline
+- **Push Notifications** - Ready for implementation
+
+## 🔧 Development Guidelines
+
+### Code Style
+- **PHP**: PSR-12 standards with strict type checking
+- **TypeScript**: Strict mode with ESLint and Prettier
+- **CSS**: Tailwind utility classes with custom components
+
+### Architecture Patterns
+- **Actions** - Single responsibility classes for business logic
+- **Data Classes** - Type-safe data transformation
+- **Effect** - Functional programming for side effects
+- **Components** - Reusable, typed React components
+
+### Dependency Usage
+Based on code analysis, dependencies are ranked by usage:
+
+**Most Used:**
+- React/React DOM (every component)
+- Effect (HTTP client, async operations)
+- React Router (navigation)
+- Tailwind CSS (styling)
+- clsx/tailwind-merge (conditional styling)
+
+**Build Tools:**
+- Vite, TypeScript, ESLint, Prettier
+
+**Specialized:**
+- Workbox (PWA), Playwright (testing), Laravel packages
+
+## 📊 Project Structure
+
+```
+├── app/                  # Laravel application code
+│   ├── Actions/          # Business logic actions
+│   ├── Data/             # Data transformation classes
+│   └── Models/           # Eloquent models
+├── resources/
+│   ├── js/               # React application
+│   │   ├── components/   # Reusable UI components
+│   │   ├── features/     # Feature-specific code
+│   │   ├── lib/          # Utilities and API client
+│   │   └── types/        # TypeScript definitions
+│   ├── css/              # Stylesheets
+│   └── views/            # Blade templates
+├── routes/               # API and web routes
+├── tests/                # Test suites
+│   ├── Feature/          # Feature tests
+│   └── Browser/          # Browser tests
+└── vite.config.js        # Build configuration
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

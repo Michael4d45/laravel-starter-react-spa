@@ -24,6 +24,7 @@ import Logout from '@/actions/App/Actions/Auth/Logout';
 import Register from '@/actions/App/Actions/Auth/Register';
 import ShowUser from '@/actions/App/Actions/Auth/ShowUser';
 import ShowContent from '@/actions/App/Actions/Content/ShowContent';
+import RedirectToGoogle from '@/actions/App/Actions/Auth/RedirectToGoogle';
 import { authManager } from './auth';
 
 export const ValidationErrorSchema = Schema.Struct({
@@ -243,11 +244,11 @@ class ApiClientSingleton {
      * Initiate Google OAuth login/registration flow
      */
     googleLogin(forceConsent = false) {
-        const url = new URL('/api/redirect-to-google', window.location.origin);
-        if (forceConsent) {
-            url.searchParams.set('force_consent', '1');
-        }
-        window.location.href = url.toString();
+        window.location.href = RedirectToGoogle.url({
+            query: {
+                force_consent: forceConsent ? '1' : undefined
+            }
+        });
     }
 }
 
