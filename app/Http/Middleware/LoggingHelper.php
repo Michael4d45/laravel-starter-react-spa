@@ -54,8 +54,8 @@ class LoggingHelper
         $dataArray = is_object($data) ? (array) $data : $data;
 
         foreach ($dataArray as $key => $value) {
-            // Check if this key should be masked
-            if (self::shouldMaskField($key, $maskedFields)) {
+            // Check if this key should be masked (convert key to string for comparison)
+            if (self::shouldMaskField((string) $key, $maskedFields)) {
                 $dataArray[$key] = self::MASK_VALUE;
             } elseif (is_array($value) || is_object($value)) {
                 $dataArray[$key] = self::maskSensitiveData($value);

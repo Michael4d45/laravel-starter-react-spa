@@ -1,6 +1,6 @@
 import {
     AuthResponseSchema,
-    ContentDataSchema,
+    ContentItemsSchema,
     LoginRequest,
     LoginRequestSchema,
     RegisterRequest,
@@ -69,7 +69,7 @@ const contentGroup = HttpApiGroup.make('content').add(
     HttpApiEndpoint.get(
         'show',
         ShowContent.definition.url as `/${string}`,
-    ).addSuccess(ContentDataSchema),
+    ).addSuccess(ContentItemsSchema),
 );
 
 export const Api = HttpApi.make('BackendApi')
@@ -217,6 +217,13 @@ class ApiClientSingleton {
                     _tag: 'Success' as const,
                     data,
                 })),
+                Effect.catchTag("ParseError", (e) => {
+                    console.error(e);
+                    return Effect.succeed({
+                        _tag: 'ParseError' as const,
+                        message: JSON.stringify(e),
+                    })
+                }),
                 Effect.catchAll((e) => {
                     return Effect.succeed({
                         _tag: 'FatalError' as const,

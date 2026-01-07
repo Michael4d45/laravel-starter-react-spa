@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
+import { ApiClient } from '@/lib/apiClientSingleton';
 import { ContentItems } from '@/types/effect-schemas';
 import toast from 'react-hot-toast';
 import { Link, useLoaderData } from 'react-router-dom';
@@ -8,7 +9,13 @@ import { Link, useLoaderData } from 'react-router-dom';
  * React Router loader function that uses the Effect-based loader
  */
 export async function contentLoader() {
-    // return await getConcurrencyAnnotation();
+    const result = await ApiClient.showContent();
+    if (result._tag === 'Success') {
+        return result.data;
+    } else {
+        console.error('Failed to load content:', result.message);
+        return { content: [] };
+    }
 }
 
 export function ContentPage() {
