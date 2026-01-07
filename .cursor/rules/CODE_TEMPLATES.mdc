@@ -396,7 +396,7 @@ class Feature extends Model
 ```tsx
 import { Link, useLoaderData } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
-import { FeaturesResponse } from './featuresLoaderEffect';
+import { FeaturesResponse } from '@/types/effect-schemas';
 
 export function FeaturesPage() {
     const { features } = useLoaderData<FeaturesResponse>();
@@ -427,7 +427,7 @@ export function FeaturesPage() {
                         )}
 
                         <div className="flex justify-between items-center text-sm text-gray-500">
-                            <span>{feature.created_at?.toLocaleDateString()}</span>
+                            <span>{new Date(feature.created_at).toLocaleDateString()}</span>
                             <Link
                                 to={`/features/${feature.id}/edit`}
                                 className="text-blue-500 hover:text-blue-700"
@@ -457,7 +457,15 @@ export function FeaturesPage() {
 
 ```typescript
 import { createBrowserRouter } from 'react-router-dom';
-import { tasksLoader } from './features/tasks/tasksLoaderEffect';
+import { ApiClient } from '@/lib/apiClientSingleton';
+
+export async function tasksLoader() {
+    const result = await ApiClient.getTasks();
+    if (result._tag === 'Success') {
+        return result.data;
+    }
+    throw new Error(result.message);
+}
 
 export const router = createBrowserRouter([
     {
@@ -473,15 +481,13 @@ export const router = createBrowserRouter([
 ]);
 ```
 
+---
+
 ## 📚 Complete Feature Example: Task Management
 
 ### Step-by-Step Implementation
 
 #### 1. Migration
-```bash
-php artisan make:migration create_tasks_table
-```
-
 ```php
 // database/migrations/xxxx_create_tasks_table.php
 Schema::create('tasks', function (Blueprint $table) {
@@ -496,10 +502,6 @@ Schema::create('tasks', function (Blueprint $table) {
 ```
 
 #### 2. Model
-```bash
-php artisan make:model Task -f
-```
-
 ```php
 // app/Models/Task.php
 class Task extends Model
@@ -521,17 +523,12 @@ class Task extends Model
             'due_date' => 'datetime',
         ];
     }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
 }
 ```
 
 #### 3. Data Classes
 ```php
-// app/Data/Models/TaskData.php
+// app/Data/Models/TaskData.php (Transformed to TypeScript automatically)
 class TaskData extends Data
 {
     public function __construct(
@@ -540,38 +537,9 @@ class TaskData extends Data
         public string $title,
         public string|null $description,
         public bool $is_completed,
-        public Carbon|null $due_date,
-        public Carbon|null $created_at,
-        public Carbon|null $updated_at,
-        #[AutoWhenLoadedLazy]
-        public Lazy|UserData $user,
-    ) {}
-}
-
-// app/Data/Response/TasksResponse.php
-class TasksResponse extends Data
-{
-    public function __construct(
-        /** @var Collection<array-key,TaskData> $tasks */
-        public Collection $tasks,
-    ) {}
-}
-
-// app/Data/Requests/CreateTaskRequest.php
-class CreateTaskRequest extends Data
-{
-    public function __construct(
-        #[Required]
-        #[Max(255)]
-        public string $title,
-
-        #[Max(1000)]
-        public string|null $description = null,
-
-        #[BooleanType]
-        public bool $is_completed = false,
-
-        public Carbon|null $due_date = null,
+        public string|null $due_date,
+        public string $created_at,
+        public string $updated_at,
     ) {}
 }
 ```
@@ -581,46 +549,13 @@ class CreateTaskRequest extends Data
 // app/Actions/Tasks/ShowTasks.php
 class ShowTasks
 {
-    /**
-     * Display the tasks list.
-     */
     public function __invoke(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        $tasks = Task::where('user_id', $user->id)
-            ->orderBy('due_date')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $tasks = Task::where('user_id', $request->user()->id)->get();
 
         return response()->json(TasksResponse::from([
             'tasks' => TaskData::collect($tasks),
         ]));
-    }
-}
-
-// app/Actions/Tasks/CreateTask.php
-class CreateTask
-{
-    /**
-     * Create a new task.
-     */
-    public function __invoke(CreateTaskRequest $data, Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        $task = Task::create([
-            'user_id' => $user->id,
-            'title' => $data->title,
-            'description' => $data->description,
-            'is_completed' => $data->is_completed,
-            'due_date' => $data->due_date,
-        ]);
-
-        return response()->json([
-            'message' => 'Task created successfully',
-            'task' => TaskData::from($task),
-        ], 201);
     }
 }
 ```
@@ -631,19 +566,13 @@ class CreateTask
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/tasks', ShowTasks::class)->name('api.tasks.index');
     Route::post('/tasks', CreateTask::class)->name('api.tasks.store');
-    // Add other routes as needed
 });
 ```
 
-#### 6. Effect-Based Actions with Wayfinder HttpApiClient
+#### 6. Effect-Based ApiClient Implementation
+**File**: `resources/js/lib/apiClientSingleton.ts`
+
 ```typescript
-// resources/js/lib/apiClientSingleton.ts
-import {
-    TaskSchema,
-    TasksResponseSchema,
-    CreateTaskRequest,
-    CreateTaskRequestSchema,
-} from '@/types/effect-schemas';
 import {
     FetchHttpClient,
     HttpApi,
@@ -652,8 +581,13 @@ import {
     HttpApiGroup,
 } from '@effect/platform';
 import { Effect } from 'effect';
+import {
+    TasksResponseSchema,
+    TaskSchema,
+    CreateTaskRequestSchema,
+} from '@/types/effect-schemas';
 
-// Define API groups and endpoints
+// Define the API group manually
 const tasksGroup = HttpApiGroup.make('tasks')
     .add(
         HttpApiEndpoint.get('index', '/api/tasks')
@@ -665,159 +599,30 @@ const tasksGroup = HttpApiGroup.make('tasks')
             .addSuccess(TaskSchema),
     );
 
-// Create API definition
-export const Api = HttpApi.make('BackendApi').add(tasksGroup);
+// Register in the main API definition
+export const Api = HttpApi.make('BackendApi')
+    .add(tasksGroup);
 
-// Create client instances
 const baseClient = HttpApiClient.make(Api, { baseUrl: '' });
 
-// Singleton class for API operations
 class ApiClientSingleton {
     getTasks() {
-        const effect = Effect.gen(function* () {
-            const client = yield* baseClient;
-
-            return yield* client.tasks.index().pipe(
-                Effect.map((data) => ({
-                    _tag: 'Success' as const,
-                    data,
-                })),
-                Effect.catchAll((e) => Effect.succeed({
-                    _tag: 'FatalError' as const,
-                    message: JSON.stringify(e),
-                })),
-            );
-        });
         return Effect.runPromise(
-            effect.pipe(Effect.provide(FetchHttpClient.layer)),
-        );
-    }
-
-    createTask(data: CreateTaskRequest) {
-        const effect = Effect.gen(function* () {
-            const client = yield* baseClient;
-
-            return yield* client.tasks.store({ payload: data }).pipe(
-                Effect.map((data) => ({
-                    _tag: 'Success' as const,
-                    data,
-                    message: 'Task created successfully',
-                })),
-                Effect.catchTag('ValidationError', (e) => Effect.succeed({
-                    _tag: 'ValidationError' as const,
-                    errors: e.errors,
-                })),
-                Effect.catchAll((e) => Effect.succeed({
-                    _tag: 'FatalError' as const,
-                    message: JSON.stringify(e),
-                })),
-            );
-        });
-        return Effect.runPromise(
-            effect.pipe(Effect.provide(FetchHttpClient.layer)),
+            Effect.gen(function* () {
+                const client = yield* baseClient;
+                return yield* client.tasks.index().pipe(
+                    Effect.map((data) => ({ _tag: 'Success' as const, data })),
+                    Effect.catchAll((e) => Effect.succeed({
+                        _tag: 'FatalError' as const,
+                        message: JSON.stringify(e),
+                    })),
+                );
+            }).pipe(Effect.provide(FetchHttpClient.layer))
         );
     }
 }
 
 export const ApiClient = new ApiClientSingleton();
-```
-
-#### 7. React Router Routes with Effect Loaders
-```typescript
-// resources/js/features/tasks/TasksPage.tsx
-export async function tasksLoader() {
-    const result = await ApiClient.getTasks();
-    if (result._tag === 'Success') {
-        return result.data;
-    } else {
-        console.error('Failed to load tasks:', result.message);
-        return { tasks: [] };
-    }
-}
-
-export function TasksPage() {
-    const { tasks } = useLoaderData<TasksResponse>();
-
-    // Component implementation...
-}
-
-// resources/js/router.tsx (add to router)
-{
-    path: '/tasks',
-    element: <TasksPage />,
-    loader: tasksLoader,
-    errorElement: <ErrorPage />,
-},
-{
-    path: '/tasks/create',
-    element: <CreateTaskPage />,
-},
-```
-
-#### 8. Tests
-```php
-// tests/Feature/TasksTest.php
-it('can create tasks', function (): void {
-    $user = User::factory()->create();
-
-    $response = $this->actingAs($user)->postJson(route('api.tasks.store'), [
-        'title' => 'Complete project',
-        'description' => 'Finish the Laravel project',
-        'is_completed' => false,
-    ]);
-
-    $response->assertCreated();
-    $this->assertDatabaseHas('tasks', [
-        'user_id' => $user->id,
-        'title' => 'Complete project',
-        'is_completed' => false,
-    ]);
-});
-```
-
-#### 9. Frontend
-```tsx
-// resources/js/features/tasks/TasksPage.tsx
-import { useLoaderData } from 'react-router-dom';
-import { TasksResponse } from './tasksLoaderEffect';
-
-export function TasksPage() {
-    const { tasks } = useLoaderData<TasksResponse>();
-
-    return (
-        <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">My Tasks</h1>
-
-            <div className="space-y-4">
-                {tasks.map((task) => (
-                    <div key={task.id} className={`p-4 rounded-lg border ${
-                        task.is_completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
-                    }`}>
-                        <div className="flex items-center space-x-3">
-                            <input
-                                type="checkbox"
-                                checked={task.is_completed}
-                                className="rounded"
-                                // Add toggle functionality
-                            />
-                            <div className={task.is_completed ? 'line-through text-gray-500' : ''}>
-                                <h3 className="font-medium">{task.title}</h3>
-                                {task.description && (
-                                    <p className="text-sm text-gray-600">{task.description}</p>
-                                )}
-                                {task.due_date && (
-                                    <p className="text-xs text-gray-500">
-                                        Due: {new Date(task.due_date).toLocaleDateString()}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
 ```
 
 ---
@@ -826,18 +631,11 @@ export function TasksPage() {
 
 - [ ] **Planning**: Define requirements and user stories
 - [ ] **Database**: Create migration and update model
-- [ ] **Data Layer**: Create Data models, Props, and Request classes
+- [ ] **Data Layer**: Create Data models and Request classes
 - [ ] **Business Logic**: Implement Action classes
 - [ ] **Routing**: Add routes to `routes/api.php`
-- [ ] **Frontend**: Create React components with proper TypeScript types
-- [ ] **Testing**: Write comprehensive feature and browser tests
-- [ ] **Validation**: Ensure all input is validated on both client and server
-- [ ] **Authorization**: Verify proper access controls
-- [ ] **Performance**: Check for N+1 queries and optimize as needed
-- [ ] **UI/UX**: Test responsive design and accessibility
-- [ ] **Documentation**: Update relevant documentation
-
----
+- [ ] **Frontend**: Update `ApiClientSingleton` and create React components
+- [ ] **Testing**: Write Pest feature and browser tests
 
 ---
 
@@ -845,109 +643,41 @@ export function TasksPage() {
 
 ### Effect Schema Types (Auto-generated)
 ```typescript
-// Schemas are auto-generated by Wayfinder from Laravel Data classes
+// Schemas are auto-generated from Laravel Data classes via Spatie TypeScript Transformer
 // Located in: resources/js/types/effect-schemas.ts
-export const FeatureSchema = S.Struct({
-    id: S.String,
-    name: S.String,
-    description: S.Union(S.String, S.Null),
-    created_at: S.String,
-    updated_at: S.String,
+export const FeatureSchema = Schema.Struct({
+    id: Schema.String,
+    name: Schema.String,
+    description: Schema.Union(Schema.String, Schema.Null),
+    created_at: Schema.String,
 });
 
 // Types are derived from schemas for type safety
-export type Feature = S.Schema.Type<typeof FeatureSchema>;
-export type FeaturesResponse = S.Schema.Type<typeof FeaturesResponseSchema>;
-```
-
-### Component Props Types
-```tsx
-import { useLoaderData } from 'react-router-dom';
-
-export function FeaturesPage() {
-    const { features } = useLoaderData<FeaturesResponse>();
-
-    return (
-        <div>
-            {features.map((feature) => (
-                <div key={feature.id}>{feature.name}</div>
-            ))}
-        </div>
-    );
-}
+export type Feature = Schema.Schema.Type<typeof FeatureSchema>;
 ```
 
 ---
 
-## 🔧 Wayfinder Integration
+## 🔧 HttpApiClient Architecture
 
 ### Overview
-This application uses Laravel Wayfinder to generate type-safe TypeScript functions and schemas for Laravel routes and controllers. Wayfinder provides compile-time type safety and automatic synchronization between backend routes and frontend code.
-
-### Generated Files
-- **`resources/js/types/effect-schemas.ts`** - Auto-generated Effect schemas and types
-- **`resources/js/actions/`** - Generated controller action functions
-- **`resources/js/routes/`** - Generated route helper functions
-
-### HttpApiClient Architecture
-Wayfinder generates HttpApiClient instances that provide type-safe API calls:
-
-```typescript
-import { HttpApiGroup, HttpApiEndpoint } from '@effect/platform';
-
-// Define API groups with endpoints
-const authGroup = HttpApiGroup.make('auth')
-    .add(HttpApiEndpoint.post('login', '/api/login')
-        .setPayload(LoginRequestSchema)
-        .addSuccess(AuthResponseSchema));
-
-// Create API definition
-const Api = HttpApi.make('BackendApi').add(authGroup);
-
-// Create client
-const client = HttpApiClient.make(Api, { baseUrl: '' });
-
-// Use in effects
-const result = yield* client.auth.login({ payload: loginData });
-```
+This application uses `@effect/platform`'s `HttpApiClient` to provide type-safe API calls. The API definition is manually constructed in `resources/js/lib/apiClientSingleton.ts`, leveraging schemas generated from PHP Data classes.
 
 ### Schema Generation
-Schemas are automatically generated from your Laravel Data classes and provide runtime validation:
-
-```typescript
-// Generated from your Laravel Data classes
-export const FeatureSchema = S.Struct({
-    id: S.String,
-    name: S.String,
-    description: S.Union(S.String, S.Null),
-    created_at: S.String,
-    updated_at: S.String,
-});
-
-// Type-safe usage
-type Feature = S.Schema.Type<typeof FeatureSchema>;
-```
+Schemas are automatically generated from your Laravel Data classes and provide runtime validation via `effect/Schema`. Generation is handled by the Spatie TypeScript Transformer with custom collectors/transformers for Effect.
 
 ---
 
 ## 🐛 Debugging Effect-Based Architecture
 
 ### Effect Debugging
-- Wrap Effects in `Effect.runPromise()` for debugging:
-```typescript
-// Debug an Effect
-const result = await Effect.runPromise(myEffect.pipe(
-    Effect.tap((data) => console.log('Effect data:', data)),
-    Effect.tapError((error) => console.error('Effect error:', error))
-));
-```
-
 - Use Effect's logging capabilities:
 ```typescript
-import { Logger } from '@effect/platform';
+import { Logger, LogLevel } from 'effect';
 
 const myEffect = Effect.gen(function* () {
-    // ... effect logic
+    yield* Effect.logDebug('Starting operation...');
+    // ... logic
 }).pipe(
     Logger.withMinimumLogLevel(LogLevel.Debug)
 );

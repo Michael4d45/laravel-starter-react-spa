@@ -18,14 +18,6 @@ import {
 } from '@effect/platform';
 import { Effect, Schema } from 'effect';
 
-// Actions
-import DisconnectGoogle from '@/actions/App/Actions/Auth/DisconnectGoogle';
-import Login from '@/actions/App/Actions/Auth/Login';
-import Logout from '@/actions/App/Actions/Auth/Logout';
-import RedirectToGoogle from '@/actions/App/Actions/Auth/RedirectToGoogle';
-import Register from '@/actions/App/Actions/Auth/Register';
-import ShowUser from '@/actions/App/Actions/Auth/ShowUser';
-import ShowContent from '@/actions/App/Actions/Content/ShowContent';
 import { authManager } from './auth';
 
 export const ValidationErrorSchema = Schema.Struct({
@@ -43,14 +35,14 @@ export const ValidationErrorSchema = Schema.Struct({
 
 const authGroup = HttpApiGroup.make('auth')
     .add(
-        HttpApiEndpoint.post('login', Login.definition.url as `/${string}`)
+        HttpApiEndpoint.post('login', '/api/login')
             .setPayload(LoginRequestSchema)
             .addSuccess(AuthResponseSchema),
     )
     .add(
         HttpApiEndpoint.post(
             'register',
-            Register.definition.url as `/${string}`,
+            '/api/register',
         )
             .setPayload(RegisterRequestSchema)
             .addSuccess(AuthResponseSchema),
@@ -58,13 +50,13 @@ const authGroup = HttpApiGroup.make('auth')
     .add(
         HttpApiEndpoint.post(
             'logout',
-            Logout.definition.url as `/${string}`,
+            '/api/logout',
         ).addSuccess(Schema.Struct({ message: Schema.String })),
     )
     .add(
         HttpApiEndpoint.post(
             'disconnectGoogle',
-            DisconnectGoogle.definition.url as `/${string}`,
+            '/api/disconnect-google',
         ).addSuccess(
             Schema.Struct({
                 message: Schema.String,
@@ -76,14 +68,14 @@ const authGroup = HttpApiGroup.make('auth')
 const userGroup = HttpApiGroup.make('users').add(
     HttpApiEndpoint.get(
         'show',
-        ShowUser.definition.url as `/${string}`,
+        '/api/user',
     ).addSuccess(UserDataSchema),
 );
 
 const contentGroup = HttpApiGroup.make('content').add(
     HttpApiEndpoint.get(
         'show',
-        ShowContent.definition.url as `/${string}`,
+        '/api/content',
     ).addSuccess(ContentItemsSchema),
 );
 
@@ -289,7 +281,8 @@ class ApiClientSingleton {
             query.user_id = user.id;
         }
 
-        window.location.href = RedirectToGoogle.url({ query });
+        const queryString = new URLSearchParams(query).toString();
+        window.location.href = `/auth/google${queryString ? `?${queryString}` : ''}`;
     }
 }
 

@@ -94,7 +94,6 @@ export default [
             'bootstrap/ssr',
             'tailwind.config.js',
             'resources/js/routes',
-            'resources/js/wayfinder',
             'resources/js/actions',
             'eslint.config.js',
             'laravelDataTypes.ts',

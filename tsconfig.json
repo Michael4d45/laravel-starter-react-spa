@@ -114,7 +114,6 @@
     ],
     "exclude": [
         "resources/js/routes",
-        "resources/js/wayfinder",
         "resources/js/actions", 
         "resources/js/types/effect-schemas.ts",
         "vite.config.js"

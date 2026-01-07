@@ -6,21 +6,24 @@ A modern **Laravel 12 + React 19** Single Page Application with **Effect-based d
 
 ### Backend
 - **Laravel 12** - PHP web framework
+- **Filament 4** - Admin panel and TALL stack components
 - **Laravel Sanctum** - API authentication
 - **Laravel Socialite** - OAuth integration (Google)
-- **Laravel Wayfinder** - TypeScript route generation
 - **Spatie Laravel Data** - Data transformation layer
+- **Spatie TypeScript Transformer** - TypeScript type generation
 - **Pest** - Modern PHP testing framework
+- **Laravel Boost** - Development guidelines and tools
 - **Log** - Wide Events for logging, [michael4d45/context-logging](https://github.com/Michael4d45/Context-Logging)
 
 ### Frontend
 - **React 19** - Modern React with latest features
 - **React Router 7** - Client-side routing
-- **Effect** - Functional programming for async operations
+- **Effect** - Functional programming for async operations and API client
 - **TypeScript** - Static type checking
 - **Tailwind CSS 4** - Utility-first styling
 - **Lucide React** - Beautiful icons
-- **React Compiler** - No more memoization
+- **React Compiler** - Automatic memoization optimization
+- **Effect-based HttpApiClient** - Type-safe API interactions using `@effect/platform`
 
 ### Development & Build Tools
 - **Vite 7** - Fast build tool and dev server
@@ -45,7 +48,7 @@ This application uses a modern, scalable architecture:
 
 1. **Laravel Backend** - RESTful API with Data classes and Actions
 2. **React Frontend** - Component-based UI with Effect for data management
-3. **Type Safety** - End-to-end TypeScript with auto-generated schemas
+3. **Type Safety** - End-to-end TypeScript with schemas generated from PHP classes
 4. **PWA Features** - Service workers and offline capabilities
 5. **Build Optimization** - Vite with code splitting and asset optimization
 
@@ -194,7 +197,8 @@ Based on code analysis, dependencies are ranked by usage:
 │   │   ├── components/   # Reusable UI components
 │   │   ├── features/     # Feature-specific code
 │   │   ├── lib/          # Utilities and API client
-│   │   └── types/        # TypeScript definitions
+│   │   ├── stores/       # State management stores
+│   │   └── types/        # TypeScript definitions and generated schemas
 │   ├── css/              # Stylesheets
 │   └── views/            # Blade templates
 ├── routes/               # API and web routes
