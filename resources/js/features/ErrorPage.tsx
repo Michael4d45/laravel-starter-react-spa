@@ -6,17 +6,17 @@ export function ErrorPage() {
 
     if (isRouteErrorResponse(error)) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-gray-50">
-                <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+            <div className="bg-primary flex min-h-screen items-center justify-center">
+                <div className="bg-card w-full max-w-md rounded-lg p-8 shadow-lg">
                     <div className="text-center">
-                        <h1 className="mb-4 text-6xl font-bold text-gray-900">
+                        <h1 className="text-secondary mb-4 text-6xl font-bold">
                             {error.status}
                         </h1>
-                        <h2 className="mb-4 text-2xl font-semibold text-gray-700">
+                        <h2 className="text-secondary mb-4 text-2xl font-semibold">
                             {error.statusText}
                         </h2>
                         {error.data?.message && (
-                            <p className="mb-6 text-gray-600">
+                            <p className="text-secondary mb-6">
                                 {error.data.message}
                             </p>
                         )}
@@ -44,13 +44,13 @@ export function ErrorPage() {
         <div className="flex min-h-screen items-center justify-center bg-gray-50">
             <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
                 <div className="text-center">
-                    <h1 className="mb-4 text-6xl font-bold text-gray-900">
+                    <h1 className="text-secondary mb-4 text-6xl font-bold">
                         Oops!
                     </h1>
-                    <h2 className="mb-4 text-2xl font-semibold text-gray-700">
+                    <h2 className="text-secondary mb-4 text-2xl font-semibold">
                         Something went wrong
                     </h2>
-                    <p className="mb-6 text-gray-600">
+                    <p className="text-secondary mb-6">
                         {error instanceof Error
                             ? error.message
                             : 'An unexpected error occurred'}

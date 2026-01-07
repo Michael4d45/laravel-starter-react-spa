@@ -2,8 +2,7 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { authManager } from '@/lib/auth';
 import { UserData } from '@/types/effect-schemas';
-import { useLoaderData, useNavigate } from 'react-router-dom';
-import { redirect } from 'react-router-dom';
+import { redirect, useLoaderData, useNavigate } from 'react-router-dom';
 
 /**
  * React Router loader function that uses the Effect-based loader
@@ -41,22 +40,22 @@ export function ProfilePage() {
 
     return (
         <div className="mx-auto max-w-md">
-            <div className="rounded-lg bg-white p-8 shadow-md">
+            <div className="bg-card rounded-lg p-8 shadow-md">
                 <h1 className="mb-6 text-2xl font-bold">Profile</h1>
 
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="text-secondary block text-sm font-medium">
                             Name
                         </label>
-                        <p className="mt-1 text-gray-900">{user?.name}</p>
+                        <p className="mt-1 text-secondary">{user?.name}</p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="text-secondary block text-sm font-medium">
                             Email
                         </label>
-                        <p className="mt-1 text-gray-900">{user?.email}</p>
+                        <p className="mt-1 text-secondary">{user?.email}</p>
                     </div>
                 </div>
 

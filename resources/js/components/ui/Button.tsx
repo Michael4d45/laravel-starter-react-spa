@@ -13,9 +13,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         const isDisabled = disabled || (disabledWhenOffline && !isOnline);
 
         const variantClasses = {
-            primary: 'bg-blue-600 hover:bg-blue-700 text-white',
-            secondary: 'bg-gray-600 hover:bg-gray-700 text-white',
-            danger: 'bg-red-600 hover:bg-red-700 text-white',
+            primary: 'btn-primary',
+            secondary: 'btn-secondary',
+            danger: 'btn-danger',
         };
 
         return (

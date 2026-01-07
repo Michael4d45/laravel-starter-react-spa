@@ -7,9 +7,6 @@ import { Link, useNavigate } from 'react-router-dom';
 type ValidationErrors = Record<string, readonly string[]>;
 
 export function LoginPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [remember, setRemember] = useState(false);
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
         {},
     );
@@ -33,7 +30,17 @@ export function LoginPage() {
 
         setValidationErrors({}); // Clear previous errors
 
-        const result = await login({ email, password, remember });
+        // Read values directly from form elements (works with browser automation)
+        const formData = new FormData(e.target as HTMLFormElement);
+        const emailValue = formData.get('email') as string;
+        const passwordValue = formData.get('password') as string;
+        const rememberValue = formData.get('remember') === 'on';
+
+        const result = await login({
+            email: emailValue,
+            password: passwordValue,
+            remember: rememberValue,
+        });
         if (result._tag === 'Success') {
             navigate('/');
         } else if (result._tag === 'ValidationError') {
@@ -45,12 +52,12 @@ export function LoginPage() {
 
     return (
         <div className="mx-auto max-w-md">
-            <div className="rounded-lg bg-white p-8 shadow-md">
+            <div className="bg-card rounded-lg p-8 shadow-md">
                 <h1 className="mb-6 text-center text-2xl font-bold">Login</h1>
 
                 {isBlocked && (
-                    <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-                        <p className="text-red-800">{blockReason}</p>
+                    <div className="border-danger bg-danger-light mb-6 rounded-lg border p-4">
+                        <p className="text-danger">{blockReason}</p>
                     </div>
                 )}
 
@@ -58,7 +65,7 @@ export function LoginPage() {
                     <div>
                         <label
                             htmlFor="email"
-                            className="mb-1 block text-sm font-medium text-gray-700"
+                            className="text-secondary mb-1 block text-sm font-medium"
                         >
                             Email
                         </label>
@@ -66,18 +73,17 @@ export function LoginPage() {
                             type="email"
                             id="email"
                             name="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            defaultValue=""
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('email')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                                    ? 'border-danger focus:ring-danger'
+                                    : 'focus:ring-primary border-gray-300'
                             }`}
                             required
                             disabled={isBlocked}
                         />
                         {getFieldError('email') && (
-                            <p className="mt-1 text-sm text-red-600">
+                            <p className="text-danger mt-1 text-sm">
                                 {getFieldError('email')}
                             </p>
                         )}
@@ -86,7 +92,7 @@ export function LoginPage() {
                     <div>
                         <label
                             htmlFor="password"
-                            className="mb-1 block text-sm font-medium text-gray-700"
+                            className="text-secondary mb-1 block text-sm font-medium"
                         >
                             Password
                         </label>
@@ -94,18 +100,17 @@ export function LoginPage() {
                             type="password"
                             id="password"
                             name="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            defaultValue=""
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('password')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                                    ? 'border-danger focus:ring-danger'
+                                    : 'focus:ring-primary border-gray-300'
                             }`}
                             required
                             disabled={isBlocked}
                         />
                         {getFieldError('password') && (
-                            <p className="mt-1 text-sm text-red-600">
+                            <p className="text-danger mt-1 text-sm">
                                 {getFieldError('password')}
                             </p>
                         )}
@@ -116,14 +121,13 @@ export function LoginPage() {
                             type="checkbox"
                             id="remember"
                             name="remember"
-                            checked={remember}
-                            onChange={(e) => setRemember(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            defaultChecked={false}
+                            className="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300"
                             disabled={isBlocked}
                         />
                         <label
                             htmlFor="remember"
-                            className="ml-2 block text-sm text-gray-900"
+                            className="text-secondary ml-2 block text-sm"
                         >
                             Remember me
                         </label>
@@ -139,15 +143,15 @@ export function LoginPage() {
                 </form>
 
                 <div className="mt-6 space-y-2 text-center">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-secondary text-sm">
                         Demo credentials: any email/password combination will
                         work
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-secondary text-sm">
                         Don't have an account?{' '}
                         <Link
                             to="/register"
-                            className="font-medium text-blue-600 hover:text-blue-500"
+                            className="text-primary hover:text-primary-hover font-medium"
                         >
                             Sign up
                         </Link>

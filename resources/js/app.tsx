@@ -4,7 +4,7 @@ import { OfflineBanner } from './components/offline/OfflineBanner';
 
 export function App() {
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="bg-primary min-h-screen">
             <OfflineBanner />
             <main className="container mx-auto px-4 py-8">
                 <Outlet />

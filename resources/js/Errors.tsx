@@ -101,27 +101,27 @@ export function ErrorFallback({
     return (
         <div
             role="alert"
-            className="relative mx-auto my-10 max-w-3xl rounded-xl border border-red-300 bg-red-50 p-6 text-red-800 shadow-xl dark:border-red-700 dark:bg-red-950 dark:text-red-200"
+            className="border-danger bg-danger-light text-danger dark:border-danger dark:bg-danger-dark dark:text-danger-light relative mx-auto my-10 max-w-3xl rounded-xl border p-6 shadow-xl"
         >
-            <h1 className="mb-4 text-3xl font-bold text-red-700 dark:text-red-300">
+            <h1 className="text-danger dark:text-danger-light mb-4 text-3xl font-bold">
                 🚨 Application Error
             </h1>
 
             <div className="mb-6">
-                <p className="text-sm font-semibold tracking-wide text-red-500 uppercase dark:text-red-400">
+                <p className="text-danger dark:text-danger-light text-sm font-semibold tracking-wide uppercase">
                     Message
                 </p>
-                <pre className="rounded-md bg-red-100 p-4 font-mono text-sm whitespace-pre-wrap text-red-900 dark:bg-red-900 dark:text-red-100">
+                <pre className="bg-danger-light text-danger-dark dark:bg-danger-dark dark:text-danger-light rounded-md p-4 font-mono text-sm whitespace-pre-wrap">
                     {error.message}
                 </pre>
             </div>
 
             {error instanceof JsonError && (
                 <div className="mb-6">
-                    <p className="text-sm font-semibold tracking-wide text-red-500 uppercase dark:text-red-400">
+                    <p className="text-danger dark:text-danger-light text-sm font-semibold tracking-wide uppercase">
                         JSON Error Details
                     </p>
-                    <pre className="rounded-md bg-red-100 p-4 font-mono text-sm whitespace-pre-wrap text-red-900 dark:bg-red-900 dark:text-red-100">
+                    <pre className="bg-danger-light text-danger-dark dark:bg-danger-dark dark:text-danger-light rounded-md p-4 font-mono text-sm whitespace-pre-wrap">
                         {JSON.stringify(error.json, null, 2)}
                     </pre>
                 </div>
@@ -129,10 +129,10 @@ export function ErrorFallback({
 
             {parsedStack.length > 0 && (
                 <div className="mb-6">
-                    <p className="text-sm font-semibold tracking-wide text-red-500 uppercase dark:text-red-400">
+                    <p className="text-danger dark:text-danger-light text-sm font-semibold tracking-wide uppercase">
                         Parsed Stack Trace
                     </p>
-                    <ul className="mt-2 max-h-64 space-y-1 overflow-auto rounded-md bg-red-100 p-4 font-mono text-xs text-red-900 dark:bg-red-900 dark:text-red-100">
+                    <ul className="bg-danger-light text-danger-dark dark:bg-danger-dark dark:text-danger-light mt-2 max-h-64 space-y-1 overflow-auto rounded-md p-4 font-mono text-xs">
                         {parsedStack.map((frame, i) => (
                             <li key={i} className="break-all">
                                 <span className="font-semibold">
@@ -157,11 +157,11 @@ export function ErrorFallback({
             )}
 
             {error.stack && (
-                <details className="mb-6 rounded-md bg-red-100 p-4 dark:bg-red-900">
-                    <summary className="cursor-pointer font-semibold text-red-700 dark:text-red-300">
+                <details className="bg-danger-light dark:bg-danger-dark mb-6 rounded-md p-4">
+                    <summary className="text-danger dark:text-danger-light cursor-pointer font-semibold">
                         Raw Stack Trace
                     </summary>
-                    <pre className="mt-2 text-xs whitespace-pre-wrap text-red-900 dark:text-red-100">
+                    <pre className="text-danger-dark dark:text-danger-light mt-2 text-xs whitespace-pre-wrap">
                         {error.stack}
                     </pre>
                 </details>
@@ -170,19 +170,19 @@ export function ErrorFallback({
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
                 <button
                     onClick={handleCopyError}
-                    className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:outline-none dark:bg-red-500 dark:hover:bg-red-600 dark:focus:ring-red-400"
+                    className="bg-danger hover:bg-danger-hover focus:ring-danger dark:bg-danger dark:hover:bg-danger dark:focus:ring-danger-light rounded-md px-4 py-2 text-sm font-semibold text-white shadow focus:ring-2 focus:outline-none"
                 >
                     📋 Copy Error Details
                 </button>
                 <button
                     onClick={resetErrorBoundary}
-                    className="bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 dark:bg-primary-500 dark:hover:bg-primary-600 dark:focus:ring-primary-400 rounded-md px-4 py-2 text-sm font-semibold text-white shadow focus:ring-2 focus:outline-none"
+                    className="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:outline-none dark:bg-primary-500 dark:hover:bg-primary-600 dark:focus:ring-primary-400"
                 >
                     🔁 Try Again
                 </button>
             </div>
 
-            <p className="mt-6 text-xs text-red-600 dark:text-red-400">
+            <p className="text-danger dark:text-danger-light mt-6 text-xs">
                 Still stuck? Try refreshing the page or inspect{' '}
                 <code>window.__lastError</code> in devtools.
             </p>

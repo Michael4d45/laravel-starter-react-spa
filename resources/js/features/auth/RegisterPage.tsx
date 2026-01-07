@@ -82,14 +82,14 @@ export function RegisterPage() {
 
     return (
         <div className="mx-auto max-w-md">
-            <div className="rounded-lg bg-white p-8 shadow-md">
+            <div className="bg-card rounded-lg p-8 shadow-md">
                 <h1 className="mb-6 text-center text-2xl font-bold">
                     Create Account
                 </h1>
 
                 {isBlocked && (
-                    <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-                        <p className="text-red-800">{blockReason}</p>
+                    <div className="border-danger bg-danger-light mb-6 rounded-lg border p-4">
+                        <p className="text-danger">{blockReason}</p>
                     </div>
                 )}
 
@@ -97,7 +97,7 @@ export function RegisterPage() {
                     <div>
                         <label
                             htmlFor="name"
-                            className="mb-1 block text-sm font-medium text-gray-700"
+                            className="text-secondary mb-1 block text-sm font-medium"
                         >
                             Full Name
                         </label>
@@ -109,14 +109,14 @@ export function RegisterPage() {
                             onChange={handleChange}
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('name')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                                    ? 'border-danger focus:ring-danger'
+                                    : 'focus:ring-primary border-gray-300'
                             }`}
                             required
                             disabled={isBlocked}
                         />
                         {getFieldError('name') && (
-                            <p className="mt-1 text-sm text-red-600">
+                            <p className="text-danger mt-1 text-sm">
                                 {getFieldError('name')}
                             </p>
                         )}
@@ -125,7 +125,7 @@ export function RegisterPage() {
                     <div>
                         <label
                             htmlFor="email"
-                            className="mb-1 block text-sm font-medium text-gray-700"
+                            className="text-secondary mb-1 block text-sm font-medium"
                         >
                             Email
                         </label>
@@ -137,14 +137,14 @@ export function RegisterPage() {
                             onChange={handleChange}
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('email')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                                    ? 'border-danger focus:ring-danger'
+                                    : 'focus:ring-primary border-gray-300'
                             }`}
                             required
                             disabled={isBlocked}
                         />
                         {getFieldError('email') && (
-                            <p className="mt-1 text-sm text-red-600">
+                            <p className="text-danger mt-1 text-sm">
                                 {getFieldError('email')}
                             </p>
                         )}
@@ -153,7 +153,7 @@ export function RegisterPage() {
                     <div>
                         <label
                             htmlFor="password"
-                            className="mb-1 block text-sm font-medium text-gray-700"
+                            className="text-secondary mb-1 block text-sm font-medium"
                         >
                             Password
                         </label>
@@ -165,15 +165,15 @@ export function RegisterPage() {
                             onChange={handleChange}
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('password')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                                    ? 'border-danger focus:ring-danger'
+                                    : 'focus:ring-primary border-gray-300'
                             }`}
                             required
                             minLength={8}
                             disabled={isBlocked}
                         />
                         {getFieldError('password') && (
-                            <p className="mt-1 text-sm text-red-600">
+                            <p className="text-danger mt-1 text-sm">
                                 {getFieldError('password')}
                             </p>
                         )}
@@ -182,7 +182,7 @@ export function RegisterPage() {
                     <div>
                         <label
                             htmlFor="password_confirmation"
-                            className="mb-1 block text-sm font-medium text-gray-700"
+                            className="text-secondary mb-1 block text-sm font-medium"
                         >
                             Confirm Password
                         </label>
@@ -194,14 +194,14 @@ export function RegisterPage() {
                             onChange={handleChange}
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('password_confirmation')
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500'
+                                    ? 'border-danger focus:ring-danger'
+                                    : 'focus:ring-primary border-gray-300'
                             }`}
                             required
                             disabled={isBlocked}
                         />
                         {getFieldError('password_confirmation') && (
-                            <p className="mt-1 text-sm text-red-600">
+                            <p className="text-danger mt-1 text-sm">
                                 {getFieldError('password_confirmation')}
                             </p>
                         )}
@@ -218,11 +218,11 @@ export function RegisterPage() {
                 </form>
 
                 <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-secondary text-sm">
                         Already have an account?{' '}
                         <Link
                             to="/login"
-                            className="font-medium text-blue-600 hover:text-blue-500"
+                            className="text-primary hover:text-primary-hover font-medium"
                         >
                             Sign in
                         </Link>

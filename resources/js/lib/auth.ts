@@ -127,7 +127,7 @@ export class AuthManager {
             const response = await fetch('/api/token', {
                 method: 'GET',
                 headers: {
-                    'Accept': 'application/json',
+                    Accept: 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                 },
                 credentials: 'same-origin', // Include cookies for session auth

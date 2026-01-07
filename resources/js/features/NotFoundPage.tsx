@@ -13,16 +13,16 @@ export function NotFoundPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="bg-primary flex min-h-screen items-center justify-center">
             <div className="w-full max-w-md text-center">
                 <div className="mb-8">
-                    <h1 className="mb-4 text-6xl font-bold text-gray-900">
+                    <h1 className="text-secondary mb-4 text-6xl font-bold">
                         404
                     </h1>
-                    <h2 className="mb-4 text-2xl font-semibold text-gray-700">
+                    <h2 className="text-secondary mb-4 text-2xl font-semibold">
                         Page Not Found
                     </h2>
-                    <p className="text-gray-600">
+                    <p className="text-secondary">
                         Sorry, the page you are looking for could not be found.
                     </p>
                 </div>

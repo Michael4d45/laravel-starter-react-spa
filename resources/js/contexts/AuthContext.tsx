@@ -1,9 +1,6 @@
 import { ApiClient } from '@/lib/apiClientSingleton';
 import { authManager, AuthState } from '@/lib/auth';
-import {
-    LoginRequest,
-    RegisterRequest,
-} from '@/types/effect-schemas';
+import { LoginRequest, RegisterRequest } from '@/types/effect-schemas';
 import {
     createContext,
     ReactNode,
@@ -70,7 +67,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Call backend logout endpoint to invalidate server-side session/token
             await ApiClient.logout();
         } catch (error) {
-            console.warn('Backend logout failed, clearing client-side data anyway:', error);
+            console.warn(
+                'Backend logout failed, clearing client-side data anyway:',
+                error,
+            );
         }
 
         // Clear client-side authentication data

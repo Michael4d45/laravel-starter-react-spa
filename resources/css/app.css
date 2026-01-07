@@ -1,13 +1,458 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+/* filament views */
+/* @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php'; */
 @source '../**/*.blade.php';
-@source '../**/*.js';
+@source '../**/*.ts';
+
+@custom-variant dark (&:is(.dark *));
 
 @theme {
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+
+    /* Primary Colors - Modern teal palette */
+    --color-primary-50: #f0fdfa;
+    --color-primary-100: #ccfbf1;
+    --color-primary-200: #99f6e4;
+    --color-primary-300: #5eead4;
+    --color-primary-400: #2dd4bf;
+    --color-primary-500: #14b8a6;
+    --color-primary-600: #0d9488;
+    --color-primary-700: #0f766e;
+    --color-primary-800: #115e59;
+    --color-primary-900: #134e4a;
+    --color-primary-950: #042f2e;
+
+    /* Secondary Colors - Neutral grey palette */
+    --color-secondary-50: #fafaf9;
+    --color-secondary-100: #f5f5f4;
+    --color-secondary-200: #e7e5e4;
+    --color-secondary-300: #d6d3d1;
+    --color-secondary-400: #a8a29e;
+    --color-secondary-500: #78716c;
+    --color-secondary-600: #57534e;
+    --color-secondary-700: #44403c;
+    --color-secondary-800: #292524;
+    --color-secondary-900: #1c1917;
+    --color-secondary-950: #0c0a09;
+
+    /* Success Colors - Fresh emerald green palette */
+    --color-success-50: #ecfdf5;
+    --color-success-100: #d1fae5;
+    --color-success-200: #a7f3d0;
+    --color-success-300: #6ee7b7;
+    --color-success-400: #34d399;
+    --color-success-500: #10b981;
+    --color-success-600: #059669;
+    --color-success-700: #047857;
+    --color-success-800: #065f46;
+    --color-success-900: #064e3b;
+    --color-success-950: #022c22;
+
+    /* Danger/Error Colors - Modern red palette */
+    --color-danger-50: #fef2f2;
+    --color-danger-100: #fee2e2;
+    --color-danger-200: #fecaca;
+    --color-danger-300: #fca5a5;
+    --color-danger-400: #f87171;
+    --color-danger-500: #ef4444;
+    --color-danger-600: #dc2626;
+    --color-danger-700: #b91c1c;
+    --color-danger-800: #991b1b;
+    --color-danger-900: #7f1d1d;
+    --color-danger-950: #450a0a;
+
+    /* Warning Colors - Warm amber palette */
+    --color-warning-50: #fffbeb;
+    --color-warning-100: #fef3c7;
+    --color-warning-200: #fde68a;
+    --color-warning-300: #fcd34d;
+    --color-warning-400: #fbbf24;
+    --color-warning-500: #f59e0b;
+    --color-warning-600: #d97706;
+    --color-warning-700: #b45309;
+    --color-warning-800: #92400e;
+    --color-warning-900: #78350f;
+    --color-warning-950: #451a03;
+
+    /* Info Colors - Sky blue palette */
+    --color-info-50: #f0f9ff;
+    --color-info-100: #e0f2fe;
+    --color-info-200: #bae6fd;
+    --color-info-300: #7dd3fc;
+    --color-info-400: #38bdf8;
+    --color-info-500: #0ea5e9;
+    --color-info-600: #0284c7;
+    --color-info-700: #0369a1;
+    --color-info-800: #075985;
+    --color-info-900: #0c4a6e;
+    --color-info-950: #082f49;
+
+    /* Background Colors */
+    --color-bg-primary: var(--bg-primary);
+    --color-bg-secondary: var(--bg-secondary);
+    --color-bg-card: var(--bg-card);
+}
+
+/* CSS Custom Properties for easy theme updates with dark mode support */
+:root {
+    /* Primary - Light mode values */
+    --primary: var(--color-primary-600);
+    --primary-hover: var(--color-primary-700);
+    --primary-focus: var(--color-primary-500);
+    --primary-light: var(--color-primary-500);
+    --primary-dark: var(--color-primary-700);
+
+    /* Secondary - Light mode values */
+    --secondary: var(--color-secondary-600);
+    --secondary-hover: var(--color-secondary-700);
+    --secondary-bg: var(--color-secondary-50);
+    --secondary-border: var(--color-secondary-300);
+
+    /* Semantic colors - Light mode values */
+    --success: var(--color-success-600);
+    --success-light: var(--color-success-500);
+    --danger: var(--color-danger-600);
+    --danger-light: var(--color-danger-500);
+    --warning: var(--color-warning-600);
+    --info: var(--color-info-600);
+
+    /* Background colors - Light mode values */
+    --bg-primary: var(--color-gray-50);
+    --bg-secondary: var(--color-white);
+    --bg-card: var(--color-white);
+
+    /* Logo theming - Light mode values */
+    --logo-text-color: var(--color-gray-900, #0a0a0a);
+    --logo-accent-color: var(--color-red-500, #ff5f55);
+}
+
+/* Dark mode overrides - automatically applied when .dark class is present */
+.dark {
+    /* Primary - Dark mode values (lighter for better contrast) */
+    --primary: var(--color-primary-500);
+    --primary-hover: var(--color-primary-400);
+    --primary-focus: var(--color-primary-400);
+    --primary-light: var(--color-primary-400);
+    --primary-dark: var(--color-primary-600);
+
+    /* Secondary - Dark mode values */
+    --secondary: var(--color-secondary-400);
+    --secondary-hover: var(--color-secondary-300);
+    --secondary-bg: var(--color-secondary-900);
+    --secondary-border: var(--color-secondary-700);
+
+    /* Background colors - Dark mode values */
+    --bg-primary: var(--color-gray-900);
+    --bg-secondary: var(--color-gray-800);
+    --bg-card: var(--color-gray-800);
+
+    /* Semantic colors - Dark mode values (lighter for better contrast) */
+    --success: var(--color-success-500);
+    --success-light: var(--color-success-400);
+    --danger: var(--color-danger-500);
+    --danger-light: var(--color-danger-400);
+    --warning: var(--color-warning-500);
+    --info: var(--color-info-500);
+}
+
+
+body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+}
+
+/* Headings */
+h1 {
+    @apply text-3xl font-bold text-gray-900 dark:text-white;
+}
+
+h2 {
+    @apply text-2xl font-semibold text-gray-900 dark:text-white;
+}
+
+h3 {
+    @apply text-xl font-semibold text-gray-900 dark:text-white;
+}
+
+h4 {
+    @apply text-lg font-medium text-gray-900 dark:text-white;
+}
+
+/* Links - uses primary color variables */
+a {
+    color: var(--primary);
+}
+
+a:hover {
+    color: var(--primary-hover);
+}
+
+/* Form inputs - base styles with primary color focus */
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='search'],
+input[type='tel'],
+input[type='url'],
+textarea,
+select {
+    @apply block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 shadow-sm transition-colors focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400;
+    border-color: var(--secondary-border);
+}
+
+/* Input focus states - uses primary color */
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--primary-focus);
+    box-shadow: 0 0 0 1px var(--primary-focus);
+}
+
+/* Disabled inputs */
+input:disabled,
+textarea:disabled,
+select:disabled {
+    @apply cursor-not-allowed bg-gray-100 opacity-50 dark:bg-gray-800;
+}
+
+/* Checkboxes and radio buttons - uses primary color */
+input[type='checkbox'],
+input[type='radio'] {
+    @apply h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-offset-0 dark:border-gray-600 dark:bg-gray-700;
+    color: var(--primary);
+    --tw-ring-color: var(--primary);
+}
+
+/* Labels */
+label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
+}
+
+/* Buttons - base styles */
+button,
+[type='button'],
+[type='submit'],
+[type='reset'] {
+    @apply inline-flex items-center justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50;
+    --tw-ring-color: var(--primary);
+}
+
+/* Primary button - uses primary color variables */
+button.btn-primary,
+[type='submit']:not([class*='btn-']) {
+    background-color: var(--primary);
+    color: white;
+}
+
+button.btn-primary:hover,
+[type='submit']:not([class*='btn-']):hover {
+    background-color: var(--primary-hover);
+}
+
+/* Secondary button - uses secondary color variables */
+button.btn-secondary,
+a.btn-secondary {
+    @apply inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none;
+    background-color: var(--secondary-bg);
+    color: var(--secondary);
+    border-color: var(--secondary-border);
+    --tw-ring-color: var(--primary);
+}
+
+button.btn-secondary:hover,
+a.btn-secondary:hover {
+    background-color: var(--secondary-hover);
+    color: white;
+}
+
+.dark button.btn-secondary:hover,
+.dark a.btn-secondary:hover {
+    color: var(--color-secondary-900);
+}
+
+/* Danger button - uses danger color variables */
+button.btn-danger {
+    background-color: var(--danger);
+    color: white;
+}
+
+button.btn-danger:hover {
+    background-color: var(--danger-light);
+}
+
+/* Error messages - uses danger color variables */
+.error,
+.text-error {
+    @apply text-sm;
+    color: var(--danger);
+}
+
+/* Success messages - uses success color variables */
+.success,
+.text-success {
+    @apply text-sm;
+    color: var(--success);
+}
+
+/* Cards */
+.card {
+    @apply rounded-lg p-6 shadow;
+    background-color: var(--bg-card);
+}
+
+/* Background utilities */
+.bg-card {
+    background-color: var(--bg-card);
+}
+
+/* Code blocks */
+code {
+    @apply rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-800 dark:bg-gray-700 dark:text-gray-200;
+}
+
+pre {
+    @apply overflow-x-auto rounded-lg bg-gray-100 p-4 text-sm dark:bg-gray-800;
+}
+
+pre code {
+    @apply bg-transparent p-0;
+}
+
+/* Horizontal rule */
+hr {
+    @apply my-4 border-gray-200 dark:border-gray-700;
+}
+
+/* Lists */
+ul,
+ol {
+    @apply list-inside space-y-1;
+}
+
+ul,
+ol {
+    @apply list-none;
+}
+
+/* Reset list styles for navigation and role="list" */
+nav ul,
+nav ol,
+ul[role='list'],
+ol[role='list'] {
+    @apply list-none;
+}
+
+/* Blockquote */
+blockquote {
+    @apply border-l-4 border-gray-300 pl-4 text-gray-600 italic dark:border-gray-600 dark:text-gray-400;
+}
+
+/* Select Components - Base styles with dark mode support */
+.select-trigger {
+    @apply w-full border px-3 py-2 text-left transition-colors;
+    border-color: var(--secondary-border);
+    background-color: white;
+    color: var(--secondary);
+}
+
+.dark .select-trigger {
+    background-color: var(--secondary-bg);
+    border-color: var(--secondary-border);
+    color: var(--secondary);
+}
+
+.select-trigger:hover {
+    border-color: var(--primary);
+}
+
+.select-dropdown {
+    @apply absolute z-50 mt-1 w-full border;
+    border-color: var(--secondary-border);
+    background-color: white;
+}
+
+.dark .select-dropdown {
+    background-color: var(--secondary-bg);
+    border-color: var(--secondary-border);
+}
+
+.select-list {
+    @apply max-h-60 overflow-y-auto;
+}
+
+.select-item {
+    @apply cursor-pointer px-3 py-2 transition-colors;
+}
+
+.select-item:hover {
+    background-color: var(--color-secondary-100);
+}
+
+.dark .select-item:hover {
+    background-color: var(--color-secondary-700);
+}
+
+.select-item-selected {
+    background-color: var(--color-secondary-100);
+}
+
+.dark .select-item-selected {
+    background-color: var(--color-secondary-700);
+}
+
+.select-search {
+    @apply w-full border-b px-2 py-1;
+    border-color: var(--secondary-border);
+    background-color: white;
+    color: var(--secondary);
+}
+
+.dark .select-search {
+    background-color: var(--secondary-bg);
+    border-color: var(--secondary-border);
+    color: var(--secondary);
+}
+
+.select-search:focus {
+    outline: none;
+    border-color: var(--primary-focus);
+}
+
+.select-no-results {
+    @apply px-3 py-2 text-sm;
+    color: var(--color-secondary-500);
+}
+
+.dark .select-no-results {
+    color: var(--color-secondary-400);
+}
+
+.select-clear {
+    @apply absolute top-2 right-2 px-2 py-1 text-lg leading-none transition-colors;
+    color: var(--color-secondary-500);
+}
+
+.select-clear:hover {
+    color: var(--danger);
+}
+
+.dark .select-clear {
+    color: var(--color-secondary-400);
+}
+
+.dark .select-clear:hover {
+    color: var(--danger-light);
+}
+
+/* Mobile: Slightly larger text for better readability */
+@media (max-width: 767px) {
+    html {
+        font-size: 1.125rem;
+        /* 18px instead of default 16px */
+    }
 }

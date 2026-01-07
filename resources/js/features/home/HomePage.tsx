@@ -1,3 +1,4 @@
+import AppearanceToggleTab from '@/components/ui/AppearanceToggleTab';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -9,16 +10,16 @@ export function HomePage() {
     return (
         <div className="mx-auto max-w-4xl">
             <div className="mb-12 text-center">
-                <h1 className="mb-4 text-4xl font-bold text-gray-900">
+                <h1 className="text-secondary mb-4 text-4xl font-bold">
                     Laravel React PWA
                 </h1>
-                <p className="text-xl text-gray-600">
+                <p className="text-secondary text-xl">
                     A progressive web app with offline support and
                     authentication
                 </p>
             </div>
 
-            <div className="rounded-lg bg-white p-8 shadow-md">
+            <div className="bg-card rounded-lg p-8 shadow-md">
                 <h2 className="mb-6 text-center text-2xl font-semibold">
                     Navigation
                 </h2>
@@ -67,11 +68,12 @@ export function HomePage() {
                             </Link>
                         </>
                     )}
+                    <AppearanceToggleTab />
                 </div>
             </div>
 
             <div className="mt-8 text-center">
-                <p className="text-sm text-gray-500">
+                <p className="text-secondary text-sm">
                     Try going offline in your browser's dev tools and refreshing
                     the page!
                 </p>

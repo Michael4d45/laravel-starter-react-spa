@@ -57,18 +57,18 @@ export function ContentPage() {
                     {content.map((item) => (
                         <div
                             key={item.id}
-                            className="rounded-lg bg-white p-6 shadow-md"
+                            className="bg-card rounded-lg p-6 shadow-md"
                         >
                             <h2 className="mb-2 text-xl font-semibold">
                                 {item.title}
                             </h2>
-                            <p className="text-gray-700">{item.body}</p>
+                            <p className="text-secondary">{item.body}</p>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div className="rounded-lg bg-white p-8 text-center shadow-md">
-                    <p className="mb-4 text-gray-600">
+                <div className="bg-card rounded-lg p-8 text-center shadow-md">
+                    <p className="text-secondary mb-4">
                         No content available.
                         {isBlocked &&
                             ' Check your connection to fetch new content.'}

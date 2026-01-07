@@ -14,7 +14,7 @@ export function OfflineGuard({
 
     if (requiresOnline && !isOnline) {
         return (
-            <div className="p-4 text-center text-gray-600">
+            <div className="text-secondary p-4 text-center">
                 You need to be online to access this feature.
             </div>
         );

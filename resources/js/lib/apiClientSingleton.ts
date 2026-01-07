@@ -20,8 +20,8 @@ import { Effect, Schema } from 'effect';
 
 // Actions
 import Login from '@/actions/App/Actions/Auth/Login';
-import Register from '@/actions/App/Actions/Auth/Register';
 import Logout from '@/actions/App/Actions/Auth/Logout';
+import Register from '@/actions/App/Actions/Auth/Register';
 import ShowUser from '@/actions/App/Actions/Auth/ShowUser';
 import ShowContent from '@/actions/App/Actions/Content/ShowContent';
 import { authManager } from './auth';
@@ -32,7 +32,7 @@ export const ValidationErrorSchema = Schema.Struct({
         key: Schema.String,
         value: Schema.Array(Schema.String),
     }),
-})
+});
 
 /* ============================================================================
  * API Definition
@@ -54,8 +54,10 @@ const authGroup = HttpApiGroup.make('auth')
             .addSuccess(AuthResponseSchema),
     )
     .add(
-        HttpApiEndpoint.post('logout', Logout.definition.url as `/${string}`)
-            .addSuccess(Schema.Struct({ message: Schema.String })),
+        HttpApiEndpoint.post(
+            'logout',
+            Logout.definition.url as `/${string}`,
+        ).addSuccess(Schema.Struct({ message: Schema.String })),
     );
 
 const userGroup = HttpApiGroup.make('users').add(
@@ -82,7 +84,7 @@ export const Api = HttpApi.make('BackendApi')
  * Form-Friendly Result
  * ============================================================================
  */
-const baseUrl = ""; // Empty string to use relative paths
+const baseUrl = ''; // Empty string to use relative paths
 
 const baseClient = HttpApiClient.make(Api, {
     baseUrl,
@@ -117,7 +119,7 @@ class ApiClientSingleton {
                     _tag: 'Success' as const,
                     data,
                 })),
-                Effect.catchTag("ValidationError", (e) => {
+                Effect.catchTag('ValidationError', (e) => {
                     return Effect.succeed({
                         _tag: 'ValidationError' as const,
                         errors: e.errors,
@@ -127,7 +129,7 @@ class ApiClientSingleton {
                     return Effect.succeed({
                         _tag: 'FatalError' as const,
                         message: JSON.stringify(e),
-                    })
+                    });
                 }),
             );
         });
@@ -145,7 +147,7 @@ class ApiClientSingleton {
                     _tag: 'Success' as const,
                     data,
                 })),
-                Effect.catchTag("ValidationError", (e) => {
+                Effect.catchTag('ValidationError', (e) => {
                     return Effect.succeed({
                         _tag: 'ValidationError' as const,
                         errors: e.errors,
@@ -155,7 +157,7 @@ class ApiClientSingleton {
                     return Effect.succeed({
                         _tag: 'FatalError' as const,
                         message: JSON.stringify(e),
-                    })
+                    });
                 }),
             );
         });
@@ -177,7 +179,7 @@ class ApiClientSingleton {
                     return Effect.succeed({
                         _tag: 'FatalError' as const,
                         message: JSON.stringify(e),
-                    })
+                    });
                 }),
             );
         });
@@ -199,7 +201,7 @@ class ApiClientSingleton {
                     return Effect.succeed({
                         _tag: 'FatalError' as const,
                         message: JSON.stringify(e),
-                    })
+                    });
                 }),
             );
         });
@@ -217,18 +219,18 @@ class ApiClientSingleton {
                     _tag: 'Success' as const,
                     data,
                 })),
-                Effect.catchTag("ParseError", (e) => {
+                Effect.catchTag('ParseError', (e) => {
                     console.error(e);
                     return Effect.succeed({
                         _tag: 'ParseError' as const,
                         message: JSON.stringify(e),
-                    })
+                    });
                 }),
                 Effect.catchAll((e) => {
                     return Effect.succeed({
                         _tag: 'FatalError' as const,
                         message: JSON.stringify(e),
-                    })
+                    });
                 }),
             );
         });
