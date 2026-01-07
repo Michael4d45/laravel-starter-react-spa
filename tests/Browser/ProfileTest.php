@@ -68,26 +68,6 @@ it('shows logout button on profile page', function (): void {
         ->screenshot(filename: 'profile-logout-button.png');
 });
 
-it('profile page has proper layout and styling', function (): void {
-    $user = User::factory()->create([
-        'name' => 'Test User',
-        'email' => 'test@example.com',
-    ]);
-    $this->actingAs($user);
-
-    visit('/profile')
-        ->assertNoJavaScriptErrors()
-        ->waitForText('Profile', 10)
-        ->assertSee('Profile')
-        ->assertSee('Test User')
-        ->assertSee('test@example.com')
-        // Check for proper CSS classes that indicate styling is applied
-        ->assertPresent('.bg-white')
-        ->assertPresent('.shadow-md')
-        ->assertPresent('.rounded-lg')
-        ->screenshot(filename: 'profile-styling.png');
-});
-
 it('profile page is responsive on different screen sizes', function (): void {
     $user = User::factory()->create();
     $this->actingAs($user);

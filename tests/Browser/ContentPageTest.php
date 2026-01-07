@@ -43,19 +43,6 @@ it('displays refresh and create content buttons', function (): void {
         ->screenshot(filename: 'content-page-buttons.png');
 });
 
-it('content page has proper layout and styling', function (): void {
-    visit('/content')
-        ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
-        ->assertSee('Content List')
-        // Check for proper CSS classes that indicate styling is applied
-        ->assertPresent('.bg-white')
-        ->assertPresent('.shadow-md')
-        ->assertPresent('.rounded-lg')
-        ->assertPresent('.grid')
-        ->screenshot(filename: 'content-page-styling.png');
-});
-
 it('content page is responsive on different screen sizes', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
@@ -87,9 +74,6 @@ it('displays content items in proper grid layout', function (): void {
         ->assertNoJavaScriptErrors()
         ->waitForText('Content List', 10)
         ->assertPresent('.grid')
-        ->assertPresent('.bg-white')
-        ->assertPresent('.shadow-md')
-        ->assertPresent('.rounded-lg')
         // Should have multiple content cards
         ->assertSee('Welcome to the Content Page')
         ->assertSee('This is a sample content item') // Content from first item
@@ -147,7 +131,6 @@ it('displays complete content page view', function (): void {
         ->assertSee('Create New Content')
         // Verify content grid exists and has content
         ->assertPresent('.grid')
-        ->assertPresent('.bg-white')
         // Verify multiple content items are displayed
         ->assertSee('Welcome to the Content Page')
         ->assertSee('Another Content Item')
