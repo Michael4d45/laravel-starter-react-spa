@@ -238,6 +238,17 @@ class ApiClientSingleton {
             effect.pipe(Effect.provide(FetchHttpClient.layer)),
         );
     }
+
+    /**
+     * Initiate Google OAuth login/registration flow
+     */
+    googleLogin(forceConsent = false) {
+        const url = new URL('/api/redirect-to-google', window.location.origin);
+        if (forceConsent) {
+            url.searchParams.set('force_consent', '1');
+        }
+        window.location.href = url.toString();
+    }
 }
 
 // Export singleton instance

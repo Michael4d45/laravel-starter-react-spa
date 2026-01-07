@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/Button';
+import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { useState } from 'react';
@@ -17,7 +18,7 @@ export function RegisterPage() {
         {},
     );
 
-    const { register, isLoading } = useAuth();
+    const { register, googleLogin, isLoading } = useAuth();
 
     const { isBlocked, blockReason } = useOfflineBlock();
     const navigate = useNavigate();
@@ -216,6 +217,30 @@ export function RegisterPage() {
                         {isLoading ? 'Creating Account...' : 'Create Account'}
                     </Button>
                 </form>
+
+                <div className="mt-6">
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-card text-secondary">Or</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-6">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => googleLogin()}
+                            className="w-full flex items-center justify-center gap-2"
+                            disabled={isLoading || isBlocked}
+                        >
+                            <GoogleIcon />
+                            Continue with Google
+                        </Button>
+                    </div>
+                </div>
 
                 <div className="mt-6 text-center">
                     <p className="text-secondary text-sm">

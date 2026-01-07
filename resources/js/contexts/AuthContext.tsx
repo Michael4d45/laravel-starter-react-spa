@@ -15,6 +15,7 @@ interface AuthContextType {
     login: typeof ApiClient.login;
     register: typeof ApiClient.register;
     logout: () => void;
+    googleLogin: (forceConsent?: boolean) => void;
     isLoading: boolean;
 }
 
@@ -78,11 +79,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         toast.success('Logged out successfully');
     };
 
+    const googleLogin = (forceConsent = false) => {
+        ApiClient.googleLogin(forceConsent);
+    };
+
     const value: AuthContextType = {
         authState,
         login,
         register,
         logout,
+        googleLogin,
         isLoading,
     };
 

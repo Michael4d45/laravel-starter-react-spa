@@ -177,6 +177,56 @@ it('shows validation errors for invalid registration', function (): void {
         ->assertNoJavaScriptErrors();
 });
 
+it('shows google login button on login page', function (): void {
+    visit('/login')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Login')
+        ->assertSee('Continue with Google')
+        ->assertSee('Or'); // The divider text
+});
+
+it('shows google login button on register page', function (): void {
+    visit('/register')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Create Account')
+        ->assertSee('Continue with Google')
+        ->assertSee('Or'); // The divider text
+});
+
+it('shows google account connection on profile page', function (): void {
+    $user = User::factory()->create([
+        'email' => 'test@example.com',
+        'password' => bcrypt('password1234'),
+    ]);
+
+    // Use actingAs to create a session - the frontend will detect this and get a token
+    $this->actingAs($user);
+
+    visit('/profile')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Logout', 10)
+        ->assertSee('Google Account')
+        ->assertSee('Connect Google Account');
+});
+
+it('shows google account as connected on profile page', function (): void {
+    $user = User::factory()->create([
+        'email' => 'test@example.com',
+        'password' => bcrypt('password1234'),
+        'google_id' => '123456789',
+    ]);
+
+    // Use actingAs to create a session - the frontend will detect this and get a token
+    $this->actingAs($user);
+
+    visit('/profile')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Logout', 10)
+        ->assertSee('Google Account')
+        ->assertSee('Connected')
+        ->assertSee('Reconnect');
+});
+
 it('can logout', function (): void {
     $logPath = setup_log_capture('auth.log');
 
