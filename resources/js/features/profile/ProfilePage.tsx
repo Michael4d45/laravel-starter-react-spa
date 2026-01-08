@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/contexts/AuthContext';
+import { ApiClient } from '@/lib/apiClientSingleton';
 import { authManager } from '@/lib/auth';
 import { UserData } from '@/types/effect-schemas';
 import { redirect, useLoaderData, useNavigate } from 'react-router-dom';
@@ -16,10 +17,11 @@ export async function profileLoader() {
 
     // If no JWT tokens, try to restore from session (useful for tests with actingAs)
     if (!user || !token) {
-        const restored = await authManager.tryRestoreFromSession();
-        if (restored) {
-            user = authManager.getUser();
-            token = authManager.getToken();
+        const result = await ApiClient.fetchSessionToken();
+        if (result._tag === 'Success') {
+            authManager.setAuthData(result.data.token, result.data.user);
+            user = result.data.user;
+            token = result.data.token;
         }
     }
 

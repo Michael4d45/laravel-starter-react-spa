@@ -12,6 +12,7 @@ import {
     useEffect,
     useState,
 } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
@@ -52,44 +53,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
             if (authParam === 'success' || authParam === 'connected') {
                 // OAuth successful - fetch token securely from API
-                try {
-                    const response = await fetch('/api/oauth-token', {
-                        method: 'GET',
-                        headers: {
-                            Accept: 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        credentials: 'same-origin', // Include session cookies
+                const result = await ApiClient.fetchOAuthToken();
+
+                if (result._tag === 'Success') {
+                    const { token, user } = result.data;
+                    // Update the auth manager (localStorage)
+                    authManager.setAuthData(token, user);
+
+                    // Force a state update to ensure all components re-render with new data
+                    setAuthState({
+                        token,
+                        user,
+                        isAuthenticated: true,
                     });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.token && data.user) {
-                            // Update the auth manager (localStorage)
-                            authManager.setAuthData(data.token, data.user);
-
-                            // Force a state update to ensure all components re-render with new data
-                            setAuthState({
-                                token: data.token,
-                                user: data.user,
-                                isAuthenticated: true,
-                            });
-
-                            toast.success(
-                                authParam === 'success'
-                                    ? 'Successfully signed in with Google!'
-                                    : 'Google account connected successfully!',
-                            );
-                        }
-                    } else {
-                        console.error('Failed to retrieve OAuth token');
-                        toast.error(
-                            'Authentication completed but failed to retrieve session.',
-                        );
-                    }
-                } catch (error) {
-                    console.error('OAuth token fetch error:', error);
-                    toast.error('Failed to complete authentication.');
+                    toast.success(
+                        authParam === 'success'
+                            ? 'Successfully signed in with Google!'
+                            : 'Google account connected successfully!',
+                    );
+                } else {
+                    console.error('Failed to retrieve OAuth token:', result);
+                    toast.error(
+                        'Authentication completed but failed to retrieve session.',
+                    );
                 }
 
                 // Clean up URL
@@ -101,7 +88,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 window.history.replaceState({}, '', window.location.pathname);
             } else {
                 // Check token validity on mount (no OAuth callback)
-                await authManager.refreshAuthState();
+                // Try to restore from session if no local token
+                if (!authManager.getToken() || authManager.isTokenExpired()) {
+                    const result = await ApiClient.fetchSessionToken();
+                    if (result._tag === 'Success') {
+                        authManager.setAuthData(
+                            result.data.token,
+                            result.data.user,
+                        );
+                    }
+                }
             }
         };
 
@@ -190,4 +186,20 @@ export function useAuth(): AuthContextType {
         throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;
+}
+
+// Component to handle navigation when authenticated on auth pages
+export function AuthGuard({ children }: { children: ReactNode }) {
+    const { authState } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        const isOnAuthPage = location.pathname === '/login' || location.pathname === '/register';
+        if (authState.isAuthenticated && isOnAuthPage) {
+            navigate('/', { replace: true });
+        }
+    }, [authState.isAuthenticated, location.pathname, navigate]);
+
+    return <>{children}</>;
 }

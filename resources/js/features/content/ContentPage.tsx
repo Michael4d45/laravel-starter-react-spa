@@ -13,7 +13,11 @@ export async function contentLoader() {
     if (result._tag === 'Success') {
         return result.data;
     } else {
-        console.error('Failed to load content:', result.message);
+        const errorMessage =
+            result._tag === 'ParseError' || result._tag === 'FatalError'
+                ? result.message
+                : 'Validation error occurred';
+        console.error('Failed to load content:', errorMessage);
         return { content: [] };
     }
 }

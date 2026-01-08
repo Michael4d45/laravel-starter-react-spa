@@ -98,47 +98,10 @@ export class AuthManager {
     /**
      * Refresh authentication state (useful for checking token validity)
      */
-    async refreshAuthState(): Promise<void> {
+    refreshAuthState(): void {
         if (this.isTokenExpired()) {
             this.clearAuthData();
         }
-
-        // Try to restore authentication from session (useful after OAuth)
-        await this.tryRestoreFromSession();
-    }
-
-    /**
-     * Try to restore authentication from server session (useful for tests with actingAs)
-     */
-    async tryRestoreFromSession(): Promise<boolean> {
-        // If we already have a valid token, no need to restore
-        if (this.getToken() && !this.isTokenExpired()) {
-            return true;
-        }
-
-        try {
-            // Try to get a token from the server (works if there's a session)
-            const response = await fetch('/api/token', {
-                method: 'GET',
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin', // Include cookies for session auth
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.token && data.user) {
-                    this.setAuthData(data.token, data.user);
-                    return true;
-                }
-            }
-        } catch (error) {
-            console.warn('Failed to restore auth from session:', error);
-        }
-
-        return false;
     }
 
     /**
