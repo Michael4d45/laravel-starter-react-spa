@@ -16,7 +16,7 @@ export const apiCache = {
     /**
      * Store data in cache.
      */
-    async set<T>(key: string, data: T): Promise<void> {
+    async set(key: string, data: unknown): Promise<void> {
         await db.apiCache.put({
             key,
             data,
@@ -31,4 +31,3 @@ export const apiCache = {
         await db.apiCache.clear();
     },
 };
-

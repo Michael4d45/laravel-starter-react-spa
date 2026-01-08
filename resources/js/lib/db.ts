@@ -13,4 +13,3 @@ export const db = new Dexie('AppCacheDB') as Dexie & {
 db.version(1).stores({
     apiCache: 'key, timestamp',
 });
-

@@ -12,8 +12,8 @@ import {
     useEffect,
     useState,
 } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
     authState: AuthState;
@@ -195,7 +195,8 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     const location = useLocation();
 
     useEffect(() => {
-        const isOnAuthPage = location.pathname === '/login' || location.pathname === '/register';
+        const isOnAuthPage =
+            location.pathname === '/login' || location.pathname === '/register';
         if (authState.isAuthenticated && isOnAuthPage) {
             navigate('/', { replace: true });
         }
