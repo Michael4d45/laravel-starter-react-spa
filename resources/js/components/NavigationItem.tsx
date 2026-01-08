@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
 import { LucideIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface NavigationItemProps {
     href: string;

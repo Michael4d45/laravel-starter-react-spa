@@ -14,10 +14,7 @@ export function HomePage() {
                         Get started by signing in or creating an account
                     </p>
                     <div className="mt-8 flex gap-4">
-                        <Link
-                            to="/login"
-                            className="btn-primary px-6 py-3"
-                        >
+                        <Link to="/login" className="btn-primary px-6 py-3">
                             Log in
                         </Link>
                         <Link

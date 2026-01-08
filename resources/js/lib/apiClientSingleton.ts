@@ -38,7 +38,9 @@ export const CsrfTokenExpiredErrorSchema = Schema.Struct({
     _tag: Schema.Literal('CsrfTokenExpiredError'),
 });
 
-export type CsrfTokenExpiredError = Schema.Schema.Type<typeof CsrfTokenExpiredErrorSchema>;
+export type CsrfTokenExpiredError = Schema.Schema.Type<
+    typeof CsrfTokenExpiredErrorSchema
+>;
 
 /* ============================================================================
  * API Definition
@@ -225,7 +227,11 @@ class ApiClientSingleton {
     private runEffect<A>(
         effect: Effect.Effect<
             A,
-            HttpApiDecodeError | ValidationError | CsrfTokenExpiredError | HttpClientError | ParseError
+            | HttpApiDecodeError
+            | ValidationError
+            | CsrfTokenExpiredError
+            | HttpClientError
+            | ParseError
         >,
     ) {
         return Effect.runPromise(
@@ -243,19 +249,21 @@ class ApiClientSingleton {
                 Effect.catchTag('CsrfTokenExpiredError', (e) => {
                     return Effect.succeed({
                         _tag: 'CsrfTokenExpiredError' as const,
+                        message: 'CSRF token expired',
                     });
                 }),
                 Effect.catchTag('ParseError', (e) => {
-                    // Don't log - callers handle the error via tagged union result
+                    console.error(e);
                     return Effect.succeed({
                         _tag: 'ParseError' as const,
-                        message: JSON.stringify(e),
+                        message: e.toString(),
                     });
                 }),
                 Effect.catchAll((e) => {
+                    console.error(e);
                     return Effect.succeed({
                         _tag: 'FatalError' as const,
-                        message: JSON.stringify(e),
+                        message: e.toString(),
                     });
                 }),
                 Effect.provide(FetchHttpClient.layer),
@@ -272,7 +280,11 @@ class ApiClientSingleton {
     private async runEffectWithCache<A>(
         effect: Effect.Effect<
             A,
-            HttpApiDecodeError | ValidationError | CsrfTokenExpiredError | HttpClientError | ParseError
+            | HttpApiDecodeError
+            | ValidationError
+            | CsrfTokenExpiredError
+            | HttpClientError
+            | ParseError
         >,
         cacheKey: string,
     ) {

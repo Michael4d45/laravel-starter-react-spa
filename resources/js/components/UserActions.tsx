@@ -1,7 +1,7 @@
 import AppearanceToggleTab from '@/components/ui/AppearanceToggleTab';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, LogOut, User, UserPlus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface UserActionsProps {
     onItemClick?: () => void;

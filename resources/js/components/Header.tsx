@@ -1,9 +1,9 @@
 import Logo from '@/components/Logo';
 import NavigationList from '@/components/NavigationList';
 import UserActions from '@/components/UserActions';
-import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface HeaderProps {
     children?: React.ReactNode;
@@ -53,7 +53,9 @@ export default function Header({ children }: HeaderProps) {
                                     className="-m-2.5 p-2.5"
                                     onClick={() => setSidebarOpen(false)}
                                 >
-                                    <span className="sr-only">Close sidebar</span>
+                                    <span className="sr-only">
+                                        Close sidebar
+                                    </span>
                                     <X className="h-6 w-6 text-white" />
                                 </button>
                             </div>

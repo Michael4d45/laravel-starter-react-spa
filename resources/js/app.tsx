@@ -1,8 +1,8 @@
 import { Toaster } from 'react-hot-toast';
 import { Outlet } from 'react-router-dom';
+import Header from './components/Header';
 import { OfflineBanner } from './components/offline/OfflineBanner';
 import { GlobalRealtimeListener } from './components/realtime/GlobalRealtimeListener';
-import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import { AuthGuard } from './contexts/AuthContext';
 import { useAppearance } from './hooks/useAppearance';
