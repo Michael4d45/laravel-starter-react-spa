@@ -160,312 +160,314 @@
     --info: var(--color-info-500);
 }
 
-body {
-    @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
-}
+@layer base {
+    body {
+        @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+    }
 
-/* Headings */
-h1 {
-    @apply text-3xl font-bold text-gray-900 dark:text-white;
-}
+    /* Headings */
+    h1 {
+        @apply text-3xl font-bold text-gray-900 dark:text-white;
+    }
 
-h2 {
-    @apply text-2xl font-semibold text-gray-900 dark:text-white;
-}
+    h2 {
+        @apply text-2xl font-semibold text-gray-900 dark:text-white;
+    }
 
-h3 {
-    @apply text-xl font-semibold text-gray-900 dark:text-white;
-}
+    h3 {
+        @apply text-xl font-semibold text-gray-900 dark:text-white;
+    }
 
-h4 {
-    @apply text-lg font-medium text-gray-900 dark:text-white;
-}
+    h4 {
+        @apply text-lg font-medium text-gray-900 dark:text-white;
+    }
 
-/* Links - uses primary color variables */
-a {
-    color: var(--primary);
-}
+    /* Links - uses primary color variables */
+    a {
+        color: var(--primary);
+    }
 
-a:hover {
-    color: var(--primary-hover);
-}
+    a:hover {
+        color: var(--primary-hover);
+    }
 
-/* Form inputs - base styles with primary color focus */
-input[type='text'],
-input[type='email'],
-input[type='password'],
-input[type='number'],
-input[type='search'],
-input[type='tel'],
-input[type='url'],
-textarea,
-select {
-    @apply block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 shadow-sm transition-colors focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400;
-    border-color: var(--secondary-border);
-}
+    /* Form inputs - base styles with primary color focus */
+    input[type='text'],
+    input[type='email'],
+    input[type='password'],
+    input[type='number'],
+    input[type='search'],
+    input[type='tel'],
+    input[type='url'],
+    textarea,
+    select {
+        @apply block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 shadow-sm transition-colors focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400;
+        border-color: var(--secondary-border);
+    }
 
-/* Input focus states - uses primary color */
-input:focus,
-textarea:focus,
-select:focus {
-    border-color: var(--primary-focus);
-    box-shadow: 0 0 0 1px var(--primary-focus);
-}
+    /* Input focus states - uses primary color */
+    input:focus,
+    textarea:focus,
+    select:focus {
+        border-color: var(--primary-focus);
+        box-shadow: 0 0 0 1px var(--primary-focus);
+    }
 
-/* Disabled inputs */
-input:disabled,
-textarea:disabled,
-select:disabled {
-    @apply cursor-not-allowed bg-gray-100 opacity-50 dark:bg-gray-800;
-}
+    /* Disabled inputs */
+    input:disabled,
+    textarea:disabled,
+    select:disabled {
+        @apply cursor-not-allowed bg-gray-100 opacity-50 dark:bg-gray-800;
+    }
 
-/* Checkboxes and radio buttons - uses primary color */
-input[type='checkbox'],
-input[type='radio'] {
-    @apply h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-offset-0 dark:border-gray-600 dark:bg-gray-700;
-    color: var(--primary);
-    --tw-ring-color: var(--primary);
-}
+    /* Checkboxes and radio buttons - uses primary color */
+    input[type='checkbox'],
+    input[type='radio'] {
+        @apply h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-offset-0 dark:border-gray-600 dark:bg-gray-700;
+        color: var(--primary);
+        --tw-ring-color: var(--primary);
+    }
 
-/* Labels */
-label {
-    @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
-}
+    /* Labels */
+    label {
+        @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
+    }
 
-/* Buttons - base styles */
-button,
-[type='button'],
-[type='submit'],
-[type='reset'] {
-    @apply inline-flex items-center justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50;
-    --tw-ring-color: var(--primary);
-}
+    /* Buttons - base styles */
+    button,
+    [type='button'],
+    [type='submit'],
+    [type='reset'] {
+        @apply inline-flex items-center justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50;
+        --tw-ring-color: var(--primary);
+    }
 
-/* Primary button - uses primary color variables */
-button.btn-primary,
-[type='submit']:not([class*='btn-']) {
-    background-color: var(--primary);
-    color: white;
-}
+    /* Primary button - uses primary color variables */
+    button.btn-primary,
+    [type='submit']:not([class*='btn-']) {
+        background-color: var(--primary);
+        color: white;
+    }
 
-button.btn-primary:hover,
-[type='submit']:not([class*='btn-']):hover {
-    background-color: var(--primary-hover);
-}
+    button.btn-primary:hover,
+    [type='submit']:not([class*='btn-']):hover {
+        background-color: var(--primary-hover);
+    }
 
-/* Secondary button - uses secondary color variables */
-button.btn-secondary,
-a.btn-secondary {
-    @apply inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none;
-    background-color: var(--secondary-bg);
-    color: var(--secondary);
-    border-color: var(--secondary-border);
-    --tw-ring-color: var(--primary);
-}
+    /* Secondary button - uses secondary color variables */
+    button.btn-secondary,
+    a.btn-secondary {
+        @apply inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none;
+        background-color: var(--secondary-bg);
+        color: var(--secondary);
+        border-color: var(--secondary-border);
+        --tw-ring-color: var(--primary);
+    }
 
-button.btn-secondary:hover,
-a.btn-secondary:hover {
-    background-color: var(--secondary-hover);
-    color: white;
-}
+    button.btn-secondary:hover,
+    a.btn-secondary:hover {
+        background-color: var(--secondary-hover);
+        color: white;
+    }
 
-.dark button.btn-secondary:hover,
-.dark a.btn-secondary:hover {
-    color: var(--color-secondary-900);
-}
+    .dark button.btn-secondary:hover,
+    .dark a.btn-secondary:hover {
+        color: var(--color-secondary-900);
+    }
 
-/* Danger button - uses danger color variables */
-button.btn-danger {
-    background-color: var(--danger);
-    color: white;
-}
+    /* Danger button - uses danger color variables */
+    button.btn-danger {
+        background-color: var(--danger);
+        color: white;
+    }
 
-button.btn-danger:hover {
-    background-color: var(--danger-light);
-}
+    button.btn-danger:hover {
+        background-color: var(--danger-light);
+    }
 
-/* Outline button - uses gray colors for border and text */
-button.btn-outline {
-    @apply inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none;
-    background-color: transparent;
-    color: var(--secondary);
-    border-color: var(--secondary-border);
-    --tw-ring-color: var(--primary);
-}
+    /* Outline button - uses gray colors for border and text */
+    button.btn-outline {
+        @apply inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none;
+        background-color: transparent;
+        color: var(--secondary);
+        border-color: var(--secondary-border);
+        --tw-ring-color: var(--primary);
+    }
 
-button.btn-outline:hover {
-    background-color: var(--secondary-bg);
-    color: var(--secondary-hover);
-}
+    button.btn-outline:hover {
+        background-color: var(--secondary-bg);
+        color: var(--secondary-hover);
+    }
 
-/* Error messages - uses danger color variables */
-.error,
-.text-error {
-    @apply text-sm;
-    color: var(--danger);
-}
+    /* Error messages - uses danger color variables */
+    .error,
+    .text-error {
+        @apply text-sm;
+        color: var(--danger);
+    }
 
-/* Success messages - uses success color variables */
-.success,
-.text-success {
-    @apply text-sm;
-    color: var(--success);
-}
+    /* Success messages - uses success color variables */
+    .success,
+    .text-success {
+        @apply text-sm;
+        color: var(--success);
+    }
 
-/* Cards */
-.card {
-    @apply rounded-lg p-6 shadow;
-    background-color: var(--bg-card);
-}
+    /* Cards */
+    .card {
+        @apply rounded-lg p-6 shadow;
+        background-color: var(--bg-card);
+    }
 
-/* Background utilities */
-.bg-card {
-    background-color: var(--bg-card);
-}
+    /* Background utilities */
+    .bg-card {
+        background-color: var(--bg-card);
+    }
 
-/* Code blocks */
-code {
-    @apply rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-800 dark:bg-gray-700 dark:text-gray-200;
-}
+    /* Code blocks */
+    code {
+        @apply rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-800 dark:bg-gray-700 dark:text-gray-200;
+    }
 
-pre {
-    @apply overflow-x-auto rounded-lg bg-gray-100 p-4 text-sm dark:bg-gray-800;
-}
+    pre {
+        @apply overflow-x-auto rounded-lg bg-gray-100 p-4 text-sm dark:bg-gray-800;
+    }
 
-pre code {
-    @apply bg-transparent p-0;
-}
+    pre code {
+        @apply bg-transparent p-0;
+    }
 
-/* Horizontal rule */
-hr {
-    @apply my-4 border-gray-200 dark:border-gray-700;
-}
+    /* Horizontal rule */
+    hr {
+        @apply my-4 border-gray-200 dark:border-gray-700;
+    }
 
-/* Lists */
-ul,
-ol {
-    @apply list-inside space-y-1;
-}
+    /* Lists */
+    ul,
+    ol {
+        @apply list-inside space-y-1;
+    }
 
-ul,
-ol {
-    @apply list-none;
-}
+    ul,
+    ol {
+        @apply list-none;
+    }
 
-/* Reset list styles for navigation and role="list" */
-nav ul,
-nav ol,
-ul[role='list'],
-ol[role='list'] {
-    @apply list-none;
-}
+    /* Reset list styles for navigation and role="list" */
+    nav ul,
+    nav ol,
+    ul[role='list'],
+    ol[role='list'] {
+        @apply list-none;
+    }
 
-/* Blockquote */
-blockquote {
-    @apply border-l-4 border-gray-300 pl-4 text-gray-600 italic dark:border-gray-600 dark:text-gray-400;
-}
+    /* Blockquote */
+    blockquote {
+        @apply border-l-4 border-gray-300 pl-4 text-gray-600 italic dark:border-gray-600 dark:text-gray-400;
+    }
 
-/* Select Components - Base styles with dark mode support */
-.select-trigger {
-    @apply w-full border px-3 py-2 text-left transition-colors;
-    border-color: var(--secondary-border);
-    background-color: white;
-    color: var(--secondary);
-}
+    /* Select Components - Base styles with dark mode support */
+    .select-trigger {
+        @apply w-full border px-3 py-2 text-left transition-colors;
+        border-color: var(--secondary-border);
+        background-color: white;
+        color: var(--secondary);
+    }
 
-.dark .select-trigger {
-    background-color: var(--secondary-bg);
-    border-color: var(--secondary-border);
-    color: var(--secondary);
-}
+    .dark .select-trigger {
+        background-color: var(--secondary-bg);
+        border-color: var(--secondary-border);
+        color: var(--secondary);
+    }
 
-.select-trigger:hover {
-    border-color: var(--primary);
-}
+    .select-trigger:hover {
+        border-color: var(--primary);
+    }
 
-.select-dropdown {
-    @apply absolute z-50 mt-1 w-full border;
-    border-color: var(--secondary-border);
-    background-color: white;
-}
+    .select-dropdown {
+        @apply absolute z-50 mt-1 w-full border;
+        border-color: var(--secondary-border);
+        background-color: white;
+    }
 
-.dark .select-dropdown {
-    background-color: var(--secondary-bg);
-    border-color: var(--secondary-border);
-}
+    .dark .select-dropdown {
+        background-color: var(--secondary-bg);
+        border-color: var(--secondary-border);
+    }
 
-.select-list {
-    @apply max-h-60 overflow-y-auto;
-}
+    .select-list {
+        @apply max-h-60 overflow-y-auto;
+    }
 
-.select-item {
-    @apply cursor-pointer px-3 py-2 transition-colors;
-}
+    .select-item {
+        @apply cursor-pointer px-3 py-2 transition-colors;
+    }
 
-.select-item:hover {
-    background-color: var(--color-secondary-100);
-}
+    .select-item:hover {
+        background-color: var(--color-secondary-100);
+    }
 
-.dark .select-item:hover {
-    background-color: var(--color-secondary-700);
-}
+    .dark .select-item:hover {
+        background-color: var(--color-secondary-700);
+    }
 
-.select-item-selected {
-    background-color: var(--color-secondary-100);
-}
+    .select-item-selected {
+        background-color: var(--color-secondary-100);
+    }
 
-.dark .select-item-selected {
-    background-color: var(--color-secondary-700);
-}
+    .dark .select-item-selected {
+        background-color: var(--color-secondary-700);
+    }
 
-.select-search {
-    @apply w-full border-b px-2 py-1;
-    border-color: var(--secondary-border);
-    background-color: white;
-    color: var(--secondary);
-}
+    .select-search {
+        @apply w-full border-b px-2 py-1;
+        border-color: var(--secondary-border);
+        background-color: white;
+        color: var(--secondary);
+    }
 
-.dark .select-search {
-    background-color: var(--secondary-bg);
-    border-color: var(--secondary-border);
-    color: var(--secondary);
-}
+    .dark .select-search {
+        background-color: var(--secondary-bg);
+        border-color: var(--secondary-border);
+        color: var(--secondary);
+    }
 
-.select-search:focus {
-    outline: none;
-    border-color: var(--primary-focus);
-}
+    .select-search:focus {
+        outline: none;
+        border-color: var(--primary-focus);
+    }
 
-.select-no-results {
-    @apply px-3 py-2 text-sm;
-    color: var(--color-secondary-500);
-}
+    .select-no-results {
+        @apply px-3 py-2 text-sm;
+        color: var(--color-secondary-500);
+    }
 
-.dark .select-no-results {
-    color: var(--color-secondary-400);
-}
+    .dark .select-no-results {
+        color: var(--color-secondary-400);
+    }
 
-.select-clear {
-    @apply absolute top-2 right-2 px-2 py-1 text-lg leading-none transition-colors;
-    color: var(--color-secondary-500);
-}
+    .select-clear {
+        @apply absolute top-2 right-2 px-2 py-1 text-lg leading-none transition-colors;
+        color: var(--color-secondary-500);
+    }
 
-.select-clear:hover {
-    color: var(--danger);
-}
+    .select-clear:hover {
+        color: var(--danger);
+    }
 
-.dark .select-clear {
-    color: var(--color-secondary-400);
-}
+    .dark .select-clear {
+        color: var(--color-secondary-400);
+    }
 
-.dark .select-clear:hover {
-    color: var(--danger-light);
-}
+    .dark .select-clear:hover {
+        color: var(--danger-light);
+    }
 
-/* Mobile: Slightly larger text for better readability */
-@media (max-width: 767px) {
-    html {
-        font-size: 1.125rem;
-        /* 18px instead of default 16px */
+    /* Mobile: Slightly larger text for better readability */
+    @media (max-width: 767px) {
+        html {
+            font-size: 1.125rem;
+            /* 18px instead of default 16px */
+        }
     }
 }

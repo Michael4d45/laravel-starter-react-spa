@@ -245,7 +245,40 @@ class ApiClientSingleton {
     }
 
     async logout() {
-        const client = await this.getBaseAuthClient();
+        // Get CSRF token from meta tag for session-based logout
+        const csrfToken =
+            document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute('content') || null;
+
+        // Create a client with CSRF token header for logout
+        const logoutClient = HttpApiClient.make(Api, {
+            baseUrl: '',
+            transformClient: (client) => {
+                const token = authManager.getToken();
+                let transformed = client;
+                if (token) {
+                    transformed = transformed.pipe(
+                        HttpClient.mapRequest(
+                            HttpClientRequest.bearerToken(token),
+                        ),
+                    );
+                }
+                if (csrfToken) {
+                    transformed = transformed.pipe(
+                        HttpClient.mapRequest(
+                            HttpClientRequest.setHeader('X-CSRF-TOKEN', csrfToken),
+                        ),
+                    );
+                }
+                return transformed;
+            },
+        });
+
+        const client = await Effect.runPromise(
+            logoutClient.pipe(Effect.provide(FetchHttpClient.layer)),
+        );
+
         const result = await this.runEffect(client.auth.logout());
         // Clear cached data on logout to prevent data leakage
         await apiCache.clear();

@@ -16,14 +16,23 @@ class Logout
      */
     public function __invoke(Request $request): Response
     {
-        // Log out from the session (guards against session-based auth)
-        Auth::guard('web')->logout();
+        $user = $request->user();
 
-        // Delete the current Sanctum token
-        $token = $request->user()?->currentAccessToken();
+        // Delete the current Sanctum token first (before logout clears user)
+        $token = $user?->currentAccessToken();
         if ($token instanceof PersonalAccessToken) {
             $token->delete();
         }
+
+        // Log out from the session (guards against session-based auth like Filament)
+        // Web middleware must be active on the route for this to work
+        Auth::guard('web')->logout();
+
+        // Invalidate the current session and regenerate CSRF token
+        // This ensures Filament and other session-based auth systems get a clean slate
+        session()->invalidate();
+        session()->regenerateToken();
+
         // For transient tokens (like in tests), we can't delete them but logout is still successful
         return response()->json(['message' => 'Logged out successfully']);
     }
