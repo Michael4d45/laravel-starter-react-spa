@@ -1,213 +1,127 @@
 # Laravel React SPA
 
-A modern **Laravel 12 + React 19** Single Page Application with **Effect-based data loading**, **PWA capabilities**, and **TypeScript** throughout. This project demonstrates best practices for building scalable web applications using cutting-edge technologies.
+A modern, high-performance **Laravel 12 + React 19** Single Page Application featuring an **Effect-based architecture**, **type-safe API client**, **PWA capabilities**, and **Google OAuth integration**.
+
+---
 
 ## 🚀 Tech Stack
 
-### Backend
-- **Laravel 12** - PHP web framework
-- **Filament 4** - Admin panel and TALL stack components
-- **Laravel Sanctum** - API authentication
-- **Laravel Socialite** - OAuth integration (Google)
-- **Spatie Laravel Data** - Data transformation layer
-- **Spatie TypeScript Transformer** - TypeScript type generation
-- **Pest** - Modern PHP testing framework
-- **Laravel Boost** - Development guidelines and tools
-- **Log** - Wide Events for logging, [michael4d45/context-logging](https://github.com/Michael4d45/Context-Logging)
+### Backend (Laravel 12)
+- **PHP 8.5+** with strict typing and modern features.
+- **Laravel 12** - Streamlined API-first framework.
+- **Sanctum 4** - Token-based API authentication.
+- **Socialite 5** - Google OAuth integration.
+- **Spatie Laravel Data** - DTOs with auto-validation and TypeScript generation.
+- **Filament 4** - Advanced admin panel.
+- **Pest 4** - Modern testing suite with browser testing support.
 
-### Frontend
-- **React 19** - Modern React with latest features
-- **React Router 7** - Client-side routing
-- **Effect** - Functional programming for async operations and API client
-- **TypeScript** - Static type checking
-- **Tailwind CSS 4** - Utility-first styling
-- **Lucide React** - Beautiful icons
-- **React Compiler** - Automatic memoization optimization
-- **Effect-based HttpApiClient** - Type-safe API interactions using `@effect/platform`
+### Frontend (React 19)
+- **React 19** - Optimized UI with the new React Compiler.
+- **React Router 7** - Declarative routing with pre-fetching loaders.
+- **Effect** - Functional programming library for type-safe async operations and error handling.
+- **Tailwind CSS 4** - Modern, CSS-first utility styling.
+- **Effect-based API Client** - Type-safe communication using `@effect/platform`.
+- **Dexie/IDB** - IndexedDB for robust offline data caching.
+- **Lucide React** - Icon library.
 
-### Development & Build Tools
-- **Vite 7** - Fast build tool and dev server
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
-- **Playwright** - Browser testing
-- **PWA Support** - Offline functionality with Workbox
+---
 
-## 📦 Key Features
+## 🏗️ Architecture & Layers
 
-- ✅ **Effect-Based Architecture** - Modern functional programming approach
-- ✅ **Type Safety** - Full TypeScript integration between frontend and backend
-- ✅ **PWA Ready** - Offline support, service workers, and app installation
-- ✅ **Modern Authentication** - Laravel Sanctum + Social OAuth
-- ✅ **API-First Design** - JSON API with schema validation
-- ✅ **Component Architecture** - Reusable React components with proper separation
-- ✅ **Testing Suite** - Pest for backend, Playwright for browser testing
+### Backend: Action-Oriented Design
+Instead of traditional controllers, business logic is encapsulated in single-responsibility **Action classes** (`app/Actions/`).
+- **Data Layer**: `app/Data/` contains Models (DTOs), Requests (Validation), and Responses.
+- **Type Safety**: PHP Data classes automatically generate TypeScript **Effect Schemas** via `spatie/laravel-typescript-transformer`.
 
-## 🏗️ Architecture
+### Frontend: Effect-Based Data Management
+The frontend leverages the **Effect** library to handle side effects, ensuring type safety and explicit error handling.
+- **API Client**: A singleton (`lib/apiClientSingleton.ts`) that returns tagged unions (`Success | ValidationError | ParseError | FatalError`).
+- **Loaders**: React Router loaders fetch data *before* component rendering, eliminating "loading state" flashes.
+- **Offline First**: Automatic caching of API responses in IndexedDB for seamless offline browsing.
 
-This application uses a modern, scalable architecture:
+---
 
-1. **Laravel Backend** - RESTful API with Data classes and Actions
-2. **React Frontend** - Component-based UI with Effect for data management
-3. **Type Safety** - End-to-end TypeScript with schemas generated from PHP classes
-4. **PWA Features** - Service workers and offline capabilities
-5. **Build Optimization** - Vite with code splitting and asset optimization
+## 🔐 Authentication System
 
-## 🛠️ Getting Started
+The application uses a dual authentication strategy:
+
+1.  **Email/Password**: Standard Sanctum bearer token authentication.
+2.  **Google OAuth**: Integrated via Socialite. Tokens are securely passed from the server session to the SPA after callback, then stored in `localStorage`.
+
+### Auth Flow Highlights:
+- **Persistence**: Tokens and user data are managed by a singleton `AuthManager`.
+- **Reactivity**: `AuthContext` provides a reactive hook (`useAuth`) to access the current session.
+- **Security**: OAuth state is encrypted and timestamped to prevent replay attacks.
+
+---
+
+## 🛠️ Development Workflow
+
+When adding a new feature, follow this checklist:
+
+1.  **Database**: Create migration and Eloquent model.
+2.  **Data Layer**: Create DTOs in `app/Data/Models/`, `app/Data/Requests/`, and `app/Data/Response/`.
+3.  **Business Logic**: Implement an Action class in `app/Actions/`.
+4.  **API Routes**: Register the action in `routes/api.php`.
+5.  **Type Sync**: Run `php artisan typescript:transform` to update frontend schemas.
+6.  **Frontend**: 
+    - Add the endpoint to `apiClientSingleton.ts`.
+    - Create the React component and loader.
+    - Register the route in `router.tsx`.
+7.  **Testing**: Write Pest feature or browser tests.
+
+---
+
+## 📦 Getting Started
 
 ### Prerequisites
 - PHP 8.5+
 - Node.js 18+
-- Composer
-- npm or yarn
+- Composer & npm
 
 ### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd laravel-react-spa
-   ```
-
-2. **Install PHP dependencies**
-   ```bash
-   composer install
-   ```
-
-3. **Install Node dependencies**
-   ```bash
-   npm install
-   ```
-
-4. **Environment setup**
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
-
-5. **Database setup**
-   ```bash
-   php artisan migrate
-   ```
-
-6. **Build assets**
-   ```bash
-   npm run build
-   ```
-
-### Development
-
-Start the development servers:
 ```bash
+# 1. Setup backend & frontend
+composer run setup
+
+# 2. Run development servers (Vite + Laravel + Queue)
 composer run dev
 ```
 
-This will start:
-- Laravel server
-- Vite dev server
-- Queue worker
-- Hot reload for both frontend and backend
+### Key Commands
+- `php artisan typescript:transform` - Sync PHP types to TypeScript.
+- `php artisan test` - Run the Pest test suite.
+- `npm run lint` - Run ESLint and Prettier.
+- `npm run types` - Check TypeScript types.
 
-#### Development Scripts
+---
 
-**Composer Scripts:**
-- `composer run setup` - Complete project setup (install deps, generate key, migrate DB, build assets)
-- `composer run dev` - Start development servers with hot reload
-- `composer run test` - Run PHP tests with configuration clearing
+## 📱 PWA & Offline Support
+- **Service Worker**: Automatically handled by `vite-plugin-pwa`.
+- **Caching**: API responses are cached using IndexedDB (`apiCache.ts`).
+- **Offline Banner**: Notifies users when connection is lost.
 
-**NPM Scripts:**
-- `npm run build` - Build production assets with Vite
-- `npm run build:ssr` - Build for server-side rendering
-- `npm run dev` - Start Vite development server
-- `npm run format` - Format code with Prettier
-- `npm run format:check` - Check code formatting
-- `npm run lint` - Run ESLint with auto-fix
-- `npm run types` - Check TypeScript types
-
-**Development Utilities:**
-- `./tmux-dev.sh` - Create TMUX session with 3-panel dev environment (logs, backend, frontend)
-  - Use `--docker` to include Docker panel
-  - Use `--no-attach` to create session without attaching
-- `./bin/check-hanging-tests.sh` - Identify hanging or non-completing browser tests
-- `./bin/clear-logs.sh` - Clear all application log files
-- `./bin/format-logs.sh [file]` - Format and monitor Laravel logs with syntax highlighting
-- `./bin/format-sql.sh [file]` - Format and monitor SQL queries with syntax highlighting
-
-### Production Build
-
-```bash
-npm run build
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-## 🧪 Testing
-
-Run the test suite:
-```bash
-php artisan test
-```
-
-## 📱 Progressive Web App (PWA)
-
-This application includes PWA features:
-- **Offline Support** - Cached assets and API responses
-- **App Installation** - Add to home screen capability
-- **Background Sync** - Queue requests when offline
-- **Push Notifications** - Ready for implementation
-
-## 🔧 Development Guidelines
-
-### Code Style
-- **PHP**: PSR-12 standards with strict type checking
-- **TypeScript**: Strict mode with ESLint and Prettier
-- **CSS**: Tailwind utility classes with custom components
-
-### Architecture Patterns
-- **Actions** - Single responsibility classes for business logic
-- **Data Classes** - Type-safe data transformation
-- **Effect** - Functional programming for side effects
-- **Components** - Reusable, typed React components
-
-### Dependency Usage
-Based on code analysis, dependencies are ranked by usage:
-
-**Most Used:**
-- React/React DOM (every component)
-- Effect (HTTP client, async operations)
-- React Router (navigation)
-- Tailwind CSS (styling)
-- clsx/tailwind-merge (conditional styling)
-
-**Build Tools:**
-- Vite, TypeScript, ESLint, Prettier
-
-**Specialized:**
-- Workbox (PWA), Playwright (testing), Laravel packages
+---
 
 ## 📊 Project Structure
+```
+├── app/
+│   ├── Actions/          # Single-responsibility business logic
+│   ├── Data/             # DTOs, Requests, Responses (Type Source)
+│   └── Models/           # Eloquent Models
+├── resources/js/
+│   ├── components/       # Reusable UI (Button, Input, etc.)
+│   ├── contexts/         # Auth & Global state
+│   ├── features/         # Feature-based pages and logic
+│   ├── lib/              # API Client (Effect), Auth Manager
+│   └── types/            # Generated Effect Schemas
+├── tests/
+│   ├── Feature/          # Backend API tests
+│   └── Browser/          # E2E Pest Browser tests
+└── vite.config.js        # Tailwind 4 & PWA config
+```
 
-```
-├── app/                  # Laravel application code
-│   ├── Actions/          # Business logic actions
-│   ├── Data/             # Data transformation classes
-│   └── Models/           # Eloquent models
-├── resources/
-│   ├── js/               # React application
-│   │   ├── components/   # Reusable UI components
-│   │   ├── features/     # Feature-specific code
-│   │   ├── lib/          # Utilities and API client
-│   │   ├── stores/       # State management stores
-│   │   └── types/        # TypeScript definitions and generated schemas
-│   ├── css/              # Stylesheets
-│   └── views/            # Blade templates
-├── routes/               # API and web routes
-├── tests/                # Test suites
-│   ├── Feature/          # Feature tests
-│   └── Browser/          # Browser tests
-└── vite.config.js        # Build configuration
-```
+---
 
 ## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License.
