@@ -122,6 +122,7 @@ class EffectSchemaTransformer extends DtoTransformer
         $tsType = 'unknown';
         $isNullable = $type?->allowsNull() ?? false;
         $isOptional = $type && str_contains($type->__toString(), 'Optional');
+        $isLazy = $type && str_contains($type->__toString(), 'Lazy');
 
         if ($type) {
             $typeString = $type->__toString();
@@ -144,6 +145,7 @@ class EffectSchemaTransformer extends DtoTransformer
                 str_contains($cleanType, '\\')
                 || str_contains($cleanType, 'Collection')
                 || str_contains($cleanType, 'Optional')
+                || str_contains($cleanType, 'Lazy')
             ) {
                 if (str_contains($cleanType, 'Collection')) {
                     $itemType = $this->getCollectionItemType(
@@ -184,7 +186,7 @@ class EffectSchemaTransformer extends DtoTransformer
             }
         }
 
-        $optionalMark = $isOptional ? '?' : '';
+        $optionalMark = $isOptional || $isLazy ? '?' : '';
         $nullSuffix = $isNullable ? ' | null' : '';
         return "  readonly {$name}{$optionalMark}: {$tsType}{$nullSuffix};";
     }
@@ -201,6 +203,7 @@ class EffectSchemaTransformer extends DtoTransformer
         $schemaType = 'S.Unknown';
         $isNullable = $type?->allowsNull() ?? false;
         $isOptional = $type && str_contains($type->__toString(), 'Optional');
+        $isLazy = $type && str_contains($type->__toString(), 'Lazy');
 
         if ($type) {
             $typeString = $type->__toString();
@@ -219,6 +222,7 @@ class EffectSchemaTransformer extends DtoTransformer
                 str_contains($cleanType, '\\')
                 || str_contains($cleanType, 'Collection')
                 || str_contains($cleanType, 'Optional')
+                || str_contains($cleanType, 'Lazy')
             ) {
                 if (str_contains($cleanType, 'Collection')) {
                     $itemType = $this->getCollectionItemType(
@@ -262,7 +266,7 @@ class EffectSchemaTransformer extends DtoTransformer
             $schemaType = "S.NullOr({$schemaType})";
         }
 
-        if ($isOptional) {
+        if ($isOptional || $isLazy) {
             $schemaType = "S.optional({$schemaType})";
         }
 
