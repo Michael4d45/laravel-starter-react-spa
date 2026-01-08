@@ -20,7 +20,8 @@ Route::get('/user', ShowUser::class)->middleware('auth:sanctum')->name(
 );
 
 // Create token for already authenticated user (used for OAuth callbacks and session auth)
-Route::get('/token', CreateToken::class)->middleware('auth')->name('api.token');
+// No middleware - action handles auth check and returns JSON 401 for unauthenticated
+Route::get('/token', CreateToken::class)->name('api.token');
 
 // Retrieve OAuth token from session after successful callback (uses session, not bearer token)
 Route::get('/oauth-token', GetOAuthToken::class)->middleware('web')->name(
@@ -54,6 +55,12 @@ Route::middleware('auth:sanctum')->group(function () {
         '/send-email-verification-notification',
         SendEmailVerificationNotification::class,
     )->name('api.verification.send');
+
+    // Real-time test endpoint
+    Route::post(
+        '/trigger-test-event',
+        App\Actions\Realtime\TriggerTestEvent::class,
+    )->name('api.trigger-test-event');
 });
 
 // Content routes (no auth required for demo)

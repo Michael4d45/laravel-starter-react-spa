@@ -1,3 +1,4 @@
+import { RealtimeNotifications } from '@/components/realtime/RealtimeNotifications';
 import AppearanceToggleTab from '@/components/ui/AppearanceToggleTab';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -71,6 +72,12 @@ export function HomePage() {
                     <AppearanceToggleTab />
                 </div>
             </div>
+
+            {isAuthenticated && (
+                <div className="mt-8">
+                    <RealtimeNotifications />
+                </div>
+            )}
 
             <div className="mt-8 text-center">
                 <p className="text-secondary text-sm">

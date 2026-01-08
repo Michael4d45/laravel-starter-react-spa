@@ -1,5 +1,6 @@
 import { ApiClient } from '@/lib/apiClientSingleton';
 import { authManager, AuthState } from '@/lib/auth';
+import { updateEchoToken } from '@/lib/echo';
 import {
     LoginRequest,
     RegisterRequest,
@@ -43,44 +44,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Provide the current user directly for easier consumption and reactivity
     const user = authState.user;
 
+    // Update Echo token when auth state changes
+    useEffect(() => {
+        updateEchoToken(authState.token);
+    }, [authState.token]);
+
     useEffect(() => {
         // Subscribe to auth state changes
         const unsubscribe = authManager.subscribe(setAuthState);
 
-        // Handle OAuth callback redirects and refresh auth state
-        const handleAuthCallback = async () => {
+        // Handle OAuth callback redirects and check for session auth
+        const handleAuthInit = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const authParam = urlParams.get('auth');
             const messageParam = urlParams.get('message');
 
-            if (!authParam || processingAuthCallback.current) {
-                // If no auth param or we're already processing it, just refresh state if needed
-                if (!authParam) {
-                    // Only refresh token validity if we have an existing token
-                    authManager.refreshAuthState();
-                }
+            if (processingAuthCallback.current) {
                 return;
             }
 
-            // Mark as processing to prevent double-execution in Strict Mode
-            processingAuthCallback.current = true;
-
+            // Handle OAuth callbacks
             if (authParam === 'success' || authParam === 'connected') {
+                processingAuthCallback.current = true;
                 // OAuth successful - fetch token securely from API
                 const result = await ApiClient.fetchOAuthToken();
 
                 if (result._tag === 'Success') {
                     const { token, user } = result.data;
-                    // Update the auth manager (localStorage)
                     authManager.setAuthData(token, user);
-
-                    // Force a state update to ensure all components re-render with new data
-                    setAuthState({
-                        token,
-                        user,
-                        isAuthenticated: true,
-                    });
-
+                    setAuthState({ token, user, isAuthenticated: true });
                     toast.success(
                         authParam === 'success'
                             ? 'Successfully signed in with Google!'
@@ -92,18 +84,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         'Authentication completed but failed to retrieve session.',
                     );
                 }
+                window.history.replaceState({}, '', window.location.pathname);
+                return;
+            }
 
-                // Clean up URL
-                window.history.replaceState({}, '', window.location.pathname);
-            } else if (authParam === 'error' && messageParam) {
-                // OAuth error
+            if (authParam === 'error' && messageParam) {
                 toast.error(decodeURIComponent(messageParam));
-                // Clean up URL
                 window.history.replaceState({}, '', window.location.pathname);
+                return;
+            }
+
+            // No OAuth callback - check if we need to fetch session token
+            const existingToken = authManager.getToken();
+            if (!existingToken) {
+                // Try to restore auth from server session (useful for tests with actingAs)
+                // This silently fails for unauthenticated users - that's expected
+                processingAuthCallback.current = true;
+                try {
+                    const result = await ApiClient.fetchSessionToken();
+                    if (result._tag === 'Success') {
+                        authManager.setAuthData(result.data.token, result.data.user);
+                    }
+                    // Silently ignore errors - user simply isn't logged in
+                } catch {
+                    // Silently ignore - user isn't logged in via session
+                }
+                processingAuthCallback.current = false;
+            } else {
+                // Refresh token validity if we have an existing token
+                authManager.refreshAuthState();
             }
         };
 
-        handleAuthCallback();
+        handleAuthInit();
 
         return unsubscribe;
     }, []);

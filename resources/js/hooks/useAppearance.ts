@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export type Appearance = 'light' | 'dark' | 'system';
 
@@ -54,9 +54,21 @@ export function initializeTheme() {
 }
 
 export function useAppearance() {
-    const [appearance, setAppearance] = useState<Appearance>('system');
+    const [appearance, setAppearance] = useState<Appearance>(() => {
+        if (typeof window === 'undefined') {
+            return 'system';
+        }
+        return (
+            (localStorage.getItem('appearance') as Appearance | null) ||
+            'system'
+        );
+    });
 
-    const updateAppearance = (mode: Appearance) => {
+    const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(
+        'light',
+    );
+
+    const updateAppearance = useCallback((mode: Appearance) => {
         setAppearance(mode);
 
         // Store in localStorage for client-side persistence...
@@ -66,22 +78,26 @@ export function useAppearance() {
         setCookie('appearance', mode);
 
         applyTheme(mode);
-    };
+    }, []);
 
     useEffect(() => {
-        const savedAppearance = localStorage.getItem(
-            'appearance',
-        ) as Appearance | null;
+        const isDark =
+            appearance === 'dark' || (appearance === 'system' && prefersDark());
+        setResolvedTheme(isDark ? 'dark' : 'light');
+        applyTheme(appearance);
 
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        updateAppearance(savedAppearance || 'system');
+        const mq = mediaQuery();
+        const listener = () => {
+            if (appearance === 'system') {
+                const isDark = prefersDark();
+                setResolvedTheme(isDark ? 'dark' : 'light');
+                applyTheme('system');
+            }
+        };
 
-        return () =>
-            mediaQuery()?.removeEventListener(
-                'change',
-                handleSystemThemeChange,
-            );
-    }, [updateAppearance]);
+        mq?.addEventListener('change', listener);
+        return () => mq?.removeEventListener('change', listener);
+    }, [appearance]);
 
-    return { appearance, updateAppearance } as const;
+    return { appearance, updateAppearance, resolvedTheme } as const;
 }

@@ -1,6 +1,6 @@
 # Laravel React SPA
 
-A modern, high-performance **Laravel 12 + React 19** Single Page Application featuring an **Effect-based architecture**, **type-safe API client**, **PWA capabilities**, and **Google OAuth integration**.
+A modern, high-performance **Laravel 12 + React 19** Single Page Application featuring an **Effect-based architecture**, **type-safe API client**, **real-time WebSockets**, **PWA capabilities**, and **Google OAuth integration**.
 
 ---
 
@@ -11,6 +11,7 @@ A modern, high-performance **Laravel 12 + React 19** Single Page Application fea
 - **Laravel 12** - Streamlined API-first framework.
 - **Sanctum 4** - Token-based API authentication.
 - **Socialite 5** - Google OAuth integration.
+- **Reverb 1.7** - First-party WebSocket server for real-time features.
 - **Spatie Laravel Data** - DTOs with auto-validation and TypeScript generation.
 - **Filament 4** - Advanced admin panel.
 - **Pest 4** - Modern testing suite with browser testing support.
@@ -19,6 +20,7 @@ A modern, high-performance **Laravel 12 + React 19** Single Page Application fea
 - **React 19** - Optimized UI with the new React Compiler.
 - **React Router 7** - Declarative routing with pre-fetching loaders.
 - **Effect** - Functional programming library for type-safe async operations and error handling.
+- **Laravel Echo** - WebSocket client with automatic authentication via Sanctum tokens.
 - **Tailwind CSS 4** - Modern, CSS-first utility styling.
 - **Effect-based API Client** - Type-safe communication using `@effect/platform`.
 - **Dexie/IDB** - IndexedDB for robust offline data caching.
@@ -52,6 +54,41 @@ The application uses a dual authentication strategy:
 - **Persistence**: Tokens and user data are managed by a singleton `AuthManager`.
 - **Reactivity**: `AuthContext` provides a reactive hook (`useAuth`) to access the current session.
 - **Security**: OAuth state is encrypted and timestamped to prevent replay attacks.
+- **WebSocket Auth**: Echo automatically includes Sanctum tokens in private channel subscriptions.
+
+---
+
+## ⚡ Real-Time Features (Laravel Reverb)
+
+The application includes full WebSocket support via **Laravel Reverb** for real-time updates.
+
+### Setup
+- **Backend**: Events implementing `ShouldBroadcast` are automatically sent to connected clients.
+- **Frontend**: Laravel Echo (`lib/echo.ts`) connects to Reverb with auto-authentication.
+- **Private Channels**: Echo uses Sanctum tokens to authenticate private channel subscriptions.
+
+### Development
+```bash
+# Start Reverb server (required for real-time features)
+php artisan reverb:start
+
+# Or use the dev script
+composer run dev
+
+# Or use tmux-dev.sh for a complete 5-panel development environment
+./tmux-dev.sh          # Starts: logs, backend, frontend, queue, reverb
+./tmux-dev.sh --docker # Adds docker panel as 6th pane
+```
+
+### Testing
+Real-time features are tested using **mock broadcasting** (no Reverb required):
+```php
+Event::fake([TestRealtimeEvent::class]);
+// ... dispatch event ...
+Event::assertDispatched(TestRealtimeEvent::class);
+```
+
+See `tests/Browser/RealtimeTest.php` for examples.
 
 ---
 
@@ -90,6 +127,7 @@ composer run dev
 
 ### Key Commands
 - `php artisan typescript:transform` - Sync PHP types to TypeScript.
+- `php artisan reverb:start` - Start the WebSocket server for real-time features.
 - `php artisan test` - Run the Pest test suite.
 - `npm run lint` - Run ESLint and Prettier.
 - `npm run types` - Check TypeScript types.
@@ -108,13 +146,19 @@ composer run dev
 ├── app/
 │   ├── Actions/          # Single-responsibility business logic
 │   ├── Data/             # DTOs, Requests, Responses (Type Source)
+│   ├── Events/           # Broadcastable events for real-time
 │   └── Models/           # Eloquent Models
 ├── resources/js/
 │   ├── components/       # Reusable UI (Button, Input, etc.)
 │   ├── contexts/         # Auth & Global state
 │   ├── features/         # Feature-based pages and logic
-│   ├── lib/              # API Client (Effect), Auth Manager
+│   ├── hooks/            # Custom React hooks (usePrivateChannel, etc.)
+│   ├── lib/              # API Client (Effect), Auth Manager, Echo
 │   └── types/            # Generated Effect Schemas
+├── routes/
+│   ├── api.php           # API routes
+│   ├── channels.php      # Broadcasting channel authorization
+│   └── web.php           # Web routes
 ├── tests/
 │   ├── Feature/          # Backend API tests
 │   └── Browser/          # E2E Pest Browser tests
