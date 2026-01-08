@@ -22,7 +22,7 @@ interface AuthContextType {
     user: UserData | null;
     login: typeof ApiClient.login;
     register: typeof ApiClient.register;
-    logout: () => void;
+    logout: () => Promise<void>;
     googleLogin: (forceConsent?: boolean) => void;
     disconnectGoogle: () => Promise<void>;
     isLoading: boolean;

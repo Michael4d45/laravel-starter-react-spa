@@ -1,89 +1,66 @@
-import { RealtimeNotifications } from '@/components/realtime/RealtimeNotifications';
-import AppearanceToggleTab from '@/components/ui/AppearanceToggleTab';
-import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
 export function HomePage() {
-    const { authState, logout } = useAuth();
-    const isAuthenticated = authState.isAuthenticated;
+    const { user } = useAuth();
+    const isAuthenticated = !!user;
+
+    if (!isAuthenticated) {
+        return (
+            <div className="mx-auto max-w-7xl">
+                <div className="flex h-screen flex-col items-center justify-center text-center">
+                    <h1 className="text-4xl">Welcome</h1>
+                    <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                        Get started by signing in or creating an account
+                    </p>
+                    <div className="mt-8 flex gap-4">
+                        <Link
+                            to="/login"
+                            className="btn-primary px-6 py-3"
+                        >
+                            Log in
+                        </Link>
+                        <Link
+                            to="/register"
+                            className="btn-secondary px-6 py-3"
+                        >
+                            Sign up
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="mx-auto max-w-4xl">
-            <div className="mb-12 text-center">
-                <h1 className="text-secondary mb-4 text-4xl font-bold">
-                    Laravel React PWA
-                </h1>
-                <p className="text-secondary text-xl">
-                    A progressive web app with offline support and
-                    authentication
+        <div className="mx-auto max-w-7xl">
+            <div className="mb-8">
+                <h1>Welcome back, {user.name}!</h1>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                    You're all set to get started.
                 </p>
             </div>
 
-            <div className="bg-card rounded-lg p-8 shadow-md">
-                <h2 className="mb-6 text-center text-2xl font-semibold">
-                    Navigation
-                </h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <Link to="/content">
-                        <Button className="h-16 w-full text-lg">
-                            View Content
-                        </Button>
-                    </Link>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Link
+                    to="/content"
+                    className="card block p-6 transition hover:shadow-lg"
+                >
+                    <h2 className="mb-2 text-xl font-semibold">Content</h2>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        Browse and explore content
+                    </p>
+                </Link>
 
-                    {isAuthenticated ? (
-                        <>
-                            <Link to="/profile">
-                                <Button
-                                    variant="secondary"
-                                    className="h-16 w-full text-lg"
-                                >
-                                    Profile
-                                </Button>
-                            </Link>
-                            <Button
-                                variant="danger"
-                                className="h-16 w-full text-lg md:col-span-2"
-                                onClick={() => logout()}
-                            >
-                                Logout
-                            </Button>
-                        </>
-                    ) : (
-                        <>
-                            <Link to="/login">
-                                <Button
-                                    variant="primary"
-                                    className="h-16 w-full text-lg"
-                                >
-                                    Login
-                                </Button>
-                            </Link>
-                            <Link to="/register">
-                                <Button
-                                    variant="secondary"
-                                    className="h-16 w-full text-lg"
-                                >
-                                    Register
-                                </Button>
-                            </Link>
-                        </>
-                    )}
-                    <AppearanceToggleTab />
-                </div>
-            </div>
-
-            {isAuthenticated && (
-                <div className="mt-8">
-                    <RealtimeNotifications />
-                </div>
-            )}
-
-            <div className="mt-8 text-center">
-                <p className="text-secondary text-sm">
-                    Try going offline in your browser's dev tools and refreshing
-                    the page!
-                </p>
+                <Link
+                    to="/profile"
+                    className="card block p-6 transition hover:shadow-lg"
+                >
+                    <h2 className="mb-2 text-xl font-semibold">Profile</h2>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        Manage your account settings
+                    </p>
+                </Link>
             </div>
         </div>
     );
