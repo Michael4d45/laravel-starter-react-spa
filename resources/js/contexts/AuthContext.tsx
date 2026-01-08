@@ -87,17 +87,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 // Clean up URL
                 window.history.replaceState({}, '', window.location.pathname);
             } else {
-                // Check token validity on mount (no OAuth callback)
-                // Try to restore from session if no local token
-                if (!authManager.getToken() || authManager.isTokenExpired()) {
-                    const result = await ApiClient.fetchSessionToken();
-                    if (result._tag === 'Success') {
-                        authManager.setAuthData(
-                            result.data.token,
-                            result.data.user,
-                        );
-                    }
-                }
+                // Only refresh token validity if we have an existing token
+                // Don't try to fetch session token if user is clearly logged out (no local token)
+                // Session token fetching is only useful after OAuth flows (handled above)
+                // or when loaders explicitly need to check auth status
+                authManager.refreshAuthState();
             }
         };
 
