@@ -58,6 +58,12 @@ class Register
 
         $token = $user->createToken('api-token')->plainTextToken;
 
+        // Regenerate session ID to prevent session fixation attacks
+        session()->regenerate(true);
+
+        // Regenerate CSRF token for security
+        session()->regenerateToken();
+
         return response()->json(AuthResponse::from([
             'token' => $token,
             'user' => $user,

@@ -34,6 +34,12 @@ export const ValidationErrorSchema = Schema.Struct({
 
 export type ValidationError = Schema.Schema.Type<typeof ValidationErrorSchema>;
 
+export const CsrfTokenExpiredErrorSchema = Schema.Struct({
+    _tag: Schema.Literal('CsrfTokenExpiredError'),
+});
+
+export type CsrfTokenExpiredError = Schema.Schema.Type<typeof CsrfTokenExpiredErrorSchema>;
+
 /* ============================================================================
  * API Definition
  * ============================================================================
@@ -114,12 +120,57 @@ const baseAuthClient = HttpApiClient.make(Api, {
     },
 });
 
+const baseCsrfClient = HttpApiClient.make(Api, {
+    baseUrl,
+    transformClient: (client) => {
+        const csrfToken =
+            document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute('content') || null;
+        if (csrfToken) {
+            return client.pipe(
+                HttpClient.mapRequest(
+                    HttpClientRequest.setHeader('X-CSRF-TOKEN', csrfToken),
+                ),
+            );
+        }
+        return client;
+    },
+});
+
+const baseAuthCsrfClient = HttpApiClient.make(Api, {
+    baseUrl,
+    transformClient: (client) => {
+        let transformed = client;
+        const token = authManager.getToken();
+        if (token) {
+            transformed = transformed.pipe(
+                HttpClient.mapRequest(HttpClientRequest.bearerToken(token)),
+            );
+        }
+        const csrfToken =
+            document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute('content') || null;
+        if (csrfToken) {
+            transformed = transformed.pipe(
+                HttpClient.mapRequest(
+                    HttpClientRequest.setHeader('X-CSRF-TOKEN', csrfToken),
+                ),
+            );
+        }
+        return transformed;
+    },
+});
+
 /* ============================================================================
  * Client Types (inferred from HttpApiClient.make)
  * ============================================================================
  */
 type BaseClientType = Effect.Effect.Success<typeof baseClient>;
 type BaseAuthClientType = Effect.Effect.Success<typeof baseAuthClient>;
+type BaseCsrfClientType = Effect.Effect.Success<typeof baseCsrfClient>;
+type BaseAuthCsrfClientType = Effect.Effect.Success<typeof baseAuthCsrfClient>;
 
 /* ============================================================================
  * Singleton Client
@@ -131,6 +182,9 @@ class ApiClientSingleton {
      * ========================================================================== */
     private _baseClientPromise: Promise<BaseClientType> | null = null;
     private _baseAuthClientPromise: Promise<BaseAuthClientType> | null = null;
+    private _baseCsrfClientPromise: Promise<BaseCsrfClientType> | null = null;
+    private _baseAuthCsrfClientPromise: Promise<BaseAuthCsrfClientType> | null =
+        null;
 
     private getBaseClient(): Promise<BaseClientType> {
         if (!this._baseClientPromise) {
@@ -150,10 +204,28 @@ class ApiClientSingleton {
         return this._baseAuthClientPromise;
     }
 
+    private getBaseCsrfClient(): Promise<BaseCsrfClientType> {
+        if (!this._baseCsrfClientPromise) {
+            this._baseCsrfClientPromise = Effect.runPromise(
+                baseCsrfClient.pipe(Effect.provide(FetchHttpClient.layer)),
+            );
+        }
+        return this._baseCsrfClientPromise;
+    }
+
+    private getBaseAuthCsrfClient(): Promise<BaseAuthCsrfClientType> {
+        if (!this._baseAuthCsrfClientPromise) {
+            this._baseAuthCsrfClientPromise = Effect.runPromise(
+                baseAuthCsrfClient.pipe(Effect.provide(FetchHttpClient.layer)),
+            );
+        }
+        return this._baseAuthCsrfClientPromise;
+    }
+
     private runEffect<A>(
         effect: Effect.Effect<
             A,
-            HttpApiDecodeError | ValidationError | HttpClientError | ParseError
+            HttpApiDecodeError | ValidationError | CsrfTokenExpiredError | HttpClientError | ParseError
         >,
     ) {
         return Effect.runPromise(
@@ -166,6 +238,11 @@ class ApiClientSingleton {
                     return Effect.succeed({
                         _tag: 'ValidationError' as const,
                         errors: e.errors,
+                    });
+                }),
+                Effect.catchTag('CsrfTokenExpiredError', (e) => {
+                    return Effect.succeed({
+                        _tag: 'CsrfTokenExpiredError' as const,
                     });
                 }),
                 Effect.catchTag('ParseError', (e) => {
@@ -195,7 +272,7 @@ class ApiClientSingleton {
     private async runEffectWithCache<A>(
         effect: Effect.Effect<
             A,
-            HttpApiDecodeError | ValidationError | HttpClientError | ParseError
+            HttpApiDecodeError | ValidationError | CsrfTokenExpiredError | HttpClientError | ParseError
         >,
         cacheKey: string,
     ) {
@@ -230,12 +307,14 @@ class ApiClientSingleton {
      * Public API Methods
      * ========================================================================== */
     async login(payload: LoginRequest) {
-        const client = await this.getBaseClient();
+        // Login needs web middleware (session + CSRF) to create sessions for Filament
+        const client = await this.getBaseCsrfClient();
         return this.runEffect(client.auth.login({ payload }));
     }
 
     async register(payload: RegisterRequest) {
-        const client = await this.getBaseClient();
+        // Register needs web middleware (session + CSRF) to create sessions for Filament
+        const client = await this.getBaseCsrfClient();
         return this.runEffect(client.auth.register({ payload }));
     }
 
@@ -245,40 +324,8 @@ class ApiClientSingleton {
     }
 
     async logout() {
-        // Get CSRF token from meta tag for session-based logout
-        const csrfToken =
-            document
-                .querySelector('meta[name="csrf-token"]')
-                ?.getAttribute('content') || null;
-
-        // Create a client with CSRF token header for logout
-        const logoutClient = HttpApiClient.make(Api, {
-            baseUrl: '',
-            transformClient: (client) => {
-                const token = authManager.getToken();
-                let transformed = client;
-                if (token) {
-                    transformed = transformed.pipe(
-                        HttpClient.mapRequest(
-                            HttpClientRequest.bearerToken(token),
-                        ),
-                    );
-                }
-                if (csrfToken) {
-                    transformed = transformed.pipe(
-                        HttpClient.mapRequest(
-                            HttpClientRequest.setHeader('X-CSRF-TOKEN', csrfToken),
-                        ),
-                    );
-                }
-                return transformed;
-            },
-        });
-
-        const client = await Effect.runPromise(
-            logoutClient.pipe(Effect.provide(FetchHttpClient.layer)),
-        );
-
+        // Logout needs web middleware (session + CSRF) to clear Redis sessions for Filament
+        const client = await this.getBaseAuthCsrfClient();
         const result = await this.runEffect(client.auth.logout());
         // Clear cached data on logout to prevent data leakage
         await apiCache.clear();

@@ -9,10 +9,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Michael4d45\ContextLogging\Middleware\EmitContextMiddleware;
 use Michael4d45\ContextLogging\Middleware\RequestContextMiddleware;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        channels: __DIR__.'/../routes/channels.php',
+        channels: __DIR__ . '/../routes/channels.php',
         web: __DIR__ . '/../routes/web.php',
         api: __DIR__ . '/../routes/api.php',
         commands: __DIR__ . '/../routes/console.php',
@@ -25,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(LogResponses::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->renderable(function (ValidationException $e, $request) {
+        $exceptions->render(function (ValidationException $e, $request) {
             if (config()->boolean('logging.should_log_validation_errors')) {
                 Log::warning('Validation exception caught', [
                     'errors' => $e->errors(),
@@ -40,14 +41,23 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             // For API requests, return JSON response
-            if ($request->is('api/*') || $request->expectsJson()) {
+            if ($request->expectsJson()) {
                 return response()->json([
                     '_tag' => 'ValidationError',
                     'errors' => $e->errors(),
                 ], 422);
             }
 
-            // For web requests, let Laravel handle it normally
+            throw $e;
+        });
+        $exceptions->render(function (HttpException $e, $request) {
+            $isCsrfTokenMismatch = $e->getMessage() === 'CSRF token mismatch.';
+            if ($request->expectsJson() && $isCsrfTokenMismatch) {
+                return response()->json([
+                    '_tag' => 'CsrfTokenExpiredError',
+                ], 419);
+            }
+
             throw $e;
         });
     })
