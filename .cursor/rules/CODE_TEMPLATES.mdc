@@ -2,164 +2,121 @@
 alwaysApply: true
 ---
 
-# Laravel React SPA - Code Templates & Feature Development Guide
+# Laravel React SPA - Code Templates
 
-This guide provides comprehensive templates and best practices for adding new features to this Laravel + React + React Router application with Effect-based data loading.
-
----
-
-## 📋 Feature Development Workflow
-
-### 1. Planning Phase
-- Define the feature requirements and user stories
-- Identify required database changes
-- Plan the API endpoints and data flow
-- Consider authentication/authorization needs
-
-### 2. Implementation Order
-1. **Database & Models** (migrations, Eloquent models)
-2. **Data Layer** (Data models, Props, Requests)
-3. **Business Logic** (Actions)
-4. **API Routes** (routes/api.php)
-5. **Frontend** (React components with Effect-based loading)
-6. **Routing** (React Router routes)
-7. **Testing** (Feature & Browser tests)
+This guide provides templates specific to this application's Effect-based React SPA architecture. For general Laravel, PHP, Pest, and Tailwind patterns, see `laravel-boost.mdc`.
 
 ---
 
-## 🛠️ Core Components
+## Architecture Overview
 
-### 1. API Routes
-
-**File**: `routes/api.php`
-
-This React SPA uses API-first architecture with JSON responses. Routes are organized in the `api.php` file and are prefixed with `/api/`.
-
-```php
-<?php
-
-use App\Actions\Features\ShowFeatures;
-use App\Actions\Features\CreateFeature;
-use App\Actions\Features\ShowFeature;
-use App\Actions\Features\UpdateFeature;
-use App\Actions\Features\DeleteFeature;
-use Illuminate\Support\Facades\Route;
-
-// Public routes (no authentication required)
-Route::get('/public-features', App\Actions\Features\ShowPublicFeatures::class)->name('api.public-features');
-
-// Authenticated routes (require login via Sanctum)
-Route::middleware('auth:sanctum')->group(function (): void {
-    // Index/List data
-    Route::get('/features', ShowFeatures::class)->name('api.features.index');
-
-    // Create new item
-    Route::post('/features', CreateFeature::class)->name('api.features.store');
-
-    // Show single item data
-    Route::get('/features/{feature}', ShowFeature::class)->name('api.features.show');
-
-    // Update item
-    Route::put('/features/{feature}', UpdateFeature::class)->name('api.features.update');
-
-    // Delete item
-    Route::delete('/features/{feature}', DeleteFeature::class)->name('api.features.destroy');
-});
-```
-
-**Key Characteristics**:
-- Routes return JSON data consumed by React components
-- Use `auth:sanctum` middleware for API authentication
-- Route names prefixed with `api.`
-- Frontend routing handled by React Router (no "create" or "edit" API routes)
-- Actions return structured data for Effect-based loading
+This is an API-first SPA with:
+- **Backend**: Laravel API routes returning Spatie Data objects as JSON
+- **Frontend**: React + React Router with Effect-based data loading
+- **Auth**: Sanctum tokens + Google OAuth
+- **Type Safety**: PHP Data classes auto-transform to TypeScript Effect Schemas
 
 ---
 
-### 2. Action Classes
+## Feature Development Workflow
 
-#### Show/Index Action
-**File**: `app/Actions/Features/ShowFeatures.php`
+1. **Database & Models** - migrations, Eloquent models (see laravel-boost.mdc)
+2. **Data Layer** - `app/Data/Models/`, `app/Data/Requests/`, `app/Data/Response/`
+3. **Business Logic** - Action classes in `app/Actions/`
+4. **API Routes** - `routes/api.php`
+5. **Frontend** - Update `apiClientSingleton.ts`, create React components with loaders
+6. **Routing** - Add routes to `resources/js/router.tsx`
+
+---
+
+## Backend Templates
+
+### Action Classes
+
+Actions are invokable classes that handle a single responsibility. Place in `app/Actions/{Domain}/`.
+
+**Show Action** (`app/Actions/Content/ShowContent.php`):
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-namespace App\Actions\Features;
+namespace App\Actions\Content;
 
-use App\Data\Models\FeatureData;
-use App\Data\Response\FeaturesResponse;
-use App\Models\Feature;
+use App\Data\Models\ContentData;
+use App\Data\Response\ContentItems;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class ShowFeatures
+class ShowContent
 {
-    /**
-     * Display the features list.
-     */
     public function __invoke(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        $features = Feature::where('user_id', $user->id)
-            ->with(['relationships']) // Eager load to prevent N+1 queries
+        $items = Content::query()
+            ->with(['relationships']) // Eager load
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json(FeaturesResponse::from([
-            'features' => FeatureData::collect($features),
+        return response()->json(ContentItems::from([
+            'content' => ContentData::collect($items),
         ]));
     }
 }
 ```
 
-#### Create/Store Action
-**File**: `app/Actions/Features/CreateFeature.php`
+**Create Action with Validation** (`app/Actions/Auth/Login.php` pattern):
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-namespace App\Actions\Features;
+namespace App\Actions\Auth;
 
-use App\Data\Requests\CreateFeatureRequest;
-use App\Models\Feature;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use App\Data\Requests\LoginRequest;
+use App\Data\Response\AuthResponse;
 use Symfony\Component\HttpFoundation\Response;
 
-class CreateFeature
+class Login
 {
-    /**
-     * Create a new feature.
-     */
-    public function __invoke(CreateFeatureRequest $data, Request $request): JsonResponse
+    public function __invoke(LoginRequest $data): Response
     {
-        $user = $request->user();
-
-        $feature = Feature::create([
-            'user_id' => $user->id,
-            'name' => $data->name,
-            'description' => $data->description,
-            // Add other fields as needed
-        ]);
-
-        return response()->json([
-            'message' => 'Feature created successfully',
-            'feature' => FeatureData::from($feature),
-        ], 201);
+        // Business logic here...
+        
+        return response()->json(AuthResponse::from([
+            'token' => $token,
+            'user' => $user,
+        ]));
     }
 }
 ```
 
----
+### Data Models
 
-### 3. Data Models
+Data transfer objects in `app/Data/Models/`. These auto-generate TypeScript Effect Schemas.
 
-**File**: `app/Data/Models/FeatureData.php`
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Data\Models;
+
+use Illuminate\Support\Carbon;
+use Spatie\LaravelData\Data;
+
+class ContentData extends Data
+{
+    public function __construct(
+        public int $id,
+        public string $title,
+        public string $body,
+    ) {}
+}
+```
+
+**With Relationships and Lazy Loading**:
 
 ```php
 <?php
@@ -174,34 +131,31 @@ use Spatie\LaravelData\Attributes\AutoWhenLoadedLazy;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Lazy;
 
-class FeatureData extends Data
+class UserData extends Data
 {
     public function __construct(
         public string $id,
-        public string $user_id,
-        public string $name,
-        public string|null $description,
+        public string|null $name,
+        public string|null $email,
         public Carbon|null $created_at,
         public Carbon|null $updated_at,
-
-        // Lazy-loaded relationships (only included when explicitly loaded)
-        /** @var UserData $user */
+        
+        // Lazy-loaded relationships
         #[AutoWhenLoadedLazy]
-        public Lazy|UserData $user,
-
-        // Collection relationships
-        /** @var Collection<array-key,RelatedFeatureData> $related_features */
-        #[AutoWhenLoadedLazy('relatedFeatures')]
-        public Collection|Lazy $related_features,
+        public Lazy|ProfileData $profile,
+        
+        /** @var Collection<array-key,PostData> $posts */
+        #[AutoWhenLoadedLazy('posts')]
+        public Collection|Lazy $posts,
     ) {}
 }
 ```
 
----
+### Response Classes
 
-### 4. Response Classes
+Wrapper classes in `app/Data/Response/` for consistent API responses.
 
-**File**: `app/Data/Response/FeaturesResponse.php`
+**Collection Response**:
 
 ```php
 <?php
@@ -210,20 +164,21 @@ declare(strict_types=1);
 
 namespace App\Data\Response;
 
-use App\Data\Models\FeatureData;
+use App\Data\Models\ContentData;
 use Illuminate\Support\Collection;
 use Spatie\LaravelData\Data;
 
-class FeaturesResponse extends Data
+class ContentItems extends Data
 {
     public function __construct(
-        /** @var Collection<array-key,FeatureData> $features */
-        public Collection $features,
+        /** @var Collection<array-key,ContentData> $content */
+        public Collection $content,
     ) {}
 }
 ```
 
-**For Single Item Response**:
+**Single Item Response**:
+
 ```php
 <?php
 
@@ -231,43 +186,21 @@ declare(strict_types=1);
 
 namespace App\Data\Response;
 
-use App\Data\Models\FeatureData;
+use App\Data\Models\UserData;
 use Spatie\LaravelData\Data;
 
-class FeatureResponse extends Data
+class AuthResponse extends Data
 {
     public function __construct(
-        public FeatureData $feature,
+        public string $token,
+        public UserData $user,
     ) {}
 }
 ```
 
-**For Paginated Data**:
-```php
-<?php
+### Request Validation Classes
 
-declare(strict_types=1);
-
-namespace App\Data\Response;
-
-use App\Data\Models\FeatureData;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Spatie\LaravelData\Data;
-
-class PaginatedFeaturesResponse extends Data
-{
-    public function __construct(
-        /** @var LengthAwarePaginator<FeatureData> $features */
-        public LengthAwarePaginator $features,
-    ) {}
-}
-```
-
----
-
-### 5. Request Validation Classes
-
-**File**: `app/Data/Requests/CreateFeatureRequest.php`
+Validation in `app/Data/Requests/` using Spatie Data attributes.
 
 ```php
 <?php
@@ -276,409 +209,326 @@ declare(strict_types=1);
 
 namespace App\Data\Requests;
 
-use Spatie\LaravelData\Attributes\Validation\Required;
-use Spatie\LaravelData\Attributes\Validation\StringType;
+use Spatie\LaravelData\Attributes\Validation\Confirmed;
+use Spatie\LaravelData\Attributes\Validation\Email;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Min;
-use Spatie\LaravelData\Attributes\Validation\Email;
-use Spatie\LaravelData\Attributes\Validation\BooleanType;
+use Spatie\LaravelData\Attributes\Validation\Required;
+use Spatie\LaravelData\Attributes\Validation\StringType;
+use Spatie\LaravelData\Attributes\Validation\Unique;
 use Spatie\LaravelData\Data;
 
-class CreateFeatureRequest extends Data
+class RegisterRequest extends Data
 {
     public function __construct(
         #[Required]
         #[StringType]
-        #[Min(3)]
+        #[Min(2)]
         #[Max(255)]
         public string $name,
 
-        #[StringType]
-        #[Max(1000)]
-        public string|null $description = null,
-
+        #[Required]
         #[Email]
-        public string|null $contact_email = null,
+        #[Max(255)]
+        #[Unique(table: 'users', column: 'email')]
+        public string $email,
 
-        #[BooleanType]
-        public bool $is_active = true,
+        #[Required]
+        #[StringType]
+        #[Min(8)]
+        #[Confirmed]
+        public string $password,
+
+        #[Required]
+        #[StringType]
+        public string $password_confirmation,
     ) {}
 }
 ```
 
-**Common Validation Rules**:
+**Common Validation Attributes**:
 - `#[Required]` - Field must be present
-- `#[StringType]` - Must be a string
-- `#[IntegerType]` - Must be an integer
-- `#[BooleanType]` - Must be a boolean
-- `#[Email]` - Must be valid email format
-- `#[Max(255)]` - Maximum length/value
-- `#[Min(3)]` - Minimum length/value
-- `#[Unique('table,column')]` - Must be unique in database
-- `#[Exists('table,column')]` - Must exist in database
+- `#[StringType]`, `#[IntegerType]`, `#[BooleanType]` - Type constraints
+- `#[Email]` - Valid email format
+- `#[Min(n)]`, `#[Max(n)]` - Length/value constraints
+- `#[Confirmed]` - Requires matching `{field}_confirmation`
+- `#[Unique(table: 'x', column: 'y')]` - Database uniqueness
+- `#[Exists(table: 'x', column: 'y')]` - Database existence
 
----
+### API Routes
 
-### 6. Eloquent Models
-
-**File**: `app/Models/Feature.php`
+Routes in `routes/api.php` are prefixed with `/api/`.
 
 ```php
 <?php
 
-declare(strict_types=1);
+use Illuminate\Support\Facades\Route;
 
-namespace App\Models;
+// Public routes
+Route::post('/login', App\Actions\Auth\Login::class)->name('api.login');
+Route::post('/register', App\Actions\Auth\Register::class)->name('api.register');
+Route::get('/content', App\Actions\Content\ShowContent::class)->name('api.content');
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Notifications\Notifiable;
-
-/**
- * Feature model representing user-created features.
- *
- * @property string $id
- * @property string $user_id
- * @property string $name
- * @property string|null $description
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
- * @property-read User $user
- * @property-read Collection<array-key,RelatedFeature> $related_features
- */
-class Feature extends Model
-{
-    /** @use HasFactory<\Database\Factories\FeatureFactory> */
-    use HasFactory, HasUuids, Notifiable;
-
-    protected $fillable = [
-        'user_id',
-        'name',
-        'description',
-        // Add other fillable fields
-    ];
-
-    /**
-     * Get the attributes that should be cast.
-     */
-    protected function casts(): array
-    {
-        return [
-            'is_active' => 'boolean',
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
-        ];
-    }
-
-    // Relationships
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function relatedFeatures(): HasMany
-    {
-        return $this->hasMany(RelatedFeature::class);
-    }
-}
+// Authenticated routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', App\Actions\Auth\ShowUser::class)->name('api.user');
+    Route::post('/logout', App\Actions\Auth\Logout::class)->name('api.logout');
+});
 ```
 
 ---
 
-## ⚛️ Frontend Templates
+## Frontend Templates
 
-### React Page Component with Data Loader
-**File**: `resources/js/features/features/FeaturesPage.tsx`
+### ApiClient Singleton
+
+The API client uses `@effect/platform` HttpApiClient. Add new endpoints in `resources/js/lib/apiClientSingleton.ts`.
+
+**1. Define the API group**:
+
+```typescript
+const contentGroup = HttpApiGroup.make('content').add(
+    HttpApiEndpoint.get('show', '/api/content').addSuccess(ContentItemsSchema),
+);
+
+// For POST with payload:
+const authGroup = HttpApiGroup.make('auth')
+    .add(
+        HttpApiEndpoint.post('login', '/api/login')
+            .setPayload(LoginRequestSchema)
+            .addSuccess(AuthResponseSchema),
+    );
+```
+
+**2. Register in the API definition**:
+
+```typescript
+export const Api = HttpApi.make('BackendApi')
+    .add(authGroup)
+    .add(contentGroup)
+    .addError(ValidationErrorSchema, { status: 422 });
+```
+
+**3. Add public method to ApiClientSingleton**:
+
+```typescript
+class ApiClientSingleton {
+    // For public endpoints (no auth)
+    async showContent() {
+        const client = await this.getBaseClient();
+        return this.runEffect(client.content.show());
+    }
+
+    // For authenticated endpoints
+    async showUser() {
+        const client = await this.getBaseAuthClient();
+        return this.runEffect(client.users.show());
+    }
+
+    // With payload
+    async login(payload: LoginRequest) {
+        const client = await this.getBaseClient();
+        return this.runEffect(client.auth.login({ payload }));
+    }
+}
+```
+
+### React Router Loader
+
+Loaders fetch data before rendering. Export from the page component file.
+
+**Public Route Loader**:
+
+```typescript
+export async function contentLoader() {
+    const result = await ApiClient.showContent();
+    if (result._tag === 'Success') {
+        return result.data;
+    }
+    // Handle error or return empty state
+    console.error('Failed to load content:', result);
+    return { content: [] };
+}
+```
+
+**Authenticated Route Loader with Redirect**:
+
+```typescript
+import { redirect } from 'react-router-dom';
+import { authManager } from '@/lib/auth';
+
+export async function profileLoader() {
+    let user = authManager.getUser();
+    let token = authManager.getToken();
+
+    // Try to restore from session if no local token
+    if (!user || !token) {
+        const result = await ApiClient.fetchSessionToken();
+        if (result._tag === 'Success') {
+            authManager.setAuthData(result.data.token, result.data.user);
+            user = result.data.user;
+            token = result.data.token;
+        }
+    }
+
+    if (!user || !token) {
+        return redirect('/login');
+    }
+
+    return user;
+}
+```
+
+### React Page Component
 
 ```tsx
-import { Link, useLoaderData } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
-import { FeaturesResponse } from '@/types/effect-schemas';
+import { useLoaderData } from 'react-router-dom';
+import { ContentItems } from '@/types/effect-schemas';
 
-export function FeaturesPage() {
-    const { features } = useLoaderData<FeaturesResponse>();
+export function ContentPage() {
+    const { content } = useLoaderData<ContentItems>();
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">My Features</h1>
-                <Link to="/features/create">
-                    <Button>Create Feature</Button>
-                </Link>
-            </div>
+        <div className="mx-auto max-w-4xl">
+            <h1 className="mb-8 text-3xl font-bold">Content</h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {features.map((feature) => (
-                    <div key={feature.id} className="bg-white rounded-lg shadow-md p-6">
-                        <h2 className="text-xl font-semibold mb-2">
-                            <Link
-                                to={`/features/${feature.id}`}
-                                className="hover:text-blue-600"
-                            >
-                                {feature.name}
-                            </Link>
-                        </h2>
-
-                        {feature.description && (
-                            <p className="text-gray-600 mb-4">{feature.description}</p>
-                        )}
-
-                        <div className="flex justify-between items-center text-sm text-gray-500">
-                            <span>{new Date(feature.created_at).toLocaleDateString()}</span>
-                            <Link
-                                to={`/features/${feature.id}/edit`}
-                                className="text-blue-500 hover:text-blue-700"
-                            >
-                                Edit
-                            </Link>
+            {content.length > 0 ? (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {content.map((item) => (
+                        <div key={item.id} className="bg-card rounded-lg p-6 shadow-md">
+                            <h2 className="mb-2 text-xl font-semibold">{item.title}</h2>
+                            <p className="text-secondary">{item.body}</p>
                         </div>
-                    </div>
-                ))}
-
-                {features.length === 0 && (
-                    <div className="col-span-full text-center py-12">
-                        <p className="text-gray-500 mb-4">No features yet.</p>
-                        <Link to="/features/create">
-                            <Button variant="outline">Create your first feature</Button>
-                        </Link>
-                    </div>
-                )}
-            </div>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-secondary">No content available.</p>
+            )}
         </div>
     );
 }
 ```
 
-### React Router Integration
-**File**: `resources/js/router.tsx`
+### Router Configuration
 
-```typescript
+Add routes in `resources/js/router.tsx`:
+
+```tsx
 import { createBrowserRouter } from 'react-router-dom';
-import { ApiClient } from '@/lib/apiClientSingleton';
-
-export async function tasksLoader() {
-    const result = await ApiClient.getTasks();
-    if (result._tag === 'Success') {
-        return result.data;
-    }
-    throw new Error(result.message);
-}
+import { App } from './app';
+import { ContentPage, contentLoader } from './features/content/ContentPage';
+import { ProfilePage, profileLoader } from './features/profile/ProfilePage';
+import { ErrorPage } from './features/ErrorPage';
 
 export const router = createBrowserRouter([
     {
-        path: '/tasks',
-        element: <TasksPage />,
-        loader: tasksLoader,
-        errorElement: <ErrorPage />,
-    },
-    {
-        path: '/tasks/create',
-        element: <CreateTaskPage />,
+        path: '/',
+        element: <App />,
+        children: [
+            {
+                index: true,
+                element: <HomePage />,
+            },
+            {
+                path: 'content',
+                element: <ContentPage />,
+                loader: contentLoader,
+                errorElement: <ErrorPage />,
+            },
+            {
+                path: 'profile',
+                element: <ProfilePage />,
+                loader: profileLoader,
+                errorElement: <ErrorPage />,
+            },
+        ],
     },
 ]);
 ```
 
 ---
 
-## 📚 Complete Feature Example: Task Management
+## TypeScript Schema Generation
 
-### Step-by-Step Implementation
+PHP Data classes auto-generate Effect Schemas in `resources/js/types/effect-schemas.ts`.
 
-#### 1. Migration
-```php
-// database/migrations/xxxx_create_tasks_table.php
-Schema::create('tasks', function (Blueprint $table) {
-    $table->uuid('id')->primary();
-    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-    $table->string('title');
-    $table->text('description')->nullable();
-    $table->boolean('is_completed')->default(false);
-    $table->timestamp('due_date')->nullable();
-    $table->timestampsTz();
-});
+Run generation after changing Data classes:
+
+```bash
+php artisan typescript:transform
 ```
 
-#### 2. Model
-```php
-// app/Models/Task.php
-class Task extends Model
-{
-    use HasFactory, HasUuids;
-
-    protected $fillable = [
-        'user_id',
-        'title',
-        'description',
-        'is_completed',
-        'due_date',
-    ];
-
-    protected function casts(): array
-    {
-        return [
-            'is_completed' => 'boolean',
-            'due_date' => 'datetime',
-        ];
-    }
-}
-```
-
-#### 3. Data Classes
-```php
-// app/Data/Models/TaskData.php (Transformed to TypeScript automatically)
-class TaskData extends Data
-{
-    public function __construct(
-        public string $id,
-        public string $user_id,
-        public string $title,
-        public string|null $description,
-        public bool $is_completed,
-        public string|null $due_date,
-        public string $created_at,
-        public string $updated_at,
-    ) {}
-}
-```
-
-#### 4. Actions
-```php
-// app/Actions/Tasks/ShowTasks.php
-class ShowTasks
-{
-    public function __invoke(Request $request): JsonResponse
-    {
-        $tasks = Task::where('user_id', $request->user()->id)->get();
-
-        return response()->json(TasksResponse::from([
-            'tasks' => TaskData::collect($tasks),
-        ]));
-    }
-}
-```
-
-#### 5. API Routes
-```php
-// routes/api.php
-Route::middleware('auth:sanctum')->group(function (): void {
-    Route::get('/tasks', ShowTasks::class)->name('api.tasks.index');
-    Route::post('/tasks', CreateTask::class)->name('api.tasks.store');
-});
-```
-
-#### 6. Effect-Based ApiClient Implementation
-**File**: `resources/js/lib/apiClientSingleton.ts`
+The generated schemas provide runtime validation and TypeScript types:
 
 ```typescript
-import {
-    FetchHttpClient,
-    HttpApi,
-    HttpApiClient,
-    HttpApiEndpoint,
-    HttpApiGroup,
-} from '@effect/platform';
-import { Effect } from 'effect';
-import {
-    TasksResponseSchema,
-    TaskSchema,
-    CreateTaskRequestSchema,
-} from '@/types/effect-schemas';
-
-// Define the API group manually
-const tasksGroup = HttpApiGroup.make('tasks')
-    .add(
-        HttpApiEndpoint.get('index', '/api/tasks')
-            .addSuccess(TasksResponseSchema),
-    )
-    .add(
-        HttpApiEndpoint.post('store', '/api/tasks')
-            .setPayload(CreateTaskRequestSchema)
-            .addSuccess(TaskSchema),
-    );
-
-// Register in the main API definition
-export const Api = HttpApi.make('BackendApi')
-    .add(tasksGroup);
-
-const baseClient = HttpApiClient.make(Api, { baseUrl: '' });
-
-class ApiClientSingleton {
-    getTasks() {
-        return Effect.runPromise(
-            Effect.gen(function* () {
-                const client = yield* baseClient;
-                return yield* client.tasks.index().pipe(
-                    Effect.map((data) => ({ _tag: 'Success' as const, data })),
-                    Effect.catchAll((e) => Effect.succeed({
-                        _tag: 'FatalError' as const,
-                        message: JSON.stringify(e),
-                    })),
-                );
-            }).pipe(Effect.provide(FetchHttpClient.layer))
-        );
-    }
-}
-
-export const ApiClient = new ApiClientSingleton();
-```
-
----
-
-## ✅ Feature Development Checklist
-
-- [ ] **Planning**: Define requirements and user stories
-- [ ] **Database**: Create migration and update model
-- [ ] **Data Layer**: Create Data models and Request classes
-- [ ] **Business Logic**: Implement Action classes
-- [ ] **Routing**: Add routes to `routes/api.php`
-- [ ] **Frontend**: Update `ApiClientSingleton` and create React components
-- [ ] **Testing**: Write Pest feature and browser tests
-
----
-
-## 🎯 TypeScript Types in Effect-Based Architecture
-
-### Effect Schema Types (Auto-generated)
-```typescript
-// Schemas are auto-generated from Laravel Data classes via Spatie TypeScript Transformer
-// Located in: resources/js/types/effect-schemas.ts
-export const FeatureSchema = Schema.Struct({
-    id: Schema.String,
-    name: Schema.String,
-    description: Schema.Union(Schema.String, Schema.Null),
-    created_at: Schema.String,
+// Auto-generated from ContentData.php
+export const ContentDataSchema = Schema.Struct({
+    id: Schema.Number,
+    title: Schema.String,
+    body: Schema.String,
 });
 
-// Types are derived from schemas for type safety
-export type Feature = Schema.Schema.Type<typeof FeatureSchema>;
+export type ContentData = Schema.Schema.Type<typeof ContentDataSchema>;
 ```
 
 ---
 
-## 🔧 HttpApiClient Architecture
+## Auth Patterns
 
-### Overview
-This application uses `@effect/platform`'s `HttpApiClient` to provide type-safe API calls. The API definition is manually constructed in `resources/js/lib/apiClientSingleton.ts`, leveraging schemas generated from PHP Data classes.
+### Using AuthContext
 
-### Schema Generation
-Schemas are automatically generated from your Laravel Data classes and provide runtime validation via `effect/Schema`. Generation is handled by the Spatie TypeScript Transformer with custom collectors/transformers for Effect.
+```tsx
+import { useAuth } from '@/contexts/AuthContext';
 
----
+function MyComponent() {
+    const { user, login, logout, isLoading } = useAuth();
 
-## 🐛 Debugging Effect-Based Architecture
+    if (!user) {
+        return <p>Not logged in</p>;
+    }
 
-### Effect Debugging
-- Use Effect's logging capabilities:
+    return <p>Welcome, {user.name}</p>;
+}
+```
+
+### API Result Handling
+
+All ApiClient methods return a tagged union result:
+
 ```typescript
-import { Logger, LogLevel } from 'effect';
+const result = await ApiClient.login(credentials);
 
-const myEffect = Effect.gen(function* () {
-    yield* Effect.logDebug('Starting operation...');
-    // ... logic
-}).pipe(
-    Logger.withMinimumLogLevel(LogLevel.Debug)
-);
+switch (result._tag) {
+    case 'Success':
+        // result.data contains the response
+        authManager.setAuthData(result.data.token, result.data.user);
+        break;
+    case 'ValidationError':
+        // result.errors is Record<string, string[]>
+        setErrors(result.errors);
+        break;
+    case 'ParseError':
+    case 'FatalError':
+        // result.message contains error details
+        console.error(result.message);
+        break;
+}
 ```
+
+---
+
+## Feature Checklist
+
+When adding a new feature:
+
+- [ ] Create migration (if needed)
+- [ ] Create/update Eloquent model
+- [ ] Create Data model class (`app/Data/Models/`)
+- [ ] Create Request validation class (`app/Data/Requests/`)
+- [ ] Create Response class (`app/Data/Response/`)
+- [ ] Create Action class(es) (`app/Actions/`)
+- [ ] Add API route(s) to `routes/api.php`
+- [ ] Add endpoint to `apiClientSingleton.ts`
+- [ ] Create React component with loader
+- [ ] Add route to `router.tsx`
+- [ ] Write Pest tests

@@ -21,6 +21,7 @@ import { Effect, Schema } from 'effect';
 import { HttpApiDecodeError } from '@effect/platform/HttpApiError';
 import { HttpClientError } from '@effect/platform/HttpClientError';
 import { ParseError } from 'effect/ParseResult';
+import { apiCache } from './apiCache';
 import { authManager } from './auth';
 
 export const ValidationErrorSchema = Schema.Struct({
@@ -185,6 +186,46 @@ class ApiClientSingleton {
         );
     }
 
+    /**
+     * Run an Effect with optional caching for offline support.
+     * If a cacheKey is provided:
+     * - Online: Fetch fresh data and cache it
+     * - Offline: Return cached data if available
+     */
+    private async runEffectWithCache<A>(
+        effect: Effect.Effect<
+            A,
+            HttpApiDecodeError | ValidationError | HttpClientError | ParseError
+        >,
+        cacheKey: string,
+    ) {
+        // If offline, try to return cached data
+        if (!navigator.onLine) {
+            const cached = await apiCache.get<A>(cacheKey);
+            if (cached !== undefined) {
+                return {
+                    _tag: 'Success' as const,
+                    data: cached,
+                };
+            }
+            // No cached data available while offline
+            return {
+                _tag: 'FatalError' as const,
+                message: 'You are offline and no cached data is available.',
+            };
+        }
+
+        // Online: fetch fresh data
+        const result = await this.runEffect(effect);
+
+        // Cache successful responses
+        if (result._tag === 'Success') {
+            await apiCache.set(cacheKey, result.data);
+        }
+
+        return result;
+    }
+
     /* ==========================================================================
      * Public API Methods
      * ========================================================================== */
@@ -205,7 +246,10 @@ class ApiClientSingleton {
 
     async logout() {
         const client = await this.getBaseAuthClient();
-        return this.runEffect(client.auth.logout());
+        const result = await this.runEffect(client.auth.logout());
+        // Clear cached data on logout to prevent data leakage
+        await apiCache.clear();
+        return result;
     }
 
     async disconnectGoogle() {
@@ -215,7 +259,7 @@ class ApiClientSingleton {
 
     async showContent() {
         const client = await this.getBaseClient();
-        return this.runEffect(client.content.show());
+        return this.runEffectWithCache(client.content.show(), 'content_list');
     }
 
     /**
