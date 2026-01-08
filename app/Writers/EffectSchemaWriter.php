@@ -13,14 +13,35 @@ class EffectSchemaWriter implements Writer
     {
         $content = "import { Schema as S } from 'effect';
 
-export const PaginationLinks = S.Struct({
+export interface PaginationLinks {
+    readonly url: string | null;
+    readonly label: string;
+    readonly page: number | null;
+    readonly active: boolean;
+}
+
+export const PaginationLinksSchema = S.Struct({
   url: S.Union(S.String, S.Null),
   label: S.String,
   page: S.Union(S.Number, S.Null),
   active: S.Boolean,
 });
 
-export const PaginationMeta = S.Struct({
+export interface PaginationMeta {
+    readonly current_page: number;
+    readonly first_page_url: string;
+    readonly from: number | null;
+    readonly last_page: number;
+    readonly last_page_url: string;
+    readonly next_page_url: string | null;
+    readonly path: string;
+    readonly per_page: number;
+    readonly prev_page_url: string | null;
+    readonly to: number | null;
+    readonly total: number;
+}
+
+export const PaginationMetaSchema = S.Struct({
   current_page: S.Number,
   first_page_url: S.String,
   from: S.Union(S.Number, S.Null),
@@ -34,11 +55,17 @@ export const PaginationMeta = S.Struct({
   total: S.Number,
 });
 
-export const LengthAwarePaginator = <A extends S.Schema.Any>(item: A) =>
+export interface LengthAwarePaginator<T extends object> {
+    readonly data: T[];
+    readonly links: PaginationLinks[];
+    readonly meta: PaginationMeta;
+}
+
+export const LengthAwarePaginatorSchema = <A extends S.Schema.Any>(item: A) =>
   S.Struct({
     data: S.Array(item),
-    links: S.Array(PaginationLinks),
-    meta: PaginationMeta,
+    links: S.Array(PaginationLinksSchema),
+    meta: PaginationMetaSchema,
   });
 
 ";

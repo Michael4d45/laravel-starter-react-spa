@@ -5,13 +5,26 @@ declare(strict_types=1);
 namespace App\Transformers;
 
 use Spatie\LaravelData\Contracts\BaseData;
+use Spatie\TypeScriptTransformer\Structures\TransformedType;
 use Spatie\TypeScriptTransformer\Transformers\DtoTransformer;
 
 /**
+ * Transforms Laravel Data classes to Effect Schema definitions.
+ *
+ * Following Effect Schema docs for recursive schemas:
+ * 1. Interface defined BEFORE schema (deferred type resolution)
+ * 2. S.suspend with explicit type annotation for circular refs
+ * 3. For schemas with transformations (DateFromString), both Type and Encoded interfaces
+ *
+ * @see https://effect.website/docs/schema/basic-usage/#recursive-schemas
+ *
  * @template T of BaseData
  */
 class EffectSchemaTransformer extends DtoTransformer
 {
+    /** @var array<string, bool> Track generated enums to avoid duplicates */
+    private static array $generatedEnums = [];
+
     /**
      * @param \ReflectionClass<T> $class
      */
@@ -26,13 +39,14 @@ class EffectSchemaTransformer extends DtoTransformer
     public function transform(
         \ReflectionClass $class,
         string $name,
-    ): null|\Spatie\TypeScriptTransformer\Structures\TransformedType {
+    ): null|TransformedType {
         if (!$this->canTransform($class)) {
             return null;
         }
 
-        $schemaName = $class->getShortName() . 'Schema';
         $typeName = $class->getShortName();
+        $schemaName = $typeName . 'Schema';
+        $encodedName = $typeName . 'Encoded';
 
         /** @var array<\ReflectionProperty> $properties */
         $properties = $this->resolveProperties($class);
@@ -40,11 +54,25 @@ class EffectSchemaTransformer extends DtoTransformer
         // Collect enum schemas needed for this class
         $enumSchemas = $this->collectEnumSchemas($properties);
 
-        $structBody = collect($properties)->map(
-            fn(mixed $property) => $this->transformProperty(
-                /** @var \ReflectionProperty $property */
+        // Generate interface properties (Type - decoded values, e.g., Date)
+        $typeInterfaceBody = collect($properties)->map(
+            fn(mixed $property) => $this->transformPropertyToInterface(
                 $property,
+                false,
             ),
+        )->implode("\n");
+
+        // Generate encoded interface properties (Encoded - wire format, e.g., string)
+        $encodedInterfaceBody = collect($properties)->map(
+            fn(mixed $property) => $this->transformPropertyToInterface(
+                $property,
+                true,
+            ),
+        )->implode("\n");
+
+        // Generate schema properties
+        $schemaBody = collect($properties)->map(
+            fn(mixed $property) => $this->transformPropertyToSchema($property),
         )->implode(",\n");
 
         $typescript = '';
@@ -52,15 +80,23 @@ class EffectSchemaTransformer extends DtoTransformer
             $typescript .= implode("\n\n", $enumSchemas) . "\n\n";
         }
 
+        // Always generate both Type and Encoded interfaces for consistency
+        // (most schemas have DateFromString which requires different Encoded/Type)
         $typescript .= <<<TS
-        export const {$schemaName} = S.Struct({
-        {$structBody}
-        });
+        export interface {$typeName} {
+        {$typeInterfaceBody}
+        }
 
-        export type {$typeName} = S.Schema.Type<typeof {$schemaName}>;
+        export interface {$encodedName} {
+        {$encodedInterfaceBody}
+        }
+
+        export const {$schemaName} = S.Struct({
+        {$schemaBody}
+        });
         TS;
 
-        return \Spatie\TypeScriptTransformer\Structures\TransformedType::create(
+        return TransformedType::create(
             $class,
             $name,
             $typescript,
@@ -70,95 +106,262 @@ class EffectSchemaTransformer extends DtoTransformer
         );
     }
 
-    protected function transformProperty(\ReflectionProperty $property): string
-    {
+    /**
+     * Transform a property to TypeScript interface property.
+     *
+     * @param bool $encoded If true, generate Encoded type (wire format), else Type (decoded)
+     */
+    protected function transformPropertyToInterface(
+        \ReflectionProperty $property,
+        bool $encoded,
+    ): string {
         $name = $property->getName();
         $type = $property->getType();
-        $declaringClass = $property->getDeclaringClass();
+        $docComment = $property->getDocComment() ?: '';
 
-        $baseType = 'S.Unknown';
+        $tsType = 'unknown';
+        $isNullable = $type?->allowsNull() ?? false;
+        $isOptional = $type && str_contains($type->__toString(), 'Optional');
+
         if ($type) {
             $typeString = $type->__toString();
-            // Remove nullable prefix for base type detection
             $cleanType = ltrim($typeString, '?');
 
-            // Handle Carbon/DateTime types
             if (
                 str_contains($cleanType, 'Carbon')
                 || str_contains($cleanType, 'DateTime')
             ) {
-                $baseType = 'S.DateFromString';
-            } elseif (str_contains($cleanType, '\\')) {
-                // Handle Collection types
+                // DateFromString: Encoded = string, Type = Date
+                $tsType = $encoded ? 'string' : 'Date';
+            } elseif (str_contains($cleanType, 'LengthAwarePaginator')) {
+                // LengthAwarePaginator<T> becomes readonly T[] in TypeScript
+                // (Laravel serializes it to the data array)
+                $itemType = $this->getPaginatorItemType($property, $docComment);
+                $tsType = $encoded
+                    ? "LengthAwarePaginator<{$itemType}Encoded>"
+                    : "LengthAwarePaginator<{$itemType}>";
+            } elseif (
+                str_contains($cleanType, '\\')
+                || str_contains($cleanType, 'Collection')
+                || str_contains($cleanType, 'Optional')
+            ) {
                 if (str_contains($cleanType, 'Collection')) {
-                    // Special handling for known collection cases
-                    $className = $declaringClass->getShortName();
-                    $propertyName = $name;
-
-                    // ContentItems.content -> S.Array(ContentDataSchema)
-                    if (
-                        $className === 'ContentItems'
-                        && $propertyName === 'content'
-                    ) {
-                        $baseType = 'S.Array(ContentDataSchema)';
-                    } else {
-                        // For other collections, try to infer from property name
-                        $singularName = $this->singularize($propertyName);
-                        $possibleSchemaName = ucfirst($singularName) . 'Schema';
-                        $baseType = "S.Array({$possibleSchemaName})";
-                    }
+                    $itemType = $this->getCollectionItemType(
+                        $property,
+                        $docComment,
+                    );
+                    // For Encoded, reference the Encoded interface if it exists
+                    $refType = $encoded ? $itemType . 'Encoded' : $itemType;
+                    $tsType = "readonly {$refType}[]";
                 } else {
-                    // Check if it's a reference to another Data class
+                    $targetType = $this->extractDataType($cleanType);
                     try {
-                        /** @var class-string $cleanType */
-                        $reflectionClass = new \ReflectionClass($cleanType);
+                        /** @var class-string $targetType */
+                        $reflectionClass = new \ReflectionClass($targetType);
                         if ($reflectionClass->isEnum()) {
-                            // Handle PHP enums - reference the enum schema
-                            $baseType =
-                                $reflectionClass->getShortName() . 'Schema';
+                            $tsType = $reflectionClass->getShortName();
                         } elseif ($reflectionClass->isSubclassOf(\Spatie\LaravelData\Data::class)) {
-                            $baseType =
-                                $reflectionClass->getShortName() . 'Schema';
-                        } else {
-                            // For other complex objects, treat as unknown
-                            $baseType = 'S.Unknown';
+                            $shortName = $reflectionClass->getShortName();
+                            // For Encoded, reference the Encoded interface if it exists
+                            $tsType = $encoded
+                                ? $shortName . 'Encoded'
+                                : $shortName;
                         }
                     } catch (\ReflectionException $e) {
-                        $baseType = 'S.Unknown';
+                        $tsType = 'unknown';
                     }
                 }
             } else {
-                $baseType = match ($cleanType) {
+                $tsType = match ($cleanType) {
+                    'string' => 'string',
+                    'int' => 'number',
+                    'float' => 'number',
+                    'bool' => 'boolean',
+                    'array' => 'unknown',
+                    'mixed' => 'unknown',
+                    default => 'unknown',
+                };
+            }
+        }
+
+        $optionalMark = $isOptional ? '?' : '';
+        $nullSuffix = $isNullable ? ' | null' : '';
+        return "  readonly {$name}{$optionalMark}: {$tsType}{$nullSuffix};";
+    }
+
+    /**
+     * Transform a property to Effect Schema property.
+     */
+    protected function transformPropertyToSchema(\ReflectionProperty $property): string
+    {
+        $name = $property->getName();
+        $type = $property->getType();
+        $docComment = $property->getDocComment() ?: '';
+
+        $schemaType = 'S.Unknown';
+        $isNullable = $type?->allowsNull() ?? false;
+        $isOptional = $type && str_contains($type->__toString(), 'Optional');
+
+        if ($type) {
+            $typeString = $type->__toString();
+            $cleanType = ltrim($typeString, '?');
+
+            if (
+                str_contains($cleanType, 'Carbon')
+                || str_contains($cleanType, 'DateTime')
+            ) {
+                $schemaType = 'S.DateFromString';
+            } elseif (str_contains($cleanType, 'LengthAwarePaginator')) {
+                // LengthAwarePaginator<T> becomes S.Array(TSchema)
+                $itemType = $this->getPaginatorItemType($property, $docComment);
+                $schemaType = "LengthAwarePaginatorSchema({$itemType}Schema)";
+            } elseif (
+                str_contains($cleanType, '\\')
+                || str_contains($cleanType, 'Collection')
+                || str_contains($cleanType, 'Optional')
+            ) {
+                if (str_contains($cleanType, 'Collection')) {
+                    $itemType = $this->getCollectionItemType(
+                        $property,
+                        $docComment,
+                    );
+                    // Use S.suspend with explicit type annotation for recursive refs
+                    $schemaType = "S.Array(S.suspend((): S.Schema<{$itemType}, {$itemType}Encoded> => {$itemType}Schema))";
+                } else {
+                    $targetType = $this->extractDataType($cleanType);
+                    try {
+                        /** @var class-string $targetType */
+                        $reflectionClass = new \ReflectionClass($targetType);
+                        if ($reflectionClass->isEnum()) {
+                            // Enums don't need suspend - no circular deps
+                            $schemaType =
+                                $reflectionClass->getShortName() . 'Schema';
+                        } elseif ($reflectionClass->isSubclassOf(\Spatie\LaravelData\Data::class)) {
+                            // Use S.suspend with explicit type annotation for recursive refs
+                            $shortName = $reflectionClass->getShortName();
+                            $schemaType = "S.suspend((): S.Schema<{$shortName}, {$shortName}Encoded> => {$shortName}Schema)";
+                        }
+                    } catch (\ReflectionException $e) {
+                        $schemaType = 'S.Unknown';
+                    }
+                }
+            } else {
+                $schemaType = match ($cleanType) {
                     'string' => 'S.String',
                     'int' => 'S.Number',
+                    'float' => 'S.Number',
                     'bool' => 'S.Boolean',
+                    'array' => 'S.Unknown',
+                    'mixed' => 'S.Unknown',
                     default => 'S.Unknown',
                 };
             }
         }
 
-        $schema = $baseType;
-        if ($type?->allowsNull()) {
-            $schema = "S.Union({$schema}, S.Null)";
+        if ($isNullable) {
+            $schemaType = "S.NullOr({$schemaType})";
         }
 
-        return "  {$name}: {$schema}";
+        if ($isOptional) {
+            $schemaType = "S.optional({$schemaType})";
+        }
+
+        return "  {$name}: {$schemaType}";
     }
 
     /**
+     * Extract the item type from a Collection property.
+     */
+    private function getCollectionItemType(
+        \ReflectionProperty $property,
+        string $docComment,
+    ): string {
+        if (preg_match(
+            '/Collection<[^,]+,\s*([^>]+)>/',
+            $docComment,
+            $matches,
+        )) {
+            $itemType = trim($matches[1]);
+            return basename(str_replace('\\', '/', $itemType));
+        }
+
+        $singularName = $this->singularize($property->getName());
+        return ucfirst($this->camelCase($singularName)) . 'Data';
+    }
+
+    /**
+     * Extract the item type from a LengthAwarePaginator property.
+     */
+    private function getPaginatorItemType(
+        \ReflectionProperty $property,
+        string $docComment,
+    ): string {
+        // Match LengthAwarePaginator<int, TypeName> pattern
+        if (preg_match(
+            '/LengthAwarePaginator<[^,]+,\s*([^>]+)>/',
+            $docComment,
+            $matches,
+        )) {
+            $itemType = trim($matches[1]);
+            return basename(str_replace('\\', '/', $itemType));
+        }
+
+        // Fallback: infer from property name (remove 's' and add 'Data')
+        $singularName = $this->singularize($property->getName());
+        return ucfirst($this->camelCase($singularName)) . 'Data';
+    }
+
+    /**
+     * Extract the Data class type from a union type string.
+     */
+    private function extractDataType(string $typeString): string
+    {
+        if (!str_contains($typeString, '|')) {
+            return $typeString;
+        }
+
+        $parts = explode('|', $typeString);
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if (
+                $part !== 'Optional'
+                && !str_ends_with($part, '\\Optional')
+                && $part !== 'LengthAwarePaginator'
+                && !str_contains($part, 'LengthAwarePaginator')
+                && $part !== 'null'
+            ) {
+                return $part;
+            }
+        }
+
+        return $typeString;
+    }
+
+    private function camelCase(string $string): string
+    {
+        return str_replace(
+            ' ',
+            '',
+            ucwords(str_replace(['_', '-'], ' ', $string)),
+        );
+    }
+
+    /**
+     * Collect enum schemas from properties.
+     *
      * @param array<\ReflectionProperty> $properties
      * @return array<string>
      */
     private function collectEnumSchemas(array $properties): array
     {
         $enumSchemas = [];
-        $processedEnums = [];
 
         foreach ($properties as $property) {
             $type = $property->getType();
             if ($type) {
                 $typeString = $type->__toString();
                 $cleanType = ltrim($typeString, '?');
+                $cleanType = $this->extractDataType($cleanType);
 
                 if (str_contains($cleanType, '\\')) {
                     try {
@@ -166,10 +369,9 @@ class EffectSchemaTransformer extends DtoTransformer
                         $reflectionClass = new \ReflectionClass($cleanType);
                         if (
                             $reflectionClass->isEnum()
-                            && !in_array($cleanType, $processedEnums, true)
+                            && !isset(self::$generatedEnums[$cleanType])
                         ) {
-                            $processedEnums[] = $cleanType;
-
+                            self::$generatedEnums[$cleanType] = true;
                             $enumSchemas[] =
                                 $this->generateEnumSchema($reflectionClass);
                         }
@@ -183,14 +385,16 @@ class EffectSchemaTransformer extends DtoTransformer
         return $enumSchemas;
     }
 
-    /** @phpstan-ignore missingType.generics */
+    /**
+     * Generate an Effect Schema for a PHP enum.
+     *
+     * @phpstan-ignore missingType.generics
+     */
     private function generateEnumSchema(\ReflectionClass $enum): string
     {
         $enumName = $enum->getShortName();
         $schemaName = $enumName . 'Schema';
-        $typeName = $enumName;
 
-        // Create ReflectionEnum from the class name
         /** @var class-string $enumClassName */
         $enumClassName = $enum->getName();
         /** @phpstan-ignore argument.type */
@@ -198,47 +402,53 @@ class EffectSchemaTransformer extends DtoTransformer
 
         $cases = $reflectionEnum->getCases();
         $literals = [];
+        $typeValues = [];
 
         foreach ($cases as $case) {
-            // Check if this is a backed enum case
             if (method_exists($case, 'getBackingValue')) {
                 try {
-                    // Try to get backing value for backed enums
+                    /** @var \ReflectionEnumBackedCase $case */
                     $value = $case->getBackingValue();
                     if (is_string($value)) {
-                        $literals[] = 'S.Literal("' . addslashes($value) . '")';
+                        $escapedValue = addslashes($value);
+                        $literals[] = "S.Literal(\"{$escapedValue}\")";
+                        $typeValues[] = "\"{$escapedValue}\"";
                     } elseif (is_int($value)) {
-                        $literals[] = 'S.Literal(' . $value . ')';
+                        $literals[] = "S.Literal({$value})";
+                        $typeValues[] = (string) $value;
                     }
                 } catch (\Throwable $e) {
-                    // For pure enums or if backing value fails, use the case name
-                    $literals[] = 'S.Literal("' . $case->getName() . '")';
+                    $caseName = $case->getName();
+                    $literals[] = "S.Literal(\"{$caseName}\")";
+                    $typeValues[] = "\"{$caseName}\"";
                 }
             } else {
-                // For pure enums, use the case name
-                $literals[] = 'S.Literal("' . $case->getName() . '")';
+                $caseName = $case->getName();
+                $literals[] = "S.Literal(\"{$caseName}\")";
+                $typeValues[] = "\"{$caseName}\"";
             }
         }
 
         if ($literals === []) {
-            // Fallback if no literals found
-            $union = 'S.String'; // Assume string enum
+            $union = 'S.String';
+            $typeUnion = 'string';
         } elseif (count($literals) === 1) {
             $union = $literals[0];
+            $typeUnion = $typeValues[0];
         } else {
             $union = 'S.Union(' . implode(', ', $literals) . ')';
+            $typeUnion = implode(' | ', $typeValues);
         }
 
         return <<<TS
-        export const {$schemaName} = {$union};
+        export type {$enumName} = {$typeUnion};
 
-        export type {$typeName} = S.Schema.Type<typeof {$schemaName}>;
+        export const {$schemaName} = {$union};
         TS;
     }
 
     private function singularize(string $word): string
     {
-        // Simple singularization - in production you'd use a proper inflector
         if (str_ends_with($word, 'ies')) {
             return substr($word, 0, -3) . 'y';
         }
