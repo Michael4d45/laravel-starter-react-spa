@@ -10,6 +10,7 @@ import {
     ReactNode,
     useContext,
     useEffect,
+    useRef,
     useState,
 } from 'react';
 import toast from 'react-hot-toast';
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         authManager.getAuthState(),
     );
     const [isLoading, setIsLoading] = useState(false);
+    const processingAuthCallback = useRef(false);
 
     // Provide the current user directly for easier consumption and reactivity
     const user = authState.user;
@@ -50,6 +52,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const urlParams = new URLSearchParams(window.location.search);
             const authParam = urlParams.get('auth');
             const messageParam = urlParams.get('message');
+
+            if (!authParam || processingAuthCallback.current) {
+                // If no auth param or we're already processing it, just refresh state if needed
+                if (!authParam) {
+                    // Only refresh token validity if we have an existing token
+                    authManager.refreshAuthState();
+                }
+                return;
+            }
+
+            // Mark as processing to prevent double-execution in Strict Mode
+            processingAuthCallback.current = true;
 
             if (authParam === 'success' || authParam === 'connected') {
                 // OAuth successful - fetch token securely from API
@@ -86,12 +100,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 toast.error(decodeURIComponent(messageParam));
                 // Clean up URL
                 window.history.replaceState({}, '', window.location.pathname);
-            } else {
-                // Only refresh token validity if we have an existing token
-                // Don't try to fetch session token if user is clearly logged out (no local token)
-                // Session token fetching is only useful after OAuth flows (handled above)
-                // or when loaders explicitly need to check auth status
-                authManager.refreshAuthState();
             }
         };
 

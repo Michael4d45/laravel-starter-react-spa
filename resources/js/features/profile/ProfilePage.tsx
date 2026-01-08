@@ -15,18 +15,24 @@ export async function profileLoader() {
     let user = authManager.getUser();
     let token = authManager.getToken();
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const isOAuthCallback = urlParams.has('auth');
+
     // If no JWT tokens, try to restore from session (useful for tests with actingAs)
     if (!user || !token) {
-        const result = await ApiClient.fetchSessionToken();
-        if (result._tag === 'Success') {
-            authManager.setAuthData(result.data.token, result.data.user);
-            user = result.data.user;
-            token = result.data.token;
+        // Skip session fetching if we're in an OAuth callback, as AuthContext handles that
+        if (!isOAuthCallback) {
+            const result = await ApiClient.fetchSessionToken();
+            if (result._tag === 'Success') {
+                authManager.setAuthData(result.data.token, result.data.user);
+                user = result.data.user;
+                token = result.data.token;
+            }
         }
     }
 
-    if (!user || !token) {
-        // Redirect to login if not authenticated
+    if ((!user || !token) && !isOAuthCallback) {
+        // Redirect to login if not authenticated and not in OAuth flow
         return redirect('/login');
     }
 
