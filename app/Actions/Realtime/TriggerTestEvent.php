@@ -19,9 +19,9 @@ class TriggerTestEvent
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $message = $request->input('message', 'Hello from Reverb!');
+        $message = $request->string('message', 'Hello from Reverb!');
 
-        event(new TestRealtimeEvent($user, $message));
+        event(new TestRealtimeEvent($user, $message->toString()));
 
         return response()->json([
             'success' => true,

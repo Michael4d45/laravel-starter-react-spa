@@ -49,8 +49,10 @@ window.Echo = echo;
  */
 export const updateEchoToken = (token: string | null) => {
     if (window.Echo) {
-        (window.Echo.options as { auth: { headers: { Authorization: string } } }).auth.headers.Authorization = token
-            ? `Bearer ${token}`
-            : '';
+        (
+            window.Echo.options as {
+                auth: { headers: { Authorization: string } };
+            }
+        ).auth.headers.Authorization = token ? `Bearer ${token}` : '';
     }
 };

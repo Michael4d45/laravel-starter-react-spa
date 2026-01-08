@@ -103,7 +103,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 try {
                     const result = await ApiClient.fetchSessionToken();
                     if (result._tag === 'Success') {
-                        authManager.setAuthData(result.data.token, result.data.user);
+                        authManager.setAuthData(
+                            result.data.token,
+                            result.data.user,
+                        );
                     }
                     // Silently ignore errors - user simply isn't logged in
                 } catch {

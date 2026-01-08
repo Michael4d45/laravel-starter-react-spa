@@ -15,32 +15,34 @@ afterEach(function () {
 });
 
 /*
-|--------------------------------------------------------------------------
-| Broadcasting Tests (CI/CD Compatible)
-|--------------------------------------------------------------------------
-|
-| These tests verify broadcasting logic without requiring Reverb to run.
-| They use Event::fake() to mock the broadcasting layer.
-|
-*/
+ |--------------------------------------------------------------------------
+ | Broadcasting Tests (CI/CD Compatible)
+ |--------------------------------------------------------------------------
+ |
+ | These tests verify broadcasting logic without requiring Reverb to run.
+ | They use Event::fake() to mock the broadcasting layer.
+ |
+ */
 
 it('dispatches broadcast event when API is called', function (): void {
     Event::fake([TestRealtimeEvent::class]);
 
     $user = User::factory()->create();
 
-    $response = $this->actingAs($user)
-        ->postJson('/api/trigger-test-event', [
-            'message' => 'Test broadcast message',
-        ]);
+    $response = $this->actingAs($user)->postJson('/api/trigger-test-event', [
+        'message' => 'Test broadcast message',
+    ]);
 
-    $response->assertOk()
-        ->assertJson(['success' => true]);
+    $response->assertOk()->assertJson(['success' => true]);
 
     // Verify the event was dispatched with correct data
-    Event::assertDispatched(TestRealtimeEvent::class, function ($event) use ($user) {
-        return $event->user->id === $user->id
-            && $event->message === 'Test broadcast message';
+    Event::assertDispatched(TestRealtimeEvent::class, function ($event) use (
+        $user,
+    ) {
+        return (
+            $event->user->id === $user->id
+            && $event->message === 'Test broadcast message'
+        );
     });
 });
 
@@ -67,14 +69,14 @@ it('includes correct payload in broadcast', function (): void {
 });
 
 /*
-|--------------------------------------------------------------------------
-| UI Component Tests
-|--------------------------------------------------------------------------
-|
-| These tests verify the RealtimeNotifications component renders correctly
-| for authenticated and unauthenticated users.
-|
-*/
+ |--------------------------------------------------------------------------
+ | UI Component Tests
+ |--------------------------------------------------------------------------
+ |
+ | These tests verify the RealtimeNotifications component renders correctly
+ | for authenticated and unauthenticated users.
+ |
+ */
 
 it('shows real-time notifications component for authenticated users', function (): void {
     $user = User::factory()->create();
@@ -95,23 +97,27 @@ it('hides real-time notifications for unauthenticated users', function (): void 
         ->assertDontSee('Real-time Updates');
 });
 
-it('displays a toast when a real-time event is received (requires REVERB_RUNNING=true)', function (): void {
-    $user = User::factory()->create();
-    $this->actingAs($user);
+it(
+    'displays a toast when a real-time event is received (requires REVERB_RUNNING=true)',
+    function (): void {
+        $user = User::factory()->create();
+        $this->actingAs($user);
 
-    $page = visit('/')
-        ->assertNoJavaScriptErrors()
-        ->waitForText('Logout', 10)
-        ->wait(1); // Wait for Echo to connect
+        $page = visit('/')
+            ->assertNoJavaScriptErrors()
+            ->waitForText('Logout', 10)
+            ->wait(1); // Wait for Echo to connect
 
-    // Dispatch event from PHP
-    event(new TestRealtimeEvent($user, 'Global Toast Notification!'));
+        // Dispatch event from PHP
+        event(new TestRealtimeEvent($user, 'Global Toast Notification!'));
 
-    // Verify toast appears (handled by GlobalRealtimeListener)
-    $page->waitForText('Global Toast Notification!', 10)
-        ->assertSee('Global Toast Notification!')
-        ->screenshot(filename: 'realtime-toast-notification.png');
-})->skip(
-    fn () => !env('REVERB_RUNNING', false),
+        // Verify toast appears (handled by GlobalRealtimeListener)
+        $page
+            ->waitForText('Global Toast Notification!', 10)
+            ->assertSee('Global Toast Notification!')
+            ->screenshot(filename: 'realtime-toast-notification.png');
+    },
+)->skip(
+    fn() => !env('REVERB_RUNNING', false),
     'Skipped: Set REVERB_RUNNING=true when Reverb is running',
 );

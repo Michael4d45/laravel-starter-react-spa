@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export type Appearance = 'light' | 'dark' | 'system';
 
@@ -8,6 +8,12 @@ const prefersDark = () => {
     }
 
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
+const computeResolvedTheme = (appearance: Appearance): 'light' | 'dark' => {
+    const isDark =
+        appearance === 'dark' || (appearance === 'system' && prefersDark());
+    return isDark ? 'dark' : 'light';
 };
 
 const setCookie = (name: string, value: string, days = 365) => {
@@ -64,11 +70,12 @@ export function useAppearance() {
         );
     });
 
-    const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(
-        'light',
-    );
+    // Track system preference changes to trigger re-render
+    const [systemPrefersDark, setSystemPrefersDark] = useState(prefersDark);
 
-    const updateAppearance = useCallback((mode: Appearance) => {
+    const resolvedTheme = computeResolvedTheme(appearance);
+
+    const updateAppearance = (mode: Appearance) => {
         setAppearance(mode);
 
         // Store in localStorage for client-side persistence...
@@ -78,19 +85,15 @@ export function useAppearance() {
         setCookie('appearance', mode);
 
         applyTheme(mode);
-    }, []);
+    };
 
     useEffect(() => {
-        const isDark =
-            appearance === 'dark' || (appearance === 'system' && prefersDark());
-        setResolvedTheme(isDark ? 'dark' : 'light');
         applyTheme(appearance);
 
         const mq = mediaQuery();
         const listener = () => {
+            setSystemPrefersDark(prefersDark());
             if (appearance === 'system') {
-                const isDark = prefersDark();
-                setResolvedTheme(isDark ? 'dark' : 'light');
                 applyTheme('system');
             }
         };

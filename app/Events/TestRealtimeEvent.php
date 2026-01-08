@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Events;
 
+use App\Data\Events\RealtimeMessageData;
 use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -50,9 +51,9 @@ class TestRealtimeEvent implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
-        return [
+        return RealtimeMessageData::from([
             'message' => $this->message,
-            'timestamp' => now()->toISOString(),
-        ];
+            'timestamp' => now(),
+        ])->toArray();
     }
 }

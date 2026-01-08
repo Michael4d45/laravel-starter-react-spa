@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { usePrivateChannel } from '@/hooks/usePrivateChannel';
-import { Wifi, WifiOff, Bell, X } from 'lucide-react';
+import { Bell, Wifi, WifiOff, X } from 'lucide-react';
 
 export function RealtimeNotifications() {
     const { user } = useAuth();
@@ -66,19 +66,20 @@ export function RealtimeNotifications() {
                                 className="bg-primary/5 rounded p-2 text-sm"
                                 data-testid="realtime-message"
                             >
-                                <span className="font-medium">{msg.message}</span>
+                                <span className="font-medium">
+                                    {msg.message}
+                                </span>
                                 <span className="text-secondary ml-2 text-xs">
-                                    {new Date(msg.timestamp).toLocaleTimeString()}
+                                    {new Date(
+                                        msg.timestamp,
+                                    ).toLocaleTimeString()}
                                 </span>
                             </li>
                         ))}
                     </ul>
                 </div>
             ) : (
-                <p
-                    className="text-secondary text-sm"
-                    data-testid="no-messages"
-                >
+                <p className="text-secondary text-sm" data-testid="no-messages">
                     No real-time messages yet.
                 </p>
             )}
