@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Middleware\ApiAuth;
 use App\Http\Middleware\LogRequests;
 use App\Http\Middleware\LogResponses;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,15 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
-    ->withBroadcasting(__DIR__ . '/../routes/channels.php', [
-        'prefix' => 'api',
-        'middleware' => ['api', 'auth:sanctum'],
-    ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(RequestContextMiddleware::class);
         $middleware->append(EmitContextMiddleware::class);
         $middleware->append(LogRequests::class);
         $middleware->append(LogResponses::class);
+        $middleware->alias([
+            'api.auth' => ApiAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (ValidationException $e) {
@@ -36,21 +37,36 @@ return Application::configure(basePath: dirname(__DIR__))
                     $e->errors()]);
             }
         });
-        $exceptions->render(function (ValidationException $e, $request) {
-            // For API requests, return JSON response
+        $exceptions->render(function (Exception $e, $request) {
             if ($request->expectsJson()) {
-                return response()->json([
-                    '_tag' => 'ValidationError',
-                    'errors' => $e->errors(),
-                ], 422);
-            }
-        });
-        $exceptions->render(function (HttpException $e, $request) {
-            $isCsrfTokenMismatch = $e->getMessage() === 'CSRF token mismatch.';
-            if ($request->expectsJson() && $isCsrfTokenMismatch) {
-                return response()->json([
-                    '_tag' => 'CsrfTokenExpiredError',
-                ], 419);
+                $body = [
+                    '_tag' => 'FatalError',
+                    'message' => $e->getMessage(),
+                ];
+                $status = 500;
+                if (method_exists($e, 'getStatusCode')) {
+                    $status = $e->getStatusCode();
+                }
+                if ($e instanceof AuthenticationException) {
+                    $body['_tag'] = 'AuthenticationError';
+                    $status = 401;
+                } else if ($e instanceof ValidationException) {
+                    $body['_tag'] = 'ValidationError';
+                    $body['errors'] = $e->errors();
+                    $status = 422;
+                } else if ($e instanceof HttpException) {
+                    $body['_tag'] = 'HttpError';
+                    switch ($status) {
+                        case 419:
+                            $body['_tag'] = 'CsrfTokenExpiredError';
+                            break;
+                        case 404:
+                            $body['_tag'] = 'NotFoundError';
+                            break;
+                        default:
+                    }
+                }
+                return response()->json($body, $status);
             }
         });
     })

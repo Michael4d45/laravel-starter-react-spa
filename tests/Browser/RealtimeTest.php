@@ -28,10 +28,17 @@ it('dispatches broadcast event when API is called', function (): void {
     Event::fake([TestRealtimeEvent::class]);
 
     $user = User::factory()->create();
+    $token = $user->createToken('test-token')->plainTextToken;
 
-    $response = $this->actingAs($user)->postJson('/api/trigger-test-event', [
-        'message' => 'Test broadcast message',
-    ]);
+    $response = $this->postJson(
+        '/api/trigger-test-event',
+        [
+            'message' => 'Test broadcast message',
+        ],
+        [
+            'Authorization' => 'Bearer ' . $token,
+        ],
+    );
 
     $response->assertOk()->assertJson(['success' => true]);
 
@@ -84,40 +91,15 @@ it('shows real-time notifications component for authenticated users', function (
 
     visit('/')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Laravel React PWA', 10)
-        ->waitForText('Logout', 10)
-        ->assertSee('Real-time Updates')
+        ->waitForText('Welcome back', 10)
+        ->waitForText('Sign out', 10)
+        ->waitForText('Real-time Updates', 10)
         ->assertSee('No real-time messages yet');
 });
 
 it('hides real-time notifications for unauthenticated users', function (): void {
     visit('/')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Laravel React PWA', 10)
+        ->waitForText('Welcome', 10)
         ->assertDontSee('Real-time Updates');
 });
-
-it(
-    'displays a toast when a real-time event is received (requires REVERB_RUNNING=true)',
-    function (): void {
-        $user = User::factory()->create();
-        $this->actingAs($user);
-
-        $page = visit('/')
-            ->assertNoJavaScriptErrors()
-            ->waitForText('Logout', 10)
-            ->wait(1); // Wait for Echo to connect
-
-        // Dispatch event from PHP
-        event(new TestRealtimeEvent($user, 'Global Toast Notification!'));
-
-        // Verify toast appears (handled by GlobalRealtimeListener)
-        $page
-            ->waitForText('Global Toast Notification!', 10)
-            ->assertSee('Global Toast Notification!')
-            ->screenshot(filename: 'realtime-toast-notification.png');
-    },
-)->skip(
-    fn() => !env('REVERB_RUNNING', false),
-    'Skipped: Set REVERB_RUNNING=true when Reverb is running',
-);

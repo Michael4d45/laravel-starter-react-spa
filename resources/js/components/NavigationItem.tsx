@@ -17,7 +17,7 @@ export default function NavigationItem({
     className = '',
 }: NavigationItemProps) {
     const baseClasses =
-        'group flex gap-x-3 rounded-md p-3 md:p-2 text-base md:text-sm leading-6 font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-primary-950/20 dark:hover:text-primary-400 transition-colors';
+        'nav-item group flex gap-x-3 rounded-md p-3 md:p-2 text-base md:text-sm leading-6 font-semibold transition-colors';
 
     return (
         <li>

@@ -21,7 +21,10 @@ class CreateToken
         $user = Auth::guard('web')->user() ?? $request->user();
 
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return response()->json([
+                '_tag' => 'AuthenticationError',
+                'message' => 'User not found.',
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
         $token = $user->createToken('api-token')->plainTextToken;

@@ -114,8 +114,8 @@ it('navigation back to home works', function (): void {
         ->wait(1)
         ->assertNoJavaScriptErrors()
         ->assertPathIs('/') // Should navigate to home page
-        ->waitForText('Laravel React PWA', 10)
-        ->assertSee('Laravel React PWA'); // Home page heading
+        ->waitForText('Welcome', 10)
+        ->assertSee('Welcome'); // Home page heading
 });
 
 it('displays complete content page view', function (): void {

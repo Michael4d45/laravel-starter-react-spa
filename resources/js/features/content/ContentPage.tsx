@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
-import { ApiClient } from '@/lib/apiClientSingleton';
+import { ApiClient } from '@/lib/apiClient';
 import { ContentItems } from '@/types/effect-schemas';
 import toast from 'react-hot-toast';
 import { Link, useLoaderData } from 'react-router-dom';

@@ -1,15 +1,48 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { usePrivateChannel } from '@/hooks/usePrivateChannel';
+import { echo } from '@/lib/echo';
+import { RealtimeMessageData } from '@/types/effect-schemas';
 import { Bell, Wifi, WifiOff, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+    addRealtimeMessageListener,
+    clearRealtimeMessages,
+} from './GlobalRealtimeListener';
 
 export function RealtimeNotifications() {
     const { user } = useAuth();
+    const [messages, setMessages] = useState<RealtimeMessageData[]>([]);
+    const [isConnected, setIsConnected] = useState(() => {
+        // Initialize with current connection state
+        return echo.connector.pusher.connection.state === 'connected';
+    });
 
-    const channelName = user ? `App.Models.User.${user.id}` : null;
-    const { messages, isConnected, clearMessages } = usePrivateChannel(
-        channelName,
-        '.TestRealtimeEvent',
-    );
+    // Monitor Pusher connection state
+    useEffect(() => {
+        const pusher = echo.connector.pusher;
+        const handleStateChange = () => {
+            setIsConnected(pusher.connection.state === 'connected');
+        };
+
+        pusher.connection.bind('state_change', handleStateChange);
+        return () => {
+            pusher.connection.unbind('state_change', handleStateChange);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const unsubscribe = addRealtimeMessageListener((newMessages) => {
+            setMessages(newMessages);
+        });
+
+        return unsubscribe;
+    }, [user]);
+
+    const handleClearMessages = () => {
+        setMessages([]);
+        clearRealtimeMessages();
+    };
 
     if (!user) {
         return null;
@@ -53,7 +86,7 @@ export function RealtimeNotifications() {
                             {messages.length} message(s)
                         </span>
                         <button
-                            onClick={clearMessages}
+                            onClick={handleClearMessages}
                             className="text-secondary hover:text-primary text-sm"
                         >
                             <X className="h-4 w-4" />

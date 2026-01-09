@@ -37,7 +37,7 @@ Instead of traditional controllers, business logic is encapsulated in single-res
 
 ### Frontend: Effect-Based Data Management
 The frontend leverages the **Effect** library to handle side effects, ensuring type safety and explicit error handling.
-- **API Client**: A singleton (`lib/apiClientSingleton.ts`) that returns tagged unions (`Success | ValidationError | ParseError | FatalError`).
+- **API Client**: A singleton (`lib/apiClient.ts`) that returns tagged unions (`Success | ValidationError | ParseError | FatalError`).
 - **Loaders**: React Router loaders fetch data *before* component rendering, eliminating "loading state" flashes.
 - **Offline First**: Automatic caching of API responses in IndexedDB for seamless offline browsing.
 
@@ -102,7 +102,7 @@ When adding a new feature, follow this checklist:
 4.  **API Routes**: Register the action in `routes/api.php`.
 5.  **Type Sync**: Run `php artisan typescript:transform` to update frontend schemas.
 6.  **Frontend**: 
-    - Add the endpoint to `apiClientSingleton.ts`.
+    - Add the endpoint to `apiClient.ts`.
     - Create the React component and loader.
     - Register the route in `router.tsx`.
 7.  **Testing**: Write Pest feature or browser tests.

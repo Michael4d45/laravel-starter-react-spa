@@ -14,7 +14,7 @@ export default function NavigationSection({
         <li>
             <ul role="list" className="-mx-2 space-y-1">
                 <li>
-                    <div className="text-xs leading-6 font-semibold text-gray-400 md:text-xs">
+                    <div className="text-muted text-xs leading-6 font-semibold md:text-xs">
                         {section.title}
                     </div>
                     <ul

@@ -45,6 +45,7 @@
         <env name="SHOULD_LOG_REQUESTS" value="false"/>
         <env name="SHOULD_LOG_RESPONSES" value="false"/>
         <env name="SHOULD_LOG_VALIDATION_ERRORS" value="false"/>
+        <env name="SHOULD_LOG_USER" value="false"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

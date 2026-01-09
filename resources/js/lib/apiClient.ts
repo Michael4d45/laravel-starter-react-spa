@@ -1,5 +1,7 @@
 import {
     AuthResponseSchema,
+    AuthenticateBroadcastingRequestSchema,
+    AuthenticateBroadcastingResponseSchema,
     ContentItemsSchema,
     LoginRequest,
     LoginRequestSchema,
@@ -26,6 +28,7 @@ import { authManager } from './auth';
 
 export const ValidationErrorSchema = Schema.Struct({
     _tag: Schema.Literal('ValidationError'),
+    message: Schema.String,
     errors: Schema.Record({
         key: Schema.String,
         value: Schema.Array(Schema.String),
@@ -36,11 +39,28 @@ export type ValidationError = Schema.Schema.Type<typeof ValidationErrorSchema>;
 
 export const CsrfTokenExpiredErrorSchema = Schema.Struct({
     _tag: Schema.Literal('CsrfTokenExpiredError'),
+    message: Schema.String,
 });
 
 export type CsrfTokenExpiredError = Schema.Schema.Type<
     typeof CsrfTokenExpiredErrorSchema
 >;
+
+export const AuthenticationErrorSchema = Schema.Struct({
+    _tag: Schema.Literal('AuthenticationError'),
+    message: Schema.String,
+});
+
+export type AuthenticationError = Schema.Schema.Type<
+    typeof AuthenticationErrorSchema
+>;
+
+export const NotFoundErrorSchema = Schema.Struct({
+    _tag: Schema.Literal('NotFoundError'),
+    message: Schema.String,
+});
+
+export type NotFoundError = Schema.Schema.Type<typeof NotFoundErrorSchema>;
 
 /* ============================================================================
  * API Definition
@@ -96,13 +116,8 @@ const contentGroup = HttpApiGroup.make('content').add(
 // Broadcasting endpoints (authenticated)
 const broadcastingGroup = HttpApiGroup.make('broadcasting').add(
     HttpApiEndpoint.post('auth', '/api/broadcasting/auth')
-        .setPayload(
-            Schema.Struct({
-                socket_id: Schema.String,
-                channel_name: Schema.String,
-            }),
-        )
-        .addSuccess(Schema.Struct({ auth: Schema.String })),
+        .setPayload(AuthenticateBroadcastingRequestSchema)
+        .addSuccess(AuthenticateBroadcastingResponseSchema),
 );
 
 export const Api = HttpApi.make('BackendApi')
@@ -111,7 +126,9 @@ export const Api = HttpApi.make('BackendApi')
     .add(contentGroup)
     .add(broadcastingGroup)
     .addError(ValidationErrorSchema, { status: 422 })
-    .addError(CsrfTokenExpiredErrorSchema, { status: 419 });
+    .addError(CsrfTokenExpiredErrorSchema, { status: 419 })
+    .addError(AuthenticationErrorSchema, { status: 401 })
+    .addError(NotFoundErrorSchema, { status: 404 });
 
 /* ============================================================================
  * Form-Friendly Result
@@ -119,23 +136,33 @@ export const Api = HttpApi.make('BackendApi')
  */
 const baseUrl = ''; // Empty string to use relative paths
 
+// Base transform that always adds Accept header
+const withJsonAccept = HttpClient.mapRequest(
+    HttpClientRequest.setHeader('Accept', 'application/json'),
+);
+
+// Base client with common configuration
 const baseClient = HttpApiClient.make(Api, {
     baseUrl,
+    transformClient: (client) => client.pipe(withJsonAccept),
 });
 
+// Auth client - adds bearer token on top of base
 const baseAuthClient = HttpApiClient.make(Api, {
     baseUrl,
     transformClient: (client) => {
         const token = authManager.getToken();
         if (token) {
             return client.pipe(
+                withJsonAccept,
                 HttpClient.mapRequest(HttpClientRequest.bearerToken(token)),
             );
         }
-        return client;
+        return client.pipe(withJsonAccept);
     },
 });
 
+// CSRF client - adds CSRF token on top of base
 const baseCsrfClient = HttpApiClient.make(Api, {
     baseUrl,
     transformClient: (client) => {
@@ -145,19 +172,22 @@ const baseCsrfClient = HttpApiClient.make(Api, {
                 ?.getAttribute('content') || null;
         if (csrfToken) {
             return client.pipe(
+                withJsonAccept,
                 HttpClient.mapRequest(
                     HttpClientRequest.setHeader('X-CSRF-TOKEN', csrfToken),
                 ),
             );
         }
-        return client;
+        return client.pipe(withJsonAccept);
     },
 });
 
+// Auth + CSRF client - combines both auth and CSRF on top of base
 const baseAuthCsrfClient = HttpApiClient.make(Api, {
     baseUrl,
     transformClient: (client) => {
-        let transformed = client;
+        let transformed = client.pipe(withJsonAccept);
+
         const token = authManager.getToken();
         if (token) {
             transformed = transformed.pipe(
@@ -175,6 +205,7 @@ const baseAuthCsrfClient = HttpApiClient.make(Api, {
                 ),
             );
         }
+
         return transformed;
     },
 });
@@ -187,6 +218,15 @@ type BaseClientType = Effect.Effect.Success<typeof baseClient>;
 type BaseAuthClientType = Effect.Effect.Success<typeof baseAuthClient>;
 type BaseCsrfClientType = Effect.Effect.Success<typeof baseCsrfClient>;
 type BaseAuthCsrfClientType = Effect.Effect.Success<typeof baseAuthCsrfClient>;
+
+type ErrorsType =
+    | HttpApiDecodeError
+    | ValidationError
+    | CsrfTokenExpiredError
+    | HttpClientError
+    | ParseError
+    | AuthenticationError
+    | NotFoundError;
 
 /* ============================================================================
  * Singleton Client
@@ -239,14 +279,8 @@ class ApiClientSingleton {
     }
 
     private runEffect<A>(
-        effect: Effect.Effect<
-            A,
-            | HttpApiDecodeError
-            | ValidationError
-            | CsrfTokenExpiredError
-            | HttpClientError
-            | ParseError
-        >,
+        effect: Effect.Effect<A, ErrorsType>,
+        context: string,
     ) {
         return Effect.runPromise(
             effect.pipe(
@@ -257,6 +291,7 @@ class ApiClientSingleton {
                 Effect.catchTag('ValidationError', (e) => {
                     return Effect.succeed({
                         _tag: 'ValidationError' as const,
+                        message: e.message,
                         errors: e.errors,
                     });
                 }),
@@ -266,8 +301,20 @@ class ApiClientSingleton {
                         message: 'CSRF token expired',
                     });
                 }),
+                Effect.catchTag('AuthenticationError', (e) => {
+                    return Effect.succeed({
+                        _tag: 'AuthenticationError' as const,
+                        message: e.message,
+                    });
+                }),
+                Effect.catchTag('NotFoundError', (e) => {
+                    return Effect.succeed({
+                        _tag: 'NotFoundError' as const,
+                        message: e.message,
+                    });
+                }),
                 Effect.catchTag('ParseError', (e) => {
-                    console.error(e);
+                    console.error(context, e);
                     return Effect.succeed({
                         _tag: 'ParseError' as const,
                         message: e.toString(),
@@ -292,14 +339,7 @@ class ApiClientSingleton {
      * - Offline: Return cached data if available
      */
     private async runEffectWithCache<A>(
-        effect: Effect.Effect<
-            A,
-            | HttpApiDecodeError
-            | ValidationError
-            | CsrfTokenExpiredError
-            | HttpClientError
-            | ParseError
-        >,
+        effect: Effect.Effect<A, ErrorsType>,
         cacheKey: string,
     ) {
         // If offline, try to return cached data
@@ -319,7 +359,7 @@ class ApiClientSingleton {
         }
 
         // Online: fetch fresh data
-        const result = await this.runEffect(effect);
+        const result = await this.runEffect(effect, cacheKey);
 
         // Cache successful responses
         if (result._tag === 'Success') {
@@ -335,24 +375,24 @@ class ApiClientSingleton {
     async login(payload: LoginRequest) {
         // Login needs web middleware (session + CSRF) to create sessions for Filament
         const client = await this.getBaseCsrfClient();
-        return this.runEffect(client.auth.login({ payload }));
+        return this.runEffect(client.auth.login({ payload }), 'login');
     }
 
     async register(payload: RegisterRequest) {
         // Register needs web middleware (session + CSRF) to create sessions for Filament
         const client = await this.getBaseCsrfClient();
-        return this.runEffect(client.auth.register({ payload }));
+        return this.runEffect(client.auth.register({ payload }), 'register');
     }
 
     async showUser() {
         const client = await this.getBaseAuthClient();
-        return this.runEffect(client.users.show());
+        return this.runEffect(client.users.show(), 'showUser');
     }
 
     async logout() {
         // Logout needs web middleware (session + CSRF) to clear Redis sessions for Filament
         const client = await this.getBaseAuthCsrfClient();
-        const result = await this.runEffect(client.auth.logout());
+        const result = await this.runEffect(client.auth.logout(), 'logout');
         // Clear cached data on logout to prevent data leakage
         await apiCache.clear();
         return result;
@@ -360,7 +400,10 @@ class ApiClientSingleton {
 
     async disconnectGoogle() {
         const client = await this.getBaseAuthClient();
-        return this.runEffect(client.auth.disconnectGoogle());
+        return this.runEffect(
+            client.auth.disconnectGoogle(),
+            'disconnectGoogle',
+        );
     }
 
     async showContent() {
@@ -368,13 +411,9 @@ class ApiClientSingleton {
         return this.runEffectWithCache(client.content.show(), 'content_list');
     }
 
-    /**
-     * Fetch OAuth token after successful OAuth callback.
-     * Called when user returns from OAuth provider with ?auth=success
-     */
     async fetchOAuthToken() {
         const client = await this.getBaseClient();
-        return this.runEffect(client.auth.oauthToken());
+        return this.runEffect(client.auth.oauthToken(), 'fetchOAuthToken');
     }
 
     /**
@@ -383,7 +422,7 @@ class ApiClientSingleton {
      */
     async fetchSessionToken() {
         const client = await this.getBaseClient();
-        return this.runEffect(client.auth.sessionToken());
+        return this.runEffect(client.auth.sessionToken(), 'fetchSessionToken');
     }
 
     /**
@@ -414,6 +453,7 @@ class ApiClientSingleton {
             client.broadcasting.auth({
                 payload: { socket_id: socketId, channel_name: channelName },
             }),
+            'authenticateBroadcasting',
         );
     }
 }

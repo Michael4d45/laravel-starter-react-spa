@@ -1,6 +1,6 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
-import { ApiClient } from './apiClientSingleton';
+import { ApiClient } from './apiClient';
 
 // Echo instance type for Reverb broadcaster
 type ReverbEcho = InstanceType<typeof Echo<'reverb'>>;
@@ -28,13 +28,26 @@ export const initEcho = (): ReverbEcho => {
         enabledTransports: ['ws', 'wss'],
         authorizer: (channel, options) => {
             return {
-                authorize: async (socketId: string, callback: (error: Error | null, data?: any) => void) => {
+                authorize: async (
+                    socketId: string,
+                    callback: (error: Error | null, data?: any) => void,
+                ) => {
                     try {
-                        const result = await ApiClient.authenticateBroadcasting(socketId, channel.name);
+                        const result = await ApiClient.authenticateBroadcasting(
+                            socketId,
+                            channel.name,
+                        );
                         if (result._tag === 'Success') {
                             callback(null, result.data);
                         } else {
-                            callback(new Error(result._tag === 'ValidationError' ? 'Validation failed' : 'Authentication failed'), result);
+                            callback(
+                                new Error(
+                                    result._tag === 'ValidationError'
+                                        ? 'Validation failed'
+                                        : 'Authentication failed',
+                                ),
+                                result,
+                            );
                         }
                     } catch (error) {
                         callback(error as Error, null);

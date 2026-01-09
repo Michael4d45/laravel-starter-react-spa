@@ -247,3 +247,22 @@ it('can logout', function (): void {
 
     assert_no_log_errors($logPath);
 });
+
+it('validates JWT token on app boot when online', function (): void {
+    $user = User::factory()->create([
+        'email' => 'jwt-validation-test@example.com',
+        'password' => bcrypt('password1234'),
+    ]);
+
+    // Use actingAs to create a session - the frontend will detect this and get a token
+    $this->actingAs($user);
+
+    // Visit home page - the AuthContext should validate the JWT token on boot
+    visit('/')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Welcome back', 10)
+        // The app should successfully load without redirecting to login
+        // since JWT validation should pass
+        ->assertPathIs('/')
+        ->assertDontSee('Get started by signing in'); // Should show authenticated content
+});

@@ -33,7 +33,10 @@ class Logout
         session()->invalidate();
         session()->regenerateToken();
 
-        // For transient tokens (like in tests), we can't delete them but logout is still successful
-        return response()->json(['message' => 'Logged out successfully']);
+        if ($request->expectsJson()) {
+            // For transient tokens (like in tests), we can't delete them but logout is still successful
+            return response()->json(['message' => 'Logged out successfully']);
+        }
+        return redirect()->route('home');
     }
 }

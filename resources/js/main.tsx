@@ -6,7 +6,6 @@ import { ErrorFallback } from './Errors';
 import { AuthProvider } from './contexts/AuthContext';
 import { initializeTheme } from './hooks/useAppearance';
 import { router } from './router';
-import './styles/globals.css';
 
 // Service worker is automatically registered by VitePWA plugin
 

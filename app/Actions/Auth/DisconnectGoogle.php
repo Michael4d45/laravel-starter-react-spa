@@ -4,23 +4,17 @@ declare(strict_types=1);
 
 namespace App\Actions\Auth;
 
+use App\Http\Requests\AuthRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class DisconnectGoogle
 {
     /**
      * Disconnect Google account from the authenticated user.
      */
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(AuthRequest $request): JsonResponse
     {
-        $user = $request->user();
-
-        if (!$user) {
-            return response()->json([
-                'message' => 'Unauthenticated',
-            ], 401);
-        }
+        $user = $request->assertedUser();
 
         if (!$user->google_id) {
             return response()->json([

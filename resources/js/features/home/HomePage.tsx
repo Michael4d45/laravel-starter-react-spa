@@ -1,3 +1,4 @@
+import { RealtimeNotifications } from '@/components/realtime/RealtimeNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -30,8 +31,8 @@ export function HomePage() {
     }
 
     return (
-        <div className="mx-auto max-w-7xl">
-            <div className="mb-8">
+        <div className="mx-auto max-w-7xl space-y-8">
+            <div>
                 <h1>Welcome back, {user.name}!</h1>
                 <p className="mt-2 text-gray-600 dark:text-gray-400">
                     You're all set to get started.
@@ -59,6 +60,8 @@ export function HomePage() {
                     </p>
                 </Link>
             </div>
+
+            <RealtimeNotifications />
         </div>
     );
 }

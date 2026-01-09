@@ -16,9 +16,6 @@ use Symfony\Component\HttpFoundation\Response;
 class Login
 {
     /**
-     * Handle an incoming authentication request.
-     */
-    /**
      * Attempt to authenticate the request's credentials.
      *
      * @throws ValidationException

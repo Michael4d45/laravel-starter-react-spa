@@ -1,4 +1,5 @@
-import { ApiClient } from '@/lib/apiClientSingleton';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { ApiClient } from '@/lib/apiClient';
 import { authManager, AuthState } from '@/lib/auth';
 import {
     LoginRequest,
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
     const [isLoading, setIsLoading] = useState(false);
     const processingAuthCallback = useRef(false);
+    const isOnline = useOnlineStatus();
 
     // Provide the current user directly for easier consumption and reactivity
     const user = authState.user;
@@ -88,8 +90,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 return;
             }
 
-            // No OAuth callback - check if we need to fetch session token
+            // No OAuth callback - check if we need to validate existing JWT token
             const existingToken = authManager.getToken();
+
             if (!existingToken) {
                 // Try to restore auth from server session (useful for tests with actingAs)
                 // This silently fails for unauthenticated users - that's expected
@@ -108,11 +111,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 }
                 processingAuthCallback.current = false;
             } else {
-                // Refresh token validity if we have an existing token
-                authManager.refreshAuthState();
+                // Validate existing JWT token with backend when online
+                if (isOnline) {
+                    processingAuthCallback.current = true;
+                    try {
+                        const result = await ApiClient.showUser();
+                        if (result._tag === 'Success') {
+                            // Token is valid, update user data in case it changed
+                            authManager.setAuthData(existingToken, result.data);
+                        } else {
+                            authManager.clearAuthData();
+                        }
+                    } catch (error) {
+                        authManager.clearAuthData();
+                    }
+                    processingAuthCallback.current = false;
+                }
+                // If offline, skip validation and keep existing token
             }
         };
-
         handleAuthInit();
 
         return unsubscribe;
@@ -145,10 +162,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Call backend logout endpoint to invalidate server-side session/token
             await ApiClient.logout();
         } catch (error) {
-            console.warn(
-                'Backend logout failed, clearing client-side data anyway:',
-                error,
-            );
+            // Silently ignore logout errors
         }
 
         // Clear client-side authentication data
