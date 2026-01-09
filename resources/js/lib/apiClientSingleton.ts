@@ -93,11 +93,25 @@ const contentGroup = HttpApiGroup.make('content').add(
     HttpApiEndpoint.get('show', '/api/content').addSuccess(ContentItemsSchema),
 );
 
+// Broadcasting endpoints (authenticated)
+const broadcastingGroup = HttpApiGroup.make('broadcasting').add(
+    HttpApiEndpoint.post('auth', '/api/broadcasting/auth')
+        .setPayload(
+            Schema.Struct({
+                socket_id: Schema.String,
+                channel_name: Schema.String,
+            }),
+        )
+        .addSuccess(Schema.Struct({ auth: Schema.String })),
+);
+
 export const Api = HttpApi.make('BackendApi')
     .add(authGroup)
     .add(userGroup)
     .add(contentGroup)
-    .addError(ValidationErrorSchema, { status: 422 });
+    .add(broadcastingGroup)
+    .addError(ValidationErrorSchema, { status: 422 })
+    .addError(CsrfTokenExpiredErrorSchema, { status: 419 });
 
 /* ============================================================================
  * Form-Friendly Result
@@ -389,6 +403,18 @@ class ApiClientSingleton {
 
         const queryString = new URLSearchParams(query).toString();
         window.location.href = `/auth/google${queryString ? `?${queryString}` : ''}`;
+    }
+
+    /* ==========================================================================
+     * Broadcasting API Methods (Authenticated)
+     * ========================================================================== */
+    async authenticateBroadcasting(socketId: string, channelName: string) {
+        const client = await this.getBaseAuthClient();
+        return this.runEffect(
+            client.broadcasting.auth({
+                payload: { socket_id: socketId, channel_name: channelName },
+            }),
+        );
     }
 }
 

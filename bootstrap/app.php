@@ -19,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
+    ->withBroadcasting(__DIR__ . '/../routes/channels.php', [
+        'prefix' => 'api',
+        'middleware' => ['api', 'auth:sanctum'],
+    ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(RequestContextMiddleware::class);
         $middleware->append(EmitContextMiddleware::class);
@@ -26,20 +30,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(LogResponses::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (ValidationException $e, $request) {
+        $exceptions->report(function (ValidationException $e) {
             if (config()->boolean('logging.should_log_validation_errors')) {
-                Log::warning('Validation exception caught', [
-                    'errors' => $e->errors(),
-                    'input' => $request->all(),
-                    'url' => $request->fullUrl(),
-                    'method' => $request->method(),
-                    'ip' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'user_id' => $request->user()?->id,
-                    'timestamp' => now()->toISOString(),
-                ]);
+                Log::warning('Validation error occurred', ['errors' =>
+                    $e->errors()]);
             }
-
+        });
+        $exceptions->render(function (ValidationException $e, $request) {
             // For API requests, return JSON response
             if ($request->expectsJson()) {
                 return response()->json([
@@ -47,8 +44,6 @@ return Application::configure(basePath: dirname(__DIR__))
                     'errors' => $e->errors(),
                 ], 422);
             }
-
-            throw $e;
         });
         $exceptions->render(function (HttpException $e, $request) {
             $isCsrfTokenMismatch = $e->getMessage() === 'CSRF token mismatch.';
@@ -57,8 +52,6 @@ return Application::configure(basePath: dirname(__DIR__))
                     '_tag' => 'CsrfTokenExpiredError',
                 ], 419);
             }
-
-            throw $e;
         });
     })
     ->create();

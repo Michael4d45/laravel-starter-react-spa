@@ -1,6 +1,5 @@
 import { ApiClient } from '@/lib/apiClientSingleton';
 import { authManager, AuthState } from '@/lib/auth';
-import { updateEchoToken } from '@/lib/echo';
 import {
     LoginRequest,
     RegisterRequest,
@@ -43,11 +42,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Provide the current user directly for easier consumption and reactivity
     const user = authState.user;
-
-    // Update Echo token when auth state changes
-    useEffect(() => {
-        updateEchoToken(authState.token);
-    }, [authState.token]);
 
     useEffect(() => {
         // Subscribe to auth state changes

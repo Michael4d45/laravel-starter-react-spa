@@ -1,6 +1,6 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
-import { authManager } from './auth';
+import { ApiClient } from './apiClientSingleton';
 
 // Echo instance type for Reverb broadcaster
 type ReverbEcho = InstanceType<typeof Echo<'reverb'>>;
@@ -18,8 +18,6 @@ window.Pusher = Pusher;
  * Initialize Laravel Echo with Reverb configuration
  */
 export const initEcho = (): ReverbEcho => {
-    const token = authManager.getToken();
-
     return new Echo({
         broadcaster: 'reverb',
         key: import.meta.env.VITE_REVERB_APP_KEY,
@@ -28,12 +26,21 @@ export const initEcho = (): ReverbEcho => {
         wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
         forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
         enabledTransports: ['ws', 'wss'],
-        authEndpoint: '/broadcasting/auth',
-        auth: {
-            headers: {
-                Authorization: token ? `Bearer ${token}` : '',
-                Accept: 'application/json',
-            },
+        authorizer: (channel, options) => {
+            return {
+                authorize: async (socketId: string, callback: (error: Error | null, data?: any) => void) => {
+                    try {
+                        const result = await ApiClient.authenticateBroadcasting(socketId, channel.name);
+                        if (result._tag === 'Success') {
+                            callback(null, result.data);
+                        } else {
+                            callback(new Error(result._tag === 'ValidationError' ? 'Validation failed' : 'Authentication failed'), result);
+                        }
+                    } catch (error) {
+                        callback(error as Error, null);
+                    }
+                },
+            };
         },
     });
 };
@@ -43,16 +50,3 @@ export const echo = initEcho();
 
 // Expose to window for debugging and legacy support
 window.Echo = echo;
-
-/**
- * Update the Authorization header used for private channels
- */
-export const updateEchoToken = (token: string | null) => {
-    if (window.Echo) {
-        (
-            window.Echo.options as {
-                auth: { headers: { Authorization: string } };
-            }
-        ).auth.headers.Authorization = token ? `Bearer ${token}` : '';
-    }
-};
