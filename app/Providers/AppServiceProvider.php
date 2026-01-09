@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Http\Middleware\LoggingHelper;
 use App\Models\PersonalAccessToken;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
@@ -27,69 +28,126 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+        $shouldIgnoreRoute = LoggingHelper::shouldIgnoreRoute(request());
 
-        if (config()->boolean('logging.should_log_db')) {
+        if (config()->boolean('logging.should_log_db') && !$shouldIgnoreRoute) {
             DB::listen(static function (QueryExecuted $query): void {
-                [$file, $line] = earliest_app_caller();
-
-                $sql = $query->toRawSql();
-
-                if (str_contains($sql, '"sessions"')) {
-                    return;
-                }
-
+                $trace = get_collapsed_trace();
                 Log::debug('sql', [
-                    'SQL' => $sql . ';',
+                    'SQL' => $query->toRawSql() . ';',
                     'execution_time' => $query->time . 'ms',
-                    'file' => $file !== null ? "{$file}:{$line}" : null,
+                    'file' => $trace,
                 ]);
             });
         }
     }
 }
 
+if (!function_exists('original_blade_from_compiled')) {
+    function original_blade_from_compiled(string $compiledFile): null|string
+    {
+        if (!is_file($compiledFile)) {
+            return null;
+        }
+
+        $contents = file_get_contents($compiledFile);
+        if ($contents === false) {
+            return null;
+        }
+
+        if (preg_match('/\/\*\*PATH\s+(.*?)\s+ENDPATH\*\*\//', $contents, $m)) {
+            return $m[1];
+        }
+
+        return null;
+    }
+}
 // You can place this helper at the bottom of this file or in a separate helper file.
 if (!function_exists('earliest_app_caller')) {
     /**
-     * @return array{0: string|null, 1: int|null}
+     * @return array<int, string>
      */
-    function earliest_app_caller(): array
+    function get_collapsed_trace(): array
     {
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-        $basePath = base_path();
-        $vendorPath = base_path('vendor');
+        $basePath = str_replace('\\', '/', base_path());
+        $vendorPath = str_replace('\\', '/', base_path('vendor'));
 
-        $frames = [];
+        $lines = [];
+        $inVendorBlock = false;
+
         foreach ($trace as $frame) {
-            $file = $frame['file'] ?? null;
-            $line = $frame['line'] ?? null;
-            if (!$file || !$line) {
+            $file = isset($frame['file'])
+                ? str_replace('\\', '/', $frame['file'])
+                : null;
+            $line = $frame['line'] ?? 0;
+
+            if (!$file) {
                 continue;
             }
 
-            $file = str_replace('\\', '/', $file);
-
-            if (str_starts_with($file, str_replace('\\', '/', $vendorPath))) {
-                continue;
-            }
-            if (str_starts_with($file, 'phar://')) {
-                continue;
-            }
-            if (!str_starts_with($file, str_replace('\\', '/', $basePath))) {
-                continue;
-            }
-            if (str_contains($file, '/bootstrap/cache/')) {
-                continue;
+            if (str_contains($file, 'storage/framework/views')) {
+                $original = original_blade_from_compiled($file);
+                $file = $original ?? $file;
+                $line = $original ? 0 : $line;
             }
 
-            $frames[] = ['file' => $file, 'line' => $line];
+            // $lines[] = "{$file}:{$line}";
+            // continue;
+
+            // 1. Check if we are in vendor code
+            if (str_starts_with($file, $vendorPath)) {
+                if (!$inVendorBlock) {
+                    $inVendorBlock = true;
+                }
+                continue;
+            }
+
+            // Reset vendor flag when we hit app code
+            $inVendorBlock = false;
+
+            if (str_contains($file, 'public/index.php')) {
+                continue;
+            }
+
+            // 2. Skip this specific provider/logging logic
+            if (str_contains($file, 'AppServiceProvider.php')) {
+                continue;
+            }
+            if (str_contains($file, 'app/Http/Middleware')) {
+                continue;
+            }
+
+            // 3. Make the path relative to project root for readability
+            $relativeFile = str_replace($basePath . '/', '', $file);
+
+            // 4. Resolve Compiled Blade Views to original names
+            if (str_contains($relativeFile, 'storage/framework/views/')) {
+                // Laravel 10+ includes the path to the original blade file in a comment at the top
+                if (is_readable($file)) {
+                    $handle = fopen($file, 'r');
+                    if ($handle !== false) {
+                        $firstLine = fgets($handle);
+                        fclose($handle);
+                        if (
+                            $firstLine !== false
+                            && preg_match(
+                                '/content:\s*(.+?\.blade\.php)/',
+                                $firstLine,
+                                $matches,
+                            )
+                        ) {
+                            $relativeFile =
+                                str_replace($basePath . '/', '', $matches[1])
+                                . ' (compiled)';
+                        }
+                    }
+                }
+            }
+
+            $lines[] = "{$relativeFile}:{$line}";
         }
 
-        if (count($frames) === 0) {
-            return [null, null];
-        }
-        $earliest = end($frames);
-
-        return [$earliest['file'], $earliest['line']];
+        return $lines;
     }
 }

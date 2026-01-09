@@ -136,20 +136,30 @@ return [
         ],
     ],
 
-    // Used in LogRequestResponse
+    // Used in AppServiceProvider
+    'should_log_db' => (bool) env('SHOULD_LOG_DB', false),
+
+    // Used in LogRequests middleware
     'should_log_requests' => (bool) env('SHOULD_LOG_REQUESTS', false),
 
+    // Used in LogResponses middleware
+    'should_log_user' => (bool) env('SHOULD_LOG_USER', false),
+
+    // Used in LogResponses middleware
     'should_log_responses' => (bool) env('SHOULD_LOG_RESPONSES', false),
 
+    // Used in bootstrap/app.php
     'should_log_validation_errors' => (bool) env(
         'SHOULD_LOG_VALIDATION_ERRORS',
         false,
     ),
 
+    // Used in LogRequests and LogResponses middleware
     'ignore_routes' => [
         '*.[js|css|html|png|svg|jpg|jpeg|gif|woff|woff2|ttf|eot]',
         '*.js.map',
         '_boost/browser-logs',
+        'livewire/update',
     ],
 
     /*
@@ -159,7 +169,7 @@ return [
      |
      | Fields that should be masked in request/response logging to prevent
      | sensitive data from being logged. Supports dot notation for nested arrays.
-     |
+     | Used in LogRequests and LogResponses middleware
      */
     'masked_fields' => [
         'password',
@@ -183,6 +193,8 @@ return [
         'verification_code',
         'otp',
         'pin',
+        'html',
+        'auth',
     ],
 
     /*
@@ -193,6 +205,7 @@ return [
      | HTTP headers that should be masked in request/response logging.
      | Case-insensitive matching.
      |
+     | Used in LogRequests and LogResponses middleware
      */
     'masked_headers' => [
         'authorization',
@@ -202,7 +215,4 @@ return [
         'cookie',
         'set-cookie',
     ],
-
-    // Used in AppServiceProvider
-    'should_log_db' => (bool) env('SHOULD_LOG_DB', false),
 ];
