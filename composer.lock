@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f63e191fc567a18457de34bd17976ada",
+    "content-hash": "7a9cd31c37bd7f8f40ab87a2e1185f2e",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -3939,6 +3939,60 @@
                 "source": "https://github.com/Michael4d45/Context-Logging/tree/v4.1.2"
             },
             "time": "2026-01-05T19:18:08+00:00"
+        },
+        {
+            "name": "michael4d45/filament-system-info-widget",
+            "version": "v1.0.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Michael4d45/Filament-system-info-widget.git",
+                "reference": "99fa613e1b06d8004b2c0112f16d3b1a5ec19ef8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Michael4d45/Filament-system-info-widget/zipball/99fa613e1b06d8004b2c0112f16d3b1a5ec19ef8",
+                "reference": "99fa613e1b06d8004b2c0112f16d3b1a5ec19ef8",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^3.0|^4.0",
+                "laravel/framework": "^10.0|^11.0|^12.0",
+                "nesbot/carbon": "^2.0|^3.0",
+                "php": "^8.1",
+                "spatie/laravel-package-tools": "^1.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^8.0|^9.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Michael4d45\\FilamentSystemInfo\\FilamentSystemInfoServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Michael4d45\\FilamentSystemInfo\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Michael",
+                    "email": "your.email@example.com"
+                }
+            ],
+            "description": "A Filament widget for displaying system information including package versions and deployment details",
+            "support": {
+                "issues": "https://github.com/Michael4d45/Filament-system-info-widget/issues",
+                "source": "https://github.com/Michael4d45/Filament-system-info-widget/tree/v1.0.3"
+            },
+            "time": "2026-01-09T14:05:48+00:00"
         },
         {
             "name": "monolog/monolog",
