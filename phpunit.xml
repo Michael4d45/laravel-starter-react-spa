@@ -6,7 +6,7 @@
          defaultTimeLimit="30"
 >
     <extensions>
-        <bootstrap class="CoverageTreemap\CoverageTreemap\Extension">
+        <bootstrap class="CoverageTreemap\Extension">
             <parameter name="outputDirectory" value="reports/coverage-treemap" />
         </bootstrap>
     </extensions>
