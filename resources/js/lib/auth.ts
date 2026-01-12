@@ -1,4 +1,4 @@
-import { UserData } from '@/types/effect-schemas';
+import { UserData } from '@/schemas/App/Data/Models';
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';

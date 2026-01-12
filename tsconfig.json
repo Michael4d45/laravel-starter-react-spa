@@ -114,8 +114,8 @@
     ],
     "exclude": [
         "resources/js/routes",
-        "resources/js/actions", 
-        "resources/js/types/effect-schemas.ts",
+        "resources/js/actions",
+        "resources/js/schemas",
         "vite.config.js"
     ]
 }

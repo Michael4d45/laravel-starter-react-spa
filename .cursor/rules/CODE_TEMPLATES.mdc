@@ -11,10 +11,11 @@ This guide provides templates specific to this application's Effect-based React 
 ## Architecture Overview
 
 This is an API-first SPA with:
+
 - **Backend**: Laravel API routes returning Spatie Data objects as JSON
 - **Frontend**: React + React Router with Effect-based data loading
 - **Auth**: Sanctum tokens + Google OAuth
-- **Type Safety**: PHP Data classes auto-transform to TypeScript Effect Schemas
+- **Type Safety**: PHP Data classes auto-generate TypeScript Effect Schemas in `@/schemas/App/Data/*`
 
 ---
 
@@ -24,7 +25,7 @@ This is an API-first SPA with:
 2. **Data Layer** - `app/Data/Models/`, `app/Data/Requests/`, `app/Data/Response/`
 3. **Business Logic** - Action classes in `app/Actions/`
 4. **API Routes** - `routes/api.php`
-5. **Frontend** - Update `apiClientSingleton.ts`, create React components with loaders
+5. **Frontend** - Update `apiClient.ts`, create React components with loaders
 6. **Routing** - Add routes to `resources/js/router.tsx`
 
 ---
@@ -83,7 +84,7 @@ class Login
     public function __invoke(LoginRequest $data): Response
     {
         // Business logic here...
-        
+
         return response()->json(AuthResponse::from([
             'token' => $token,
             'user' => $user,
@@ -139,11 +140,11 @@ class UserData extends Data
         public string|null $email,
         public Carbon|null $created_at,
         public Carbon|null $updated_at,
-        
+
         // Lazy-loaded relationships
         #[AutoWhenLoadedLazy]
         public Lazy|ProfileData $profile,
-        
+
         /** @var Collection<array-key,PostData> $posts */
         #[AutoWhenLoadedLazy('posts')]
         public Collection|Lazy $posts,
@@ -247,6 +248,7 @@ class RegisterRequest extends Data
 ```
 
 **Common Validation Attributes**:
+
 - `#[Required]` - Field must be present
 - `#[StringType]`, `#[IntegerType]`, `#[BooleanType]` - Type constraints
 - `#[Email]` - Valid email format
@@ -282,16 +284,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
 ### ApiClient Singleton
 
-The API client uses `@effect/platform` HttpApiClient. Add new endpoints in `resources/js/lib/apiClientSingleton.ts`.
+The API client uses `@effect/platform` HttpApiClient. Add new endpoints in `resources/js/lib/apiClient.ts`.
 
 **1. Define the API group**:
 
 ```typescript
+import { ContentItemsSchema } from '@/schemas/App/Data/Response';
+
 const contentGroup = HttpApiGroup.make('content').add(
     HttpApiEndpoint.get('show', '/api/content').addSuccess(ContentItemsSchema),
 );
 
 // For POST with payload:
+import { LoginRequestSchema } from '@/schemas/App/Data/Requests';
+import { AuthResponseSchema } from '@/schemas/App/Data/Response';
+
 const authGroup = HttpApiGroup.make('auth')
     .add(
         HttpApiEndpoint.post('login', '/api/login')
@@ -309,10 +316,10 @@ export const Api = HttpApi.make('BackendApi')
     .addError(ValidationErrorSchema, { status: 422 });
 ```
 
-**3. Add public method to ApiClientSingleton**:
+**3. Add public method to ApiClient**:
 
 ```typescript
-class ApiClientSingleton {
+class ApiClient {
     // For public endpoints (no auth)
     async showContent() {
         const client = await this.getBaseClient();
@@ -340,6 +347,8 @@ Loaders fetch data before rendering. Export from the page component file.
 **Public Route Loader**:
 
 ```typescript
+import { ApiClient } from '@/lib/apiClient';
+
 export async function contentLoader() {
     const result = await ApiClient.showContent();
     if (result._tag === 'Success') {
@@ -356,6 +365,7 @@ export async function contentLoader() {
 ```typescript
 import { redirect } from 'react-router-dom';
 import { authManager } from '@/lib/auth';
+import { ApiClient } from '@/lib/apiClient';
 
 export async function profileLoader() {
     let user = authManager.getUser();
@@ -383,7 +393,7 @@ export async function profileLoader() {
 
 ```tsx
 import { useLoaderData } from 'react-router-dom';
-import { ContentItems } from '@/types/effect-schemas';
+import { ContentItems } from '@/schemas/App/Data/Response';
 
 export function ContentPage() {
     const { content } = useLoaderData<ContentItems>();
@@ -450,18 +460,18 @@ export const router = createBrowserRouter([
 
 ## TypeScript Schema Generation
 
-PHP Data classes auto-generate Effect Schemas in `resources/js/types/effect-schemas.ts`.
+PHP Data classes auto-generate Effect Schemas in `resources/js/schemas/App/Data/*.ts`.
 
 Run generation after changing Data classes:
 
 ```bash
-php artisan typescript:transform
+php artisan effect-schema:transform
 ```
 
 The generated schemas provide runtime validation and TypeScript types:
 
 ```typescript
-// Auto-generated from ContentData.php
+// Auto-generated in resources/js/schemas/App/Data/Models.ts
 export const ContentDataSchema = Schema.Struct({
     id: Schema.Number,
     title: Schema.String,

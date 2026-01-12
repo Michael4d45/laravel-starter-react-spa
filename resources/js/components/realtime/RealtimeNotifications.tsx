@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { echo } from '@/lib/echo';
-import { RealtimeMessageData } from '@/types/effect-schemas';
+import { RealtimeMessageData } from '@/schemas/App/Data/Events';
 import { Bell, Wifi, WifiOff, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {

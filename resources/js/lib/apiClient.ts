@@ -1,14 +1,16 @@
+import { UserDataSchema } from '@/schemas/App/Data/Models';
 import {
-    AuthResponseSchema,
     AuthenticateBroadcastingRequestSchema,
-    AuthenticateBroadcastingResponseSchema,
-    ContentItemsSchema,
     LoginRequest,
     LoginRequestSchema,
     RegisterRequest,
     RegisterRequestSchema,
-    UserDataSchema,
-} from '@/types/effect-schemas';
+} from '@/schemas/App/Data/Requests';
+import {
+    AuthResponseSchema,
+    AuthenticateBroadcastingResponseSchema,
+    ContentItemsSchema,
+} from '@/schemas/App/Data/Response';
 import {
     FetchHttpClient,
     HttpApi,

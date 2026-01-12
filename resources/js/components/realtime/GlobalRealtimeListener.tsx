@@ -3,7 +3,7 @@ import { echo } from '@/lib/echo';
 import {
     RealtimeMessageData,
     RealtimeMessageDataSchema,
-} from '@/types/effect-schemas';
+} from '@/schemas/App/Data/Events';
 import { Schema } from 'effect';
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';

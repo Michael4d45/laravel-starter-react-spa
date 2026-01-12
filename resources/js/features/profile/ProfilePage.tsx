@@ -3,7 +3,7 @@ import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { ApiClient } from '@/lib/apiClient';
 import { authManager } from '@/lib/auth';
-import { UserData } from '@/types/effect-schemas';
+import { UserData } from '@/schemas/App/Data/Models';
 import { redirect, useLoaderData, useNavigate } from 'react-router-dom';
 
 /**
