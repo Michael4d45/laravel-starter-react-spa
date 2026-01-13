@@ -11,7 +11,7 @@ class AuthRequest extends Request
 {
     public function assertedUser(): User
     {
-        $user = auth()->user();
+        $user = request()->user();
 
         if ($user === null) {
             // TODO: get guest user from session

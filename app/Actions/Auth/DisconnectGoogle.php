@@ -25,6 +25,7 @@ class DisconnectGoogle
         // Remove Google account connection
         $user->update([
             'google_id' => null,
+            'verified_google_email' => null,
         ]);
 
         // Optionally revoke all Google-related tokens

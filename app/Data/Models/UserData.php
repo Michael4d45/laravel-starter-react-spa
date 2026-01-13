@@ -14,6 +14,7 @@ class UserData extends Data
         public string|null $name,
         public string|null $email,
         public string|null $google_id,
+        public string|null $verified_google_email,
         public Carbon|null $email_verified_at,
         public Carbon|null $created_at,
         public Carbon|null $updated_at,

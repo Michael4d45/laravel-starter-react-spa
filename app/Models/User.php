@@ -21,6 +21,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $id
  * @property string|null $name
  * @property string|null $email
+ * @property string|null $verified_google_email
  * @property string|null $password
  * @property bool $is_guest
  * @property bool $is_admin
@@ -49,6 +50,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'is_guest',
         'is_admin',
         'google_id',
+        'verified_google_email',
         'email_verified_at',
     ];
 

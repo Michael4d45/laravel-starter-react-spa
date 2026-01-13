@@ -88,30 +88,39 @@ export function ProfilePage() {
                             Google Account
                         </label>
                         {user?.google_id ? (
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 text-green-600">
-                                    <GoogleIcon />
-                                    <span className="text-sm">Connected</span>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2 text-green-600">
+                                        <GoogleIcon />
+                                        <span className="text-sm">
+                                            Connected
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => googleLogin(true)}
+                                            className="text-xs"
+                                        >
+                                            Reconnect
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={disconnectGoogle}
+                                            disabled={isLoading}
+                                            className="text-xs text-red-600 hover:text-red-700"
+                                        >
+                                            Disconnect
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => googleLogin(true)}
-                                        className="text-xs"
-                                    >
-                                        Reconnect
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={disconnectGoogle}
-                                        disabled={isLoading}
-                                        className="text-xs text-red-600 hover:text-red-700"
-                                    >
-                                        Disconnect
-                                    </Button>
-                                </div>
+                                {user.verified_google_email && (
+                                    <p className="text-secondary text-xs">
+                                        {user.verified_google_email}
+                                    </p>
+                                )}
                             </div>
                         ) : (
                             <div>

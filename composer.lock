@@ -12584,16 +12584,16 @@
         },
         {
             "name": "michael4d45/laravel-resource-checker",
-            "version": "v1.0.0",
+            "version": "v1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Michael4d45/Laravel-Resource-Checker.git",
-                "reference": "c1a967732c800185bc4117b7f6441fdc35069c73"
+                "reference": "5e9195dfcadb428526e7cd4622ac8700ed7ebc06"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Michael4d45/Laravel-Resource-Checker/zipball/c1a967732c800185bc4117b7f6441fdc35069c73",
-                "reference": "c1a967732c800185bc4117b7f6441fdc35069c73",
+                "url": "https://api.github.com/repos/Michael4d45/Laravel-Resource-Checker/zipball/5e9195dfcadb428526e7cd4622ac8700ed7ebc06",
+                "reference": "5e9195dfcadb428526e7cd4622ac8700ed7ebc06",
                 "shasum": ""
             },
             "require": {
@@ -12631,9 +12631,9 @@
             "description": "A Laravel package to check migrations against Filament resources and models",
             "support": {
                 "issues": "https://github.com/Michael4d45/Laravel-Resource-Checker/issues",
-                "source": "https://github.com/Michael4d45/Laravel-Resource-Checker/tree/v1.0.0"
+                "source": "https://github.com/Michael4d45/Laravel-Resource-Checker/tree/v1.0.1"
             },
-            "time": "2026-01-09T14:17:50+00:00"
+            "time": "2026-01-12T23:59:50+00:00"
         },
         {
             "name": "mockery/mockery",

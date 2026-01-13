@@ -39,6 +39,8 @@ class UserForm
             Checkbox::make('is_guest')->label('Guest'),
             TextInput::make('id')->required()->disabled(),
             DateTimePicker::make('email_verified_at'),
+            TextInput::make('google_id')->disabled(),
+            TextInput::make('verified_google_email')->email()->disabled(),
             TextInput::make('remember_token')->hidden()->disabled(),
             DateTimePicker::make('created_at')->disabled(),
             DateTimePicker::make('updated_at')->disabled(),

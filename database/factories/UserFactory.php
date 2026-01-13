@@ -31,6 +31,7 @@ class UserFactory extends Factory
             'is_guest' => false,
             'is_admin' => false,
             'google_id' => null,
+            'verified_google_email' => null,
         ];
     }
 

@@ -20,6 +20,7 @@ return new class extends Migration {
             $table->boolean('is_guest')->default(false);
             $table->boolean('is_admin')->default(false);
             $table->string('google_id')->nullable();
+            $table->string('verified_google_email')->nullable();
             $table->timestamps();
         });
 
