@@ -18,7 +18,7 @@ let context: PluginContext;
 
 export const laravelDataTypes = ({
   patterns = ['app/Data/**/*.php', 'app/Enums/**/*.php'],
-  command = 'php artisan typescript:transform',
+  command = 'php artisan effect-schema:transform',
   path,
   extraArgs = [],
 }: LaravelDataTypesOptions = {}): Plugin => {

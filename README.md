@@ -100,7 +100,7 @@ When adding a new feature, follow this checklist:
 2.  **Data Layer**: Create DTOs in `app/Data/Models/`, `app/Data/Requests/`, and `app/Data/Response/`.
 3.  **Business Logic**: Implement an Action class in `app/Actions/`.
 4.  **API Routes**: Register the action in `routes/api.php`.
-5.  **Type Sync**: Run `php artisan typescript:transform` to update frontend schemas.
+5.  **Type Sync**: Run `php artisan effect-schema:transform` to update frontend schemas.
 6.  **Frontend**: 
     - Add the endpoint to `apiClient.ts`.
     - Create the React component and loader.
@@ -126,7 +126,7 @@ composer run dev
 ```
 
 ### Key Commands
-- `php artisan typescript:transform` - Sync PHP types to TypeScript.
+- `php artisan effect-schema:transform` - Sync PHP types to TypeScript.
 - `php artisan reverb:start` - Start the WebSocket server for real-time features.
 - `php artisan test` - Run the Pest test suite.
 - `npm run lint` - Run ESLint and Prettier.
