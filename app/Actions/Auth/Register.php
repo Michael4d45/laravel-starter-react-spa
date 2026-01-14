@@ -9,7 +9,6 @@ use App\Data\Response\AuthResponse;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -34,7 +33,7 @@ class Register
                 'email' => $registerData->email,
                 'password' => Hash::make($registerData->password),
                 'is_guest' => false,
-                'email_verified_at' => now(),
+                'email_verified_at' => null,
             ]);
 
             $user = $currentUser->fresh(); // Get updated user
@@ -45,7 +44,7 @@ class Register
                 'name' => $registerData->name,
                 'email' => $registerData->email,
                 'password' => Hash::make($registerData->password),
-                'email_verified_at' => now(),
+                'email_verified_at' => null,
                 'is_guest' => false,
                 'is_admin' => false,
                 'google_id' => null,
@@ -54,15 +53,7 @@ class Register
 
         event(new Registered($user));
 
-        Auth::login($user);
-
         $token = $user->createToken('api-token')->plainTextToken;
-
-        // Regenerate session ID to prevent session fixation attacks
-        session()->regenerate(true);
-
-        // Regenerate CSRF token for security
-        session()->regenerateToken();
 
         return response()->json(AuthResponse::from([
             'token' => $token,

@@ -146,6 +146,8 @@ no-trailing-space = { enabled = false }
 prefer-first-class-callable = { enabled = false }
 tagged-todo = { enabled = false }
 prefer-arrow-function = { enabled = false }
+no-assign-in-condition = { enabled = false }
+no-insecure-comparison = { enabled = false }
 
 [analyzer]
 find-unused-definitions = true

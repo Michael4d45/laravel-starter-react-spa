@@ -17,9 +17,9 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class HandleGoogleCallback
 {
-    private const STATE_MAX_AGE_SECONDS = 600; // 10 minutes
+    private const STATE_MAX_AGE_SECONDS = 300;
 
-    public function __invoke(Request $request): RedirectResponse
+    function __invoke(Request $request): RedirectResponse
     {
         $wasAuthenticated = Auth::check();
 
@@ -102,24 +102,30 @@ class HandleGoogleCallback
                 return $user;
             }
 
-            // Login and create token
-            Auth::login($user);
-            $token = $user->createToken('oauth-token')->plainTextToken;
+            // Create a Sanctum token for the user
+            $token = $user->createToken('api-token')->plainTextToken;
 
-            // Store token and user in session for secure retrieval
-            session()->put('oauth_token', $token);
-            session()->put('oauth_user', $user->toArray());
-
-            Log::info('HandleGoogleCallback: OAuth successful', [
-                'user_id' => $user->id,
-                'was_link' => $intendedUser !== null,
-            ]);
+            // Set an HttpOnly cookie for a secure, stateless handoff
+            // This avoids putting the token in the URL or using a full PHP session.
+            $cookie = cookie(
+                'oauth_token_handoff',
+                $token,
+                5, // 5 minutes is plenty for the SPA to fetch it
+                '/',
+                null,
+                $request->isSecure(), // Only secure if on HTTPS
+                true, // HttpOnly
+                false,
+                'Lax',
+            );
 
             // Redirect without sensitive data in URL
             $redirectPath = $intendedUser !== null ? '/profile' : '/';
             $authStatus = $intendedUser !== null ? 'connected' : 'success';
 
-            return redirect($redirectPath . '?auth=' . $authStatus);
+            return redirect($redirectPath . '?auth=' . $authStatus)->withCookie(
+                $cookie,
+            );
         } catch (\Throwable $e) {
             $errorUserId = match (true) {
                 $currentUser instanceof User => $currentUser->id,
@@ -211,8 +217,10 @@ class HandleGoogleCallback
 
             $emailToUse = $intendedUser->email ?? $email;
 
+            $name = $googleUser->getName() ?? $intendedUser->name;
+            assert(is_string($name), 'User name must be a string');
             $intendedUser->update([
-                'name' => $googleUser->getName() ?? $intendedUser->name,
+                'name' => Str::limit($name, 255),
                 'email' => $emailToUse,
                 'verified_google_email' => $email,
                 'google_id' => $googleId,
@@ -247,8 +255,10 @@ class HandleGoogleCallback
                 User::mergeGuestData($currentUser, $emailUser);
             }
 
+            $name = $googleUser->getName() ?? $emailUser->name;
+            assert(is_string($name), 'User name must be a string');
             $emailUser->update([
-                'name' => $googleUser->getName() ?? $emailUser->name,
+                'name' => Str::limit($name, 255),
                 'google_id' => $googleId,
                 'verified_google_email' => $email,
                 'email_verified_at' => $emailUser->email_verified_at ?? now(),
@@ -262,8 +272,10 @@ class HandleGoogleCallback
         if ($wasAuthenticated && $currentUser instanceof User) {
             $emailToUse = $currentUser->email ?? $email;
 
+            $name = $googleUser->getName() ?? $currentUser->name;
+            assert(is_string($name), 'User name must be a string');
             $currentUser->update([
-                'name' => $currentUser->name ?? $googleUser->getName(),
+                'name' => Str::limit($name, 255),
                 'email' => $emailToUse,
                 'google_id' => $googleId,
                 'verified_google_email' => $email,
@@ -277,8 +289,10 @@ class HandleGoogleCallback
         }
 
         // Step 5: Create new user
+        $name = $googleUser->getName();
+        assert(is_string($name), 'User name must be a string');
         return User::create([
-            'name' => $googleUser->getName(),
+            'name' => Str::limit($name, 255),
             'email' => $email,
             'password' => Hash::make(Str::random(32)),
             'google_id' => $googleId,
@@ -298,18 +312,14 @@ class HandleGoogleCallback
         string $email,
         SocialiteUser $googleUser,
     ): User {
-        Log::info('Transferring Google account between users', [
-            'from_user_id' => $fromUser->id,
-            'to_user_id' => $toUser->id,
-            'google_id' => $googleId,
-        ]);
-
         $fromUser->update(['google_id' => null]);
 
         $emailToUse = $toUser->email ?? $email;
 
+        $name = $googleUser->getName() ?? $toUser->name;
+        assert(is_string($name), 'User name must be a string');
         $toUser->update([
-            'name' => $googleUser->getName() ?? $toUser->name,
+            'name' => Str::limit($name, 255),
             'email' => $emailToUse,
             'verified_google_email' => $email,
             'google_id' => $googleId,

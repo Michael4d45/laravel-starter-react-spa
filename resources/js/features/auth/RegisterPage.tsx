@@ -8,12 +8,6 @@ import { Link, useNavigate } from 'react-router-dom';
 type ValidationErrors = Record<string, readonly string[]>;
 
 export function RegisterPage() {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        password_confirmation: '',
-    });
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
         {},
     );
@@ -27,19 +21,6 @@ export function RegisterPage() {
         return validationErrors[fieldName]?.[0] || null;
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-
-        // Clear validation error for this field when user starts typing
-        if (validationErrors[name]) {
-            setValidationErrors((prev) => {
-                const { [name]: removed, ...newErrors } = prev;
-                return newErrors;
-            });
-        }
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -48,14 +29,23 @@ export function RegisterPage() {
             return;
         }
 
+        // Read values directly from form elements (works with browser automation)
+        const formData = new FormData(e.target as HTMLFormElement);
+        const nameValue = formData.get('name') as string;
+        const emailValue = formData.get('email') as string;
+        const passwordValue = formData.get('password') as string;
+        const passwordConfirmationValue = formData.get(
+            'password_confirmation',
+        ) as string;
+
         // Client-side validation
         const errors: ValidationErrors = {};
 
-        if (formData.password.length < 8) {
+        if (passwordValue.length < 8) {
             errors.password = ['Password must be at least 8 characters'];
         }
 
-        if (formData.password !== formData.password_confirmation) {
+        if (passwordValue !== passwordConfirmationValue) {
             errors.password_confirmation = ['Passwords do not match'];
         }
 
@@ -67,10 +57,10 @@ export function RegisterPage() {
         setValidationErrors({}); // Clear previous errors
 
         const result = await register({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-            password_confirmation: formData.password_confirmation,
+            name: nameValue,
+            email: emailValue,
+            password: passwordValue,
+            password_confirmation: passwordConfirmationValue,
         });
         if (result._tag === 'Success') {
             navigate('/');
@@ -106,8 +96,7 @@ export function RegisterPage() {
                             type="text"
                             id="name"
                             name="name"
-                            value={formData.name}
-                            onChange={handleChange}
+                            defaultValue=""
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('name')
                                     ? 'border-danger focus:ring-danger'
@@ -134,8 +123,7 @@ export function RegisterPage() {
                             type="email"
                             id="email"
                             name="email"
-                            value={formData.email}
-                            onChange={handleChange}
+                            defaultValue=""
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('email')
                                     ? 'border-danger focus:ring-danger'
@@ -162,8 +150,7 @@ export function RegisterPage() {
                             type="password"
                             id="password"
                             name="password"
-                            value={formData.password}
-                            onChange={handleChange}
+                            defaultValue=""
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('password')
                                     ? 'border-danger focus:ring-danger'
@@ -191,8 +178,7 @@ export function RegisterPage() {
                             type="password"
                             id="password_confirmation"
                             name="password_confirmation"
-                            value={formData.password_confirmation}
-                            onChange={handleChange}
+                            defaultValue=""
                             className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
                                 getFieldError('password_confirmation')
                                     ? 'border-danger focus:ring-danger'

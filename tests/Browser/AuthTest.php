@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Support\Facades\URL;
 
 it('can register a new user', function (): void {
     $email = 'test-user-registration@example.com';
@@ -265,4 +266,48 @@ it('validates JWT token on app boot when online', function (): void {
         // since JWT validation should pass
         ->assertPathIs('/')
         ->assertDontSee('Get started by signing in'); // Should show authenticated content
+});
+
+it('shows forgot password page', function (): void {
+    visit('/forgot-password')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Forgot Password')
+        ->assertSee('Send Reset Link')
+        ->assertSee('Remember your password?')
+        ->assertSee('Sign in');
+});
+
+it('can navigate to forgot password from login page', function (): void {
+    visit('/login')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Login')
+        ->assertSee('Forgot password?')
+        ->click('Forgot password?')
+        ->wait(1)
+        ->assertNoJavaScriptErrors()
+        ->assertPathIs('/forgot-password')
+        ->assertSee('Forgot Password');
+});
+
+it('shows reset password form structure', function (): void {
+    // Generate a valid signed URL for testing
+    $signedUrl = URL::signedRoute('password.reset', [
+        'email' => 'test@example.com',
+        'token' => 'dummytoken',
+    ]);
+
+    // Extract the path from the signed URL
+    $url =
+        parse_url($signedUrl, PHP_URL_PATH)
+        . '?'
+        . parse_url($signedUrl, PHP_URL_QUERY);
+
+    visit($url)
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Reset Password', 10)
+        ->assertSee('New Password')
+        ->assertSee('Confirm New Password')
+        ->assertSee('Reset Password')
+        ->assertSee('Remember your password?')
+        ->assertSee('Sign in');
 });

@@ -27,7 +27,6 @@ use Laravel\Sanctum\HasApiTokens;
  * @property bool $is_admin
  * @property string|null $google_id
  * @property Carbon|null $email_verified_at
- * @property string|null $remember_token
  * @property Carbon|null $updated_at
  * @property Carbon|null $created_at
  */
@@ -61,7 +60,6 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
      */
     protected $hidden = [
         'password',
-        'remember_token',
     ];
 
     /**

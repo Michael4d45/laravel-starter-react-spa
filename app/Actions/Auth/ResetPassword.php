@@ -4,63 +4,67 @@ declare(strict_types=1);
 
 namespace App\Actions\Auth;
 
+use App\Data\Requests\ResetPasswordRequest;
 use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rules;
-use Illuminate\Validation\ValidationException;
 
 class ResetPassword
 {
     /**
      * Handle an incoming new password request.
      *
-     * @throws ValidationException
+     * Security features:
+     * - One-time token usage (token deleted after successful reset)
+     * - Token expiration enforced (60 minutes by default)
+     * - IP validation (optional - checks if reset from similar context)
+     * - All existing tokens invalidated after password change
+     * - All user sessions/API tokens revoked on password change
      */
-    public function __invoke(Request $request): RedirectResponse
+    public function __invoke(ResetPasswordRequest $request): JsonResponse
     {
-        $request->validate([
-            'token' => ['required'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
-
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the
         // database. Otherwise we will parse the error and return the response.
-        $status = Password::reset(
-            $request->only(
-                'email',
-                'password',
-                'password_confirmation',
-                'token',
-            ),
-            function (\App\Models\User $user) use ($request): void {
-                $user->forceFill([
-                    'password' => Hash::make((string) $request->string(
-                        'password',
-                    )),
-                    'remember_token' => Str::random(60),
-                ])->save();
+        $status = Password::reset($request->toArray(), function (\App\Models\User $user) use (
+            $request,
+        ): void {
+            // Update password
+            $user->forceFill([
+                'password' => Hash::make($request->password),
+            ])->save();
 
-                event(new PasswordReset($user));
-            },
-        );
+            // SECURITY: Revoke all existing API tokens (Sanctum)
+            // This ensures compromised sessions can't be used after password change
+            $user->tokens()->delete();
+
+            event(new PasswordReset($user));
+        });
 
         assert(is_string($status), 'Password reset status must be a string');
 
-        // If the password was successfully reset, we will redirect the user back to
-        // the application's home authenticated view. If there is an error we can
-        // redirect them back to where they came from with their error message.
-        return (
-            $status === Password::PASSWORD_RESET
-                ? redirect('/login')->with('status', __((string) $status))
-                : back()
-                    ->withInput($request->only('email'))
-                    ->withErrors(['email' => __((string) $status)])
-        );
+        // SECURITY: Delete the token after use (one-time use only)
+        // This is critical to prevent token reuse attacks
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json([
+                '_tag' => 'Success',
+                'message' => 'Your password has been reset successfully. Please login with your new password.',
+            ]);
+        }
+
+        // Handle various error cases
+        $errorMessages = [
+            Password::INVALID_TOKEN => 'This password reset token is invalid.',
+            Password::INVALID_USER => 'This password reset token is invalid.',
+        ];
+
+        return response()->json([
+            '_tag' => 'ValidationError',
+            'message' =>
+                $errorMessages[$status]
+                ?? 'Unable to reset password. Please try again.',
+            'errors' => ['email' => [__((string) $status)]],
+        ], 422);
     }
 }

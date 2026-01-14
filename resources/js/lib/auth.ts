@@ -62,6 +62,14 @@ export class AuthManager {
     }
 
     /**
+     * Update stored JWT token (used for token rotation)
+     */
+    setToken(token: string): void {
+        localStorage.setItem(TOKEN_KEY, token);
+        // Don't notify listeners since user data hasn't changed
+    }
+
+    /**
      * Get stored user data
      */
     getUser(): UserData | null {

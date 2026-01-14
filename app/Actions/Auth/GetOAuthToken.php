@@ -9,7 +9,6 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class GetOAuthToken
 {
@@ -22,38 +21,32 @@ class GetOAuthToken
      */
     public function __invoke(Request $request): JsonResponse
     {
-        // Check if we have OAuth data in session
-        $token = session()->pull('oauth_token');
-        $userData = session()->pull('oauth_user');
+        // Try to get token from the one-time handoff cookie (stateless)
+        $token = $request->cookie('oauth_token_handoff');
 
-        if (is_string($token) && is_array($userData)) {
-            // Fetch fresh user from database to avoid date casting issues
-            $userId = $userData['id'] ?? null;
-            $user = is_string($userId) ? User::find($userId) : null;
+        if (is_string($token)) {
+            // Find the user associated with this token
+            $pat = \App\Models\PersonalAccessToken::findToken($token);
+            $user = $pat?->tokenable;
 
             if ($user instanceof User) {
-                Log::info('GetOAuthToken: Retrieved token from session', [
-                    'user_id' => $user->id,
-                ]);
-
-                return response()->json(AuthResponse::from([
-                    'token' => $token,
-                    'user' => $user,
-                ]));
+                // Return token and user, and clear the handoff cookie
+                return response()
+                    ->json(AuthResponse::from([
+                        'token' => $token,
+                        'user' => $user,
+                    ]))
+                    ->withoutCookie('oauth_token_handoff');
             }
         }
 
-        // No OAuth data in session - check if user is authenticated via session
-        // This handles the case where the user might already be logged in
+        // No OAuth handoff found - check if user is already authenticated
+        // ... (rest of the logic for authenticated users)
         /** @var User|null $user */
         $user = Auth::user();
 
         if ($user instanceof User) {
             $newToken = $user->createToken('api-token')->plainTextToken;
-
-            Log::info('GetOAuthToken: Created new token for authenticated user', [
-                'user_id' => $user->id,
-            ]);
 
             return response()->json(AuthResponse::from([
                 'token' => $newToken,
@@ -62,7 +55,7 @@ class GetOAuthToken
         }
 
         return response()->json([
-            'error' => 'No OAuth session found',
+            'error' => 'No OAuth handoff found',
         ], 404);
     }
 }

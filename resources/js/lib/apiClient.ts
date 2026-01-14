@@ -5,11 +5,16 @@ import {
     LoginRequestSchema,
     RegisterRequest,
     RegisterRequestSchema,
+    ResetPasswordRequest,
+    ResetPasswordRequestSchema,
 } from '@/schemas/App/Data/Requests';
 import {
     AuthResponseSchema,
     AuthenticateBroadcastingResponseSchema,
     ContentItemsSchema,
+    DisconnectGoogleResponseSchema,
+    MessageResponseSchema,
+    TokenListResponseSchema,
 } from '@/schemas/App/Data/Response';
 import {
     FetchHttpClient,
@@ -27,6 +32,21 @@ import { HttpClientError } from '@effect/platform/HttpClientError';
 import { ParseError } from 'effect/ParseResult';
 import { apiCache } from './apiCache';
 import { authManager } from './auth';
+
+// Intercept fetch to handle token rotation
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+    const response = await originalFetch(...args);
+
+    // Check for token rotation header
+    const newToken = response.headers.get('X-New-Token');
+    if (newToken) {
+        console.debug('[Auth] Token rotated, updating stored token');
+        authManager.setToken(newToken);
+    }
+
+    return response;
+};
 
 export const ValidationErrorSchema = Schema.Struct({
     _tag: Schema.Literal('ValidationError'),
@@ -64,6 +84,15 @@ export const NotFoundErrorSchema = Schema.Struct({
 
 export type NotFoundError = Schema.Schema.Type<typeof NotFoundErrorSchema>;
 
+export const TooManyAttemptsErrorSchema = Schema.Struct({
+    _tag: Schema.Literal('TooManyAttemptsError'),
+    message: Schema.String,
+});
+
+export type TooManyAttemptsError = Schema.Schema.Type<
+    typeof TooManyAttemptsErrorSchema
+>;
+
 /* ============================================================================
  * API Definition
  * ============================================================================
@@ -82,19 +111,27 @@ const authGroup = HttpApiGroup.make('auth')
     )
     .add(
         HttpApiEndpoint.post('logout', '/api/logout').addSuccess(
-            Schema.Struct({ message: Schema.String }),
+            MessageResponseSchema,
         ),
     )
     .add(
         HttpApiEndpoint.post(
             'disconnectGoogle',
             '/api/disconnect-google',
-        ).addSuccess(
-            Schema.Struct({
-                message: Schema.String,
-                user: UserDataSchema,
-            }),
-        ),
+        ).addSuccess(DisconnectGoogleResponseSchema),
+    )
+    .add(
+        HttpApiEndpoint.post(
+            'sendPasswordResetLink',
+            '/api/send-password-reset-link',
+        )
+            .setPayload(Schema.Struct({ email: Schema.String }))
+            .addSuccess(MessageResponseSchema),
+    )
+    .add(
+        HttpApiEndpoint.post('resetPassword', '/api/reset-password')
+            .setPayload(ResetPasswordRequestSchema)
+            .addSuccess(MessageResponseSchema),
     )
     .add(
         HttpApiEndpoint.get('oauthToken', '/api/oauth-token').addSuccess(
@@ -105,6 +142,22 @@ const authGroup = HttpApiGroup.make('auth')
         HttpApiEndpoint.get('sessionToken', '/api/token').addSuccess(
             AuthResponseSchema,
         ),
+    )
+    .add(
+        HttpApiEndpoint.get('listTokens', '/api/tokens').addSuccess(
+            TokenListResponseSchema,
+        ),
+    )
+    .add(
+        HttpApiEndpoint.del('deleteToken', '/api/tokens/:tokenId')
+            .setPath(Schema.Struct({ tokenId: Schema.String }))
+            .addSuccess(MessageResponseSchema),
+    )
+    .add(
+        HttpApiEndpoint.post(
+            'resendVerificationEmail',
+            '/api/send-email-verification-notification',
+        ).addSuccess(MessageResponseSchema),
     );
 
 const userGroup = HttpApiGroup.make('users').add(
@@ -130,7 +183,8 @@ export const Api = HttpApi.make('BackendApi')
     .addError(ValidationErrorSchema, { status: 422 })
     .addError(CsrfTokenExpiredErrorSchema, { status: 419 })
     .addError(AuthenticationErrorSchema, { status: 401 })
-    .addError(NotFoundErrorSchema, { status: 404 });
+    .addError(NotFoundErrorSchema, { status: 404 })
+    .addError(TooManyAttemptsErrorSchema, { status: 429 });
 
 /* ============================================================================
  * Form-Friendly Result
@@ -164,62 +218,12 @@ const baseAuthClient = HttpApiClient.make(Api, {
     },
 });
 
-// CSRF client - adds CSRF token on top of base
-const baseCsrfClient = HttpApiClient.make(Api, {
-    baseUrl,
-    transformClient: (client) => {
-        const csrfToken =
-            document
-                .querySelector('meta[name="csrf-token"]')
-                ?.getAttribute('content') || null;
-        if (csrfToken) {
-            return client.pipe(
-                withJsonAccept,
-                HttpClient.mapRequest(
-                    HttpClientRequest.setHeader('X-CSRF-TOKEN', csrfToken),
-                ),
-            );
-        }
-        return client.pipe(withJsonAccept);
-    },
-});
-
-// Auth + CSRF client - combines both auth and CSRF on top of base
-const baseAuthCsrfClient = HttpApiClient.make(Api, {
-    baseUrl,
-    transformClient: (client) => {
-        let transformed = client.pipe(withJsonAccept);
-
-        const token = authManager.getToken();
-        if (token) {
-            transformed = transformed.pipe(
-                HttpClient.mapRequest(HttpClientRequest.bearerToken(token)),
-            );
-        }
-        const csrfToken =
-            document
-                .querySelector('meta[name="csrf-token"]')
-                ?.getAttribute('content') || null;
-        if (csrfToken) {
-            transformed = transformed.pipe(
-                HttpClient.mapRequest(
-                    HttpClientRequest.setHeader('X-CSRF-TOKEN', csrfToken),
-                ),
-            );
-        }
-
-        return transformed;
-    },
-});
-
 /* ============================================================================
  * Client Types (inferred from HttpApiClient.make)
  * ============================================================================
  */
 type BaseClientType = Effect.Effect.Success<typeof baseClient>;
 type BaseAuthClientType = Effect.Effect.Success<typeof baseAuthClient>;
-type BaseCsrfClientType = Effect.Effect.Success<typeof baseCsrfClient>;
-type BaseAuthCsrfClientType = Effect.Effect.Success<typeof baseAuthCsrfClient>;
 
 type ErrorsType =
     | HttpApiDecodeError
@@ -228,7 +232,8 @@ type ErrorsType =
     | HttpClientError
     | ParseError
     | AuthenticationError
-    | NotFoundError;
+    | NotFoundError
+    | TooManyAttemptsError;
 
 /* ============================================================================
  * Singleton Client
@@ -240,9 +245,6 @@ class ApiClientSingleton {
      * ========================================================================== */
     private _baseClientPromise: Promise<BaseClientType> | null = null;
     private _baseAuthClientPromise: Promise<BaseAuthClientType> | null = null;
-    private _baseCsrfClientPromise: Promise<BaseCsrfClientType> | null = null;
-    private _baseAuthCsrfClientPromise: Promise<BaseAuthCsrfClientType> | null =
-        null;
 
     private getBaseClient(): Promise<BaseClientType> {
         if (!this._baseClientPromise) {
@@ -260,24 +262,6 @@ class ApiClientSingleton {
             );
         }
         return this._baseAuthClientPromise;
-    }
-
-    private getBaseCsrfClient(): Promise<BaseCsrfClientType> {
-        if (!this._baseCsrfClientPromise) {
-            this._baseCsrfClientPromise = Effect.runPromise(
-                baseCsrfClient.pipe(Effect.provide(FetchHttpClient.layer)),
-            );
-        }
-        return this._baseCsrfClientPromise;
-    }
-
-    private getBaseAuthCsrfClient(): Promise<BaseAuthCsrfClientType> {
-        if (!this._baseAuthCsrfClientPromise) {
-            this._baseAuthCsrfClientPromise = Effect.runPromise(
-                baseAuthCsrfClient.pipe(Effect.provide(FetchHttpClient.layer)),
-            );
-        }
-        return this._baseAuthCsrfClientPromise;
     }
 
     private runEffect<A>(
@@ -312,6 +296,12 @@ class ApiClientSingleton {
                 Effect.catchTag('NotFoundError', (e) => {
                     return Effect.succeed({
                         _tag: 'NotFoundError' as const,
+                        message: e.message,
+                    });
+                }),
+                Effect.catchTag('TooManyAttemptsError', (e) => {
+                    return Effect.succeed({
+                        _tag: 'TooManyAttemptsError' as const,
                         message: e.message,
                     });
                 }),
@@ -375,15 +365,29 @@ class ApiClientSingleton {
      * Public API Methods
      * ========================================================================== */
     async login(payload: LoginRequest) {
-        // Login needs web middleware (session + CSRF) to create sessions for Filament
-        const client = await this.getBaseCsrfClient();
+        const client = await this.getBaseClient();
         return this.runEffect(client.auth.login({ payload }), 'login');
     }
 
     async register(payload: RegisterRequest) {
-        // Register needs web middleware (session + CSRF) to create sessions for Filament
-        const client = await this.getBaseCsrfClient();
+        const client = await this.getBaseClient();
         return this.runEffect(client.auth.register({ payload }), 'register');
+    }
+
+    async sendPasswordResetLink(email: string) {
+        const client = await this.getBaseClient();
+        return this.runEffect(
+            client.auth.sendPasswordResetLink({ payload: { email } }),
+            'sendPasswordResetLink',
+        );
+    }
+
+    async resetPassword(payload: ResetPasswordRequest) {
+        const client = await this.getBaseClient();
+        return this.runEffect(
+            client.auth.resetPassword({ payload }),
+            'resetPassword',
+        );
     }
 
     async showUser() {
@@ -392,9 +396,8 @@ class ApiClientSingleton {
     }
 
     async logout() {
-        // Logout needs web middleware (session + CSRF) to clear Redis sessions for Filament
-        const client = await this.getBaseAuthCsrfClient();
-        const result = await this.runEffect(client.auth.logout(), 'logout');
+        const client = await this.getBaseAuthClient();
+        const result = await this.runEffect(client.auth.logout({}), 'logout');
         // Clear cached data on logout to prevent data leakage
         await apiCache.clear();
         return result;
@@ -403,7 +406,7 @@ class ApiClientSingleton {
     async disconnectGoogle() {
         const client = await this.getBaseAuthClient();
         return this.runEffect(
-            client.auth.disconnectGoogle(),
+            client.auth.disconnectGoogle({}),
             'disconnectGoogle',
         );
     }
@@ -415,7 +418,7 @@ class ApiClientSingleton {
 
     async fetchOAuthToken() {
         const client = await this.getBaseClient();
-        return this.runEffect(client.auth.oauthToken(), 'fetchOAuthToken');
+        return this.runEffect(client.auth.oauthToken({}), 'fetchOAuthToken');
     }
 
     /**
@@ -424,7 +427,10 @@ class ApiClientSingleton {
      */
     async fetchSessionToken() {
         const client = await this.getBaseClient();
-        return this.runEffect(client.auth.sessionToken(), 'fetchSessionToken');
+        return this.runEffect(
+            client.auth.sessionToken({}),
+            'fetchSessionToken',
+        );
     }
 
     /**
@@ -456,6 +462,36 @@ class ApiClientSingleton {
                 payload: { socket_id: socketId, channel_name: channelName },
             }),
             'authenticateBroadcasting',
+        );
+    }
+
+    /**
+     * List all active sessions (personal access tokens) for the authenticated user
+     */
+    async listTokens() {
+        const client = await this.getBaseAuthClient();
+        return this.runEffect(client.auth.listTokens({}), 'listTokens');
+    }
+
+    /**
+     * Delete a specific token/session
+     */
+    async deleteToken(tokenId: string) {
+        const client = await this.getBaseAuthClient();
+        return this.runEffect(
+            client.auth.deleteToken({ path: { tokenId } }),
+            'deleteToken',
+        );
+    }
+
+    /**
+     * Resend the email verification notification
+     */
+    async resendVerificationEmail() {
+        const client = await this.getBaseAuthClient();
+        return this.runEffect(
+            client.auth.resendVerificationEmail({}),
+            'resendVerificationEmail',
         );
     }
 }

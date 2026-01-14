@@ -1,27 +1,26 @@
 <?php
 
-use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
-// OAuth routes (need sessions for Socialite) - explicitly use web middleware
-Route::get('auth/google', App\Actions\Auth\RedirectToGoogle::class)->name(
-    'auth.google',
-);
+Route::prefix('auth')
+    ->withoutMiddleware(['web'])
+    ->group(function () {
+        require __DIR__ . '/oauth-spa.php';
+    });
 
-// OAuth callback needs to be excluded from CSRF validation
 Route::get(
-    'auth/google/callback',
-    App\Actions\Auth\HandleGoogleCallback::class,
-)->withoutMiddleware(ValidateCsrfToken::class)->name('auth.google.callback');
+    'verify-email/{id}/{hash}',
+    \App\Actions\Auth\VerifyEmail::class,
+)->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
-Route::get('login', function () {
-    return view('app');
-})->name('login');
+Route::get('reset-password/{email}/{token}', fn() => view('app'))->middleware([
+    'signed',
+    'throttle:6,1',
+])->name('password.reset');
 
-Route::get('logout', App\Actions\Auth\Logout::class)->name('logout');
+Route::get('login', fn() => view('app'))->name('login');
 
-// Catch-all route to serve the React SPA
-// React Router handles client-side routing for all paths
-Route::get('{any?}', function () {
-    return view('app');
-})->where('any', '^(?!api|storage).*$')->name('home');
+Route::get('{any?}', fn() => view('app'))->where(
+    'any',
+    '^(?!api|storage|admin).*$',
+)->name('home');

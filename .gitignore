@@ -31,3 +31,5 @@ boost.json
 reports/
 /resources/js/schemas/
 tests/Browser/Screenshots
+
+.github/copilot-instructions.md

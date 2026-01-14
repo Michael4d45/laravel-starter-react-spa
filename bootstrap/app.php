@@ -26,6 +26,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(EmitContextMiddleware::class);
         $middleware->append(LogRequests::class);
         $middleware->append(LogResponses::class);
+
+        $middleware->encryptCookies(except: [
+            'oauth_token_handoff',
+        ]);
+
         $middleware->alias([
             'api.auth' => ApiAuth::class,
         ]);
@@ -33,8 +38,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (ValidationException $e) {
             if (config()->boolean('logging.should_log_validation_errors')) {
-                Log::warning('Validation error occurred', ['errors' =>
-                    $e->errors()]);
+                Log::warning('Validation error occurred', [
+                    'errors' => $e->errors(),
+                ]);
             }
         });
         $exceptions->render(function (Exception $e, $request) {
@@ -59,6 +65,9 @@ return Application::configure(basePath: dirname(__DIR__))
                     switch ($status) {
                         case 419:
                             $body['_tag'] = 'CsrfTokenExpiredError';
+                            break;
+                        case 429:
+                            $body['_tag'] = 'TooManyAttemptsError';
                             break;
                         case 404:
                             $body['_tag'] = 'NotFoundError';

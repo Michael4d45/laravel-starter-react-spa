@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Http\Middleware\LoggingHelper;
 use App\Models\PersonalAccessToken;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +30,24 @@ class AppServiceProvider extends ServiceProvider
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
         $shouldIgnoreRoute = LoggingHelper::shouldIgnoreRoute(request());
+
+        ResetPassword::createUrlUsing(function ($user, string $token) {
+            assert(
+                $user instanceof \App\Models\User,
+                'User must be an instance of App\Models\User',
+            );
+            $email = $user->email;
+            assert(
+                is_string($email),
+                'User email must not be null for password reset URL',
+            );
+
+            // The purpose of this custom registration is to generate a signed URL
+            return \Illuminate\Support\Facades\URL::signedRoute('password.reset', [
+                'email' => $email,
+                'token' => $token,
+            ]);
+        });
 
         if (config()->boolean('logging.should_log_db') && !$shouldIgnoreRoute) {
             DB::listen(static function (QueryExecuted $query): void {

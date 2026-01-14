@@ -50,6 +50,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const handleAuthInit = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const authParam = urlParams.get('auth');
+            const tokenParam = urlParams.get('token');
             const messageParam = urlParams.get('message');
 
             if (processingAuthCallback.current) {
@@ -59,23 +60,60 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Handle OAuth callbacks
             if (authParam === 'success' || authParam === 'connected') {
                 processingAuthCallback.current = true;
-                // OAuth successful - fetch token securely from API
-                const result = await ApiClient.fetchOAuthToken();
 
-                if (result._tag === 'Success') {
-                    const { token, user } = result.data;
-                    authManager.setAuthData(token, user);
-                    setAuthState({ token, user, isAuthenticated: true });
-                    toast.success(
-                        authParam === 'success'
-                            ? 'Successfully signed in with Google!'
-                            : 'Google account connected successfully!',
-                    );
+                if (tokenParam) {
+                    // Use token from URL for stateless handoff
+                    try {
+                        // Reset clients to ensure they pick up the new token
+                        authManager.clearAuthData();
+                        localStorage.setItem('auth_token', tokenParam);
+
+                        // Fetch user data using the new token to ensure it's valid and get full user model
+                        const result = await ApiClient.showUser();
+
+                        if (result._tag === 'Success') {
+                            const user = result.data;
+                            authManager.setAuthData(tokenParam, user);
+                            setAuthState({
+                                token: tokenParam,
+                                user,
+                                isAuthenticated: true,
+                            });
+                            toast.success(
+                                authParam === 'success'
+                                    ? 'Successfully signed in with Google!'
+                                    : 'Google account connected successfully!',
+                            );
+                        } else {
+                            localStorage.removeItem('auth_token');
+                            toast.error('Failed to validate OAuth token.');
+                        }
+                    } catch (error) {
+                        localStorage.removeItem('auth_token');
+                        toast.error('Error during OAuth initialization.');
+                    }
                 } else {
-                    console.error('Failed to retrieve OAuth token:', result);
-                    toast.error(
-                        'Authentication completed but failed to retrieve session.',
-                    );
+                    // Fallback to session-based token retrieval (legacy/bridge)
+                    const result = await ApiClient.fetchOAuthToken();
+
+                    if (result._tag === 'Success') {
+                        const { token, user } = result.data;
+                        authManager.setAuthData(token, user);
+                        setAuthState({ token, user, isAuthenticated: true });
+                        toast.success(
+                            authParam === 'success'
+                                ? 'Successfully signed in with Google!'
+                                : 'Google account connected successfully!',
+                        );
+                    } else {
+                        console.error(
+                            'Failed to retrieve OAuth token:',
+                            result,
+                        );
+                        toast.error(
+                            'Authentication completed but failed to retrieve session.',
+                        );
+                    }
                 }
                 window.history.replaceState({}, '', window.location.pathname);
                 return;
@@ -115,7 +153,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         const result = await ApiClient.showUser();
                         if (result._tag === 'Success') {
                             // Token is valid, update user data in case it changed
-                            authManager.setAuthData(existingToken, result.data);
+                            // Use getToken() to get potentially rotated token from the API call
+                            const currentToken = authManager.getToken();
+                            if (currentToken) {
+                                authManager.setAuthData(
+                                    currentToken,
+                                    result.data,
+                                );
+                            }
                         } else {
                             authManager.clearAuthData();
                         }

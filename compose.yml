@@ -1,4 +1,4 @@
-name: "react-spa"
+name: 'react-spa'
 
 services:
   pgsql:
@@ -12,11 +12,7 @@ services:
       POSTGRES_USER: '${DB_USERNAME}'
       POSTGRES_PASSWORD: '${DB_PASSWORD}'
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"
-        ]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}']
       start_period: 5s
       interval: 5s
       timeout: 5s
@@ -33,11 +29,7 @@ services:
       POSTGRES_USER: '${DB_USERNAME}'
       POSTGRES_PASSWORD: '${DB_PASSWORD}'
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"
-        ]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}']
       start_period: 5s
       interval: 5s
       timeout: 5s
@@ -50,10 +42,10 @@ services:
     ports:
       - '${REDIS_PORT}:6379'
 
-  # mailhog:
-  #   restart: unless-stopped
-  #   image: mailhog/mailhog:latest
-  #   container_name: react-spa-mailhog
-  #   ports:
-  #     - "1025:1025" # SMTP
-  #     - "8025:8025" # Web UI
+  mailhog:
+    restart: unless-stopped
+    image: mailhog/mailhog:latest
+    container_name: react-spa-mailhog
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI

@@ -115,3 +115,108 @@ it('displays complete profile content structure', function (): void {
         // Take screenshot to verify visual layout
         ->screenshot(filename: 'profile-content-structure.png');
 });
+
+it('displays active sessions section', function (): void {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    visit('/profile')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Profile', 10)
+        ->assertSee('Active Sessions')
+        ->assertSee('These are the devices where you\'re currently logged in')
+        ->screenshot(filename: 'profile-active-sessions.png');
+});
+
+it('shows current session in active sessions list', function (): void {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    visit('/profile')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Profile', 10)
+        ->waitForText('Active Sessions', 10)
+        ->assertSee('This device')
+        ->assertSee('Created:')
+        ->assertSee('Last active:')
+        ->screenshot(filename: 'profile-current-session.png');
+});
+
+it('displays multiple sessions when user has multiple tokens', function (): void {
+    $user = User::factory()->create();
+
+    // Create multiple tokens for the user
+    $user->createToken('api-token');
+    $user->createToken('api-token');
+
+    $this->actingAs($user);
+
+    visit('/profile')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Profile', 10)
+        ->waitForText('Active Sessions', 10)
+        ->assertSee('This device')
+        ->assertSee('Other device')
+        ->screenshot(filename: 'profile-multiple-sessions.png');
+});
+
+it('shows delete button for non-current sessions', function (): void {
+    $user = User::factory()->create();
+
+    // Create an additional token
+    $user->createToken('api-token');
+
+    $this->actingAs($user);
+
+    visit('/profile')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Profile', 10)
+        ->waitForText('Active Sessions', 10)
+        ->assertPresent('[data-testid^="delete-session-"]')
+        ->screenshot(filename: 'profile-delete-session-button.png');
+});
+
+it('can refresh active sessions list', function (): void {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    visit('/profile')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Profile', 10)
+        ->waitForText('Active Sessions', 10)
+        ->assertSee('Refresh')
+        ->click('Refresh')
+        ->screenshot(filename: 'profile-refresh-sessions.png');
+});
+
+it('displays session timestamps in readable format', function (): void {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    visit('/profile')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Profile', 10)
+        ->waitForText('Active Sessions', 10)
+        ->assertSee('Created:')
+        ->assertSee('Last active:')
+        ->screenshot(filename: 'profile-session-timestamps.png');
+});
+
+it('does not show loading state when sessions are loaded', function (): void {
+    $user = User::factory()->create();
+
+    // Create a token for the user to ensure they have an active session
+    $user->createToken('api-token');
+
+    $this->actingAs($user);
+
+    visit('/profile')
+        ->assertNoJavaScriptErrors()
+        ->waitForText('Profile', 10)
+        ->waitForText('Active Sessions', 10)
+        // Since sessions are now loaded via a route loader, they should be present immediately
+        // and we should never see the loading indicator.
+        ->assertDontSee('Loading sessions...')
+        ->assertSee('Other device')
+        ->screenshot(filename: 'profile-sessions-loaded.png');
+});

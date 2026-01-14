@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Auth;
 
+use App\Data\Models\UserData;
+use App\Data\Response\DisconnectGoogleResponse;
 use App\Http\Requests\AuthRequest;
 use Illuminate\Http\JsonResponse;
 
@@ -31,9 +33,9 @@ class DisconnectGoogle
         // Optionally revoke all Google-related tokens
         // $user->tokens()->where('name', 'oauth-token')->delete();
 
-        return response()->json([
+        return response()->json(DisconnectGoogleResponse::from([
             'message' => 'Google account disconnected successfully',
-            'user' => $user->fresh(), // Return updated user data
-        ]);
+            'user' => UserData::from($user->fresh()),
+        ]));
     }
 }
