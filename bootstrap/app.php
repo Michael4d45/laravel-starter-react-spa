@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\ApiAuth;
 use App\Http\Middleware\LogRequests;
 use App\Http\Middleware\LogResponses;
 use Illuminate\Auth\AuthenticationException;
@@ -29,10 +28,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->encryptCookies(except: [
             'oauth_token_handoff',
-        ]);
-
-        $middleware->alias([
-            'api.auth' => ApiAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

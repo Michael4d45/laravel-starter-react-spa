@@ -10,5 +10,6 @@ class AuthenticateBroadcastingResponse extends Data
 {
     public function __construct(
         public string $auth,
+        public string|null $channel_data,
     ) {}
 }

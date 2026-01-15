@@ -32,7 +32,8 @@ class ListTokens
                     'created_at' => $token->created_at,
                     'last_used_at' => $token->last_used_at,
                     'expires_at' => $token->expires_at,
-                    'is_current' => $token->id === $currentTokenId,
+                    'is_current' =>
+                        (string) $token->id === (string) $currentTokenId,
                 ]);
             });
 

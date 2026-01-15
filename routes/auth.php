@@ -1,12 +1,8 @@
 <?php
 
+use App\Http\Middleware\RefreshSanctumToken;
 use Illuminate\Support\Facades\Route;
 
-Route::get('user', \App\Actions\Auth\ShowUser::class)->middleware('api.auth');
-
-// Create token for already authenticated user (used for OAuth callbacks and session auth)
-// Needs web middleware to access session (e.g., when logging in via Filament)
-// Action handles auth check and returns JSON 401 for unauthenticated
 Route::get('token', \App\Actions\Auth\CreateToken::class)->middleware('web');
 
 // Retrieve OAuth token after successful callback (Stateless handoff via HttpOnly cookie)
@@ -28,8 +24,12 @@ Route::middleware('throttle:5,1')->group(function () {
     Route::post('reset-password', \App\Actions\Auth\ResetPassword::class);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    // Logout is now purely token-based
+Route::middleware([
+    RefreshSanctumToken::class,
+    'auth:sanctum',
+])->group(function () {
+    Route::get('user', \App\Actions\Auth\ShowUser::class);
+
     Route::post('logout', \App\Actions\Auth\Logout::class);
     Route::post('confirm-password', \App\Actions\Auth\ConfirmPassword::class);
     Route::post('update-password', \App\Actions\Auth\UpdatePassword::class);
@@ -39,7 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
         \App\Actions\Auth\SendEmailVerificationNotification::class,
     );
 
-    // Broadcasting authentication with connection tracking
+    // Broadcasting authentication (private/presence)
     Route::post(
         'broadcasting/auth',
         App\Actions\Broadcasting\AuthenticateBroadcasting::class,

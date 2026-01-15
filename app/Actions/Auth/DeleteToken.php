@@ -36,8 +36,7 @@ class DeleteToken
         }
 
         // Prevent deletion of current token
-        $currentTokenId = $user->currentAccessToken()->id;
-        if ($token->id === $currentTokenId) {
+        if ($token->id === $user->currentAccessToken()->id) {
             throw ValidationException::withMessages([
                 'token' => [
                     'You cannot delete your current session. Please use logout instead.',

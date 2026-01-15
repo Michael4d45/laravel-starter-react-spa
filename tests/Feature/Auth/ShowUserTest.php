@@ -30,7 +30,7 @@ test('it returns unauthorized when no token is provided', function () {
     $response->assertStatus(401);
     $response->assertJson([
         '_tag' => 'AuthenticationError',
-        'message' => 'No bearer token provided.',
+        'message' => 'Unauthenticated.',
     ]);
 });
 
@@ -40,6 +40,6 @@ test('it returns unauthorized when an invalid token is provided', function () {
     $response->assertStatus(401);
     $response->assertJson([
         '_tag' => 'AuthenticationError',
-        'message' => 'Invalid bearer token.',
+        'message' => 'Unauthenticated.',
     ]);
 });

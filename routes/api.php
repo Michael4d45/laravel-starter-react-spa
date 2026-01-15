@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Middleware\RefreshSanctumToken;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware([
+    'auth:sanctum',
+    RefreshSanctumToken::class,
+])->group(function () {
     // Real-time test endpoint
     Route::post(
         'trigger-test-event',

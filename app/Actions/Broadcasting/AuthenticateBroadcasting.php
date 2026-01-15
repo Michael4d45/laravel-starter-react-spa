@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Broadcasting;
 
-use App\Actions\Broadcasting\TrackConnection;
 use App\Data\Requests\AuthenticateBroadcastingRequest;
 use App\Data\Response\AuthenticateBroadcastingResponse;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +14,7 @@ use Illuminate\Support\Facades\Broadcast;
 class AuthenticateBroadcasting
 {
     /**
-     * Authenticate a broadcasting channel and track the connection
+     * Authenticate a broadcasting channel
      */
     public function __invoke(Request $request): JsonResponse
     {
@@ -39,19 +38,20 @@ class AuthenticateBroadcasting
             ], 403);
         }
 
-        // Track the connection
-        $tracker = new TrackConnection;
-        $tracker->connect(
-            $data->socket_id,
-            $user->id,
-            $data->channel_name,
-            $request,
-        );
+        $auth = '';
+        if (is_string($authData)) {
+            $auth = $authData;
+        } elseif (is_array($authData) && isset($authData['auth'])) {
+            $auth = $authData['auth'];
+        }
+
+        $channelData = is_array($authData)
+            ? $authData['channel_data'] ?? null
+            : null;
 
         return response()->json(AuthenticateBroadcastingResponse::from([
-            'auth' => is_array($authData) && isset($authData['auth'])
-                ? $authData['auth']
-                : '',
+            'auth' => $auth,
+            'channel_data' => $channelData,
         ]));
     }
 }

@@ -1,6 +1,7 @@
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { ApiClient } from '@/lib/apiClient';
 import { authManager, AuthState } from '@/lib/auth';
+import { refreshBroadcasting } from '@/lib/echo';
 import { UserData } from '@/schemas/App/Data/Models';
 import { LoginRequest, RegisterRequest } from '@/schemas/App/Data/Requests';
 import {
@@ -37,10 +38,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
     const [isLoading, setIsLoading] = useState(false);
     const processingAuthCallback = useRef(false);
+    const hasMounted = useRef(false);
     const isOnline = useOnlineStatus();
 
     // Provide the current user directly for easier consumption and reactivity
     const user = authState.user;
+
+    useEffect(() => {
+        // Avoid flapping the WS connection during initial boot.
+        // We still refresh whenever the token *changes* (login/logout/rotate).
+        if (!hasMounted.current) {
+            hasMounted.current = true;
+            return;
+        }
+
+        refreshBroadcasting();
+    }, [authState.token]);
 
     useEffect(() => {
         // Subscribe to auth state changes
@@ -205,6 +218,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             await ApiClient.logout();
         } catch (error) {
             // Silently ignore logout errors
+            console.warn('[AuthContext] Logout API call failed:', error);
         }
 
         // Clear client-side authentication data

@@ -1,39 +1,39 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { usePusherConnectionState } from '@/hooks/usePusherConnectionState';
 import { echo } from '@/lib/echo';
+import {
+    clearRealtimeMessages,
+    subscribePresenceUsers,
+    subscribeRealtimeMessages,
+} from '@/lib/realtimeClient';
 import { RealtimeMessageData } from '@/schemas/App/Data/Events';
 import { Bell, Wifi, WifiOff, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import {
-    addRealtimeMessageListener,
-    clearRealtimeMessages,
-} from './GlobalRealtimeListener';
 
 export function RealtimeNotifications() {
     const { user } = useAuth();
     const [messages, setMessages] = useState<RealtimeMessageData[]>([]);
-    const [isConnected, setIsConnected] = useState(() => {
-        // Initialize with current connection state
-        return echo.connector.pusher.connection.state === 'connected';
-    });
-
-    // Monitor Pusher connection state
-    useEffect(() => {
-        const pusher = echo.connector.pusher;
-        const handleStateChange = () => {
-            setIsConnected(pusher.connection.state === 'connected');
-        };
-
-        pusher.connection.bind('state_change', handleStateChange);
-        return () => {
-            pusher.connection.unbind('state_change', handleStateChange);
-        };
-    }, []);
+    const [isPresenceConnected, setIsPresenceConnected] = useState(false);
+    const { isConnecting: isPusherConnecting } = usePusherConnectionState();
 
     useEffect(() => {
         if (!user) return;
 
-        const unsubscribe = addRealtimeMessageListener((newMessages) => {
+        const unsubscribe = subscribeRealtimeMessages((newMessages) => {
             setMessages(newMessages);
+        });
+
+        return unsubscribe;
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const unsubscribe = subscribePresenceUsers((users) => {
+            const isMember = users.some((presenceUser) => {
+                return presenceUser.id === user.id;
+            });
+            setIsPresenceConnected(isMember);
         });
 
         return unsubscribe;
@@ -42,6 +42,14 @@ export function RealtimeNotifications() {
     const handleClearMessages = () => {
         setMessages([]);
         clearRealtimeMessages();
+    };
+
+    const handleReconnect = () => {
+        console.info('[RealtimeNotifications] Manual reconnect requested');
+        const pusher = echo.connector?.pusher;
+        if (pusher && pusher.connection.state !== 'connected') {
+            echo.connect();
+        }
     };
 
     if (!user) {
@@ -59,7 +67,7 @@ export function RealtimeNotifications() {
                     <h3 className="font-semibold">Real-time Updates</h3>
                 </div>
                 <div className="flex items-center gap-2">
-                    {isConnected ? (
+                    {isPresenceConnected ? (
                         <span
                             className="flex items-center gap-1 text-sm text-green-600"
                             data-testid="connection-status-connected"
@@ -67,14 +75,31 @@ export function RealtimeNotifications() {
                             <Wifi className="h-4 w-4" />
                             Connected
                         </span>
-                    ) : (
+                    ) : isPusherConnecting ? (
                         <span
-                            className="flex items-center gap-1 text-sm text-red-600"
-                            data-testid="connection-status-disconnected"
+                            className="flex items-center gap-1 text-sm text-amber-600"
+                            data-testid="connection-status-connecting"
                         >
-                            <WifiOff className="h-4 w-4" />
-                            Disconnected
+                            <Wifi className="h-4 w-4" />
+                            Connecting
                         </span>
+                    ) : (
+                        <>
+                            <span
+                                className="flex items-center gap-1 text-sm text-red-600"
+                                data-testid="connection-status-disconnected"
+                            >
+                                <WifiOff className="h-4 w-4" />
+                                Disconnected
+                            </span>
+                            <button
+                                onClick={handleReconnect}
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-2 py-1 text-xs"
+                                data-testid="reconnect-button"
+                            >
+                                Reconnect
+                            </button>
+                        </>
                     )}
                 </div>
             </div>

@@ -18,6 +18,9 @@ class LogResponses
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
+        if (!$response instanceof Response) {
+            return response()->noContent();
+        }
 
         if (
             config()->boolean(
@@ -41,8 +44,6 @@ class LogResponses
         ) {
             $content = $response->getContent();
             $logData = [
-                'method' => $request->method(),
-                'url' => $request->fullUrl(),
                 'status_code' => $response->getStatusCode(),
                 'content_type' => $response->headers->get('content-type'),
                 'headers' => LoggingHelper::maskHeaders($response->headers->all()),
