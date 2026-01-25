@@ -20,7 +20,7 @@ class LogRequests
         $body = $request->all();
         $queryParams = $request->query();
         if (
-            config()->boolean('logging.should_log_requests')
+            config()->boolean('logging.should_log_request')
             && !LoggingHelper::shouldIgnoreRoute($request)
             && ($body !== [] || $queryParams !== [])
         ) {
@@ -34,6 +34,7 @@ class LogRequests
                 'body' => LoggingHelper::maskSensitiveData($body), // Sensitive data is now masked
                 'query_params' => LoggingHelper::maskSensitiveData($queryParams), // Query params may also contain sensitive data
                 'timestamp' => now()->toISOString(),
+                'cookies' => LoggingHelper::maskCookies($request->cookies->all()),
             ]);
         }
 

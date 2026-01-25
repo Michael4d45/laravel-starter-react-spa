@@ -5,59 +5,55 @@ declare(strict_types=1);
 namespace App\Actions\Auth;
 
 use App\Data\Requests\RegisterRequest;
-use App\Data\Response\AuthResponse;
+use App\Data\Response\MessageResponse;
+use App\Enums\Visibility;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * IMPORTANT: This action establishes session-based authentication.
+ *
+ * After registration, the frontend stores user data and uses
+ * session cookies for subsequent API requests.
+ *
+ * TODO: account for "is_guest" users.
+ */
 class Register
 {
     /**
      * Handle an incoming registration request.
      *
-     * For guest users: promote them to real users by updating their record.
-     * For existing authenticated users: this shouldn't happen, but handle gracefully.
+     * Creates user, logs them in with session, then returns success.
+     * Frontend stores user data and uses session cookies for API auth.
      */
-    public function __invoke(
-        RegisterRequest $registerData,
-        Request $request,
-    ): Response {
-        $currentUser = $request->user();
-
-        if ($currentUser && $currentUser->is_guest) {
-            // Promote guest user to real user
-            $currentUser->update([
-                'name' => $registerData->name,
-                'email' => $registerData->email,
-                'password' => Hash::make($registerData->password),
-                'is_guest' => false,
-                'email_verified_at' => null,
-            ]);
-
-            $user = $currentUser->fresh(); // Get updated user
-            assert($user instanceof User, 'User must exist after update');
-        } else {
-            // Fallback: create new user (shouldn't happen with guest middleware)
-            $user = User::create([
-                'name' => $registerData->name,
-                'email' => $registerData->email,
-                'password' => Hash::make($registerData->password),
-                'email_verified_at' => null,
-                'is_guest' => false,
-                'is_admin' => false,
-                'google_id' => null,
-            ]);
-        }
+    public function __invoke(RegisterRequest $registerData): JsonResponse
+    {
+        // Create new user
+        $user = User::create([
+            'name' => $registerData->name,
+            'email' => $registerData->email,
+            'password' => Hash::make($registerData->password),
+            'email_verified_at' => null,
+            'is_admin' => false,
+            'google_id' => null,
+            'units' => 'metric',
+            'visibility' => Visibility::Public,
+        ]);
 
         event(new Registered($user));
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        Auth::login($user);
 
-        return response()->json(AuthResponse::from([
-            'token' => $token,
-            'user' => $user,
+        $request = request();
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
+
+        return response()->json(MessageResponse::from([
+            'message' => 'Registration successful',
         ]));
     }
 }

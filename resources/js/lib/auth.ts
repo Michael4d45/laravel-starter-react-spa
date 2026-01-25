@@ -1,19 +1,22 @@
 import { UserData } from '@/schemas/App/Data/Models';
 
-const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 
-export interface AuthState {
-    token: string | null;
-    user: UserData | null;
-    isAuthenticated: boolean;
+interface AuthLoggedInState {
+    user: UserData;
+    isAuthenticated: true;
 }
+
+interface AuthLoggedOutState {
+    user: null;
+    isAuthenticated: false;
+}
+
+export type AuthState = AuthLoggedInState | AuthLoggedOutState;
 
 export class AuthManager {
     private static instance: AuthManager;
     private listeners: Set<(state: AuthState) => void> = new Set();
-
-    private constructor() {}
 
     static getInstance(): AuthManager {
         if (!AuthManager.instance) {
@@ -26,22 +29,30 @@ export class AuthManager {
      * Get current authentication state
      */
     getAuthState(): AuthState {
-        const token = this.getToken();
         const user = this.getUser();
 
+        if (user) {
+            return {
+                user,
+                isAuthenticated: true,
+            };
+        }
+
         return {
-            token,
             user,
-            isAuthenticated: !!(token && user),
+            isAuthenticated: false,
         };
     }
 
     /**
-     * Set authentication data after successful login/register
+     * Update the current user data
      */
-    setAuthData(token: string, user: UserData): void {
-        localStorage.setItem(TOKEN_KEY, token);
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
+    setUser(user: UserData | null): void {
+        if (user) {
+            localStorage.setItem(USER_KEY, JSON.stringify(user));
+        } else {
+            localStorage.removeItem(USER_KEY);
+        }
         this.notifyListeners();
     }
 
@@ -49,24 +60,8 @@ export class AuthManager {
      * Clear authentication data on logout
      */
     clearAuthData(): void {
-        localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         this.notifyListeners();
-    }
-
-    /**
-     * Get stored JWT token
-     */
-    getToken(): string | null {
-        return localStorage.getItem(TOKEN_KEY);
-    }
-
-    /**
-     * Update stored JWT token (used for token rotation)
-     */
-    setToken(token: string): void {
-        localStorage.setItem(TOKEN_KEY, token);
-        // Don't notify listeners since user data hasn't changed
     }
 
     /**
@@ -89,27 +84,7 @@ export class AuthManager {
      * Check if user is authenticated
      */
     isAuthenticated(): boolean {
-        return !!(this.getToken() && this.getUser());
-    }
-
-    /**
-     * Check if stored token is expired
-     * Laravel Sanctum tokens don't have expiration by default, so we consider them valid
-     * unless they're missing or corrupted
-     */
-    isTokenExpired(): boolean {
-        const token = this.getToken();
-        // Sanctum tokens don't expire by default, so just check if token exists
-        return !token;
-    }
-
-    /**
-     * Refresh authentication state (useful for checking token validity)
-     */
-    refreshAuthState(): void {
-        if (this.isTokenExpired()) {
-            this.clearAuthData();
-        }
+        return !!this.getUser();
     }
 
     /**

@@ -30,9 +30,6 @@ class DisconnectGoogle
             'verified_google_email' => null,
         ]);
 
-        // Optionally revoke all Google-related tokens
-        // $user->tokens()->where('name', 'oauth-token')->delete();
-
         return response()->json(DisconnectGoogleResponse::from([
             'message' => 'Google account disconnected successfully',
             'user' => UserData::from($user->fresh()),

@@ -28,6 +28,7 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
+            ->globalSearch(false)
             ->id('admin')
             ->topbar(false)
             ->colors([

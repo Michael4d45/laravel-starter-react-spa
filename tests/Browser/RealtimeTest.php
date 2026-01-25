@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Events\TestRealtimeEvent;
 use App\Models\User;
-use Illuminate\Support\Facades\Event;
 
 beforeEach(function () {
     setup_log_capture('realtime.log');
@@ -23,35 +22,6 @@ afterEach(function () {
  | They use Event::fake() to mock the broadcasting layer.
  |
  */
-
-it('dispatches broadcast event when API is called', function (): void {
-    Event::fake([TestRealtimeEvent::class]);
-
-    $user = User::factory()->create();
-    $token = $user->createToken('test-token')->plainTextToken;
-
-    $response = $this->postJson(
-        '/api/trigger-test-event',
-        [
-            'message' => 'Test broadcast message',
-        ],
-        [
-            'Authorization' => 'Bearer ' . $token,
-        ],
-    );
-
-    $response->assertOk()->assertJson(['success' => true]);
-
-    // Verify the event was dispatched with correct data
-    Event::assertDispatched(TestRealtimeEvent::class, function ($event) use (
-        $user,
-    ) {
-        return (
-            $event->user->id === $user->id
-            && $event->message === 'Test broadcast message'
-        );
-    });
-});
 
 it('broadcasts to correct private channel', function (): void {
     $user = User::factory()->create();

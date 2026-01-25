@@ -16,6 +16,26 @@ pest()->extend(TestCase::class)->use(RefreshDatabase::class)->in(
     'Unit',
 );
 
+function add_logs()
+{
+    config()->set('logging.should_log_user', true);
+    config()->set('logging.should_log_request', true);
+    config()->set('logging.should_log_response', true);
+}
+
+function assert_status($response, int $expectedStatus): \Pest\Expectation
+{
+    $actualStatus = $response->getStatusCode();
+    if ($actualStatus !== $expectedStatus) {
+        $body = (string) $response->getContent();
+        throw new Exception(
+            "Expected status code {$expectedStatus} but received {$actualStatus}.\nResponse body: {$body}",
+        );
+    }
+
+    return expect($response);
+}
+
 function setup_log_capture(string $filename): string
 {
     $logPath = storage_path('logs/' . $filename);
@@ -45,21 +65,21 @@ function visit_with_error_init(
 ): mixed {
     // Add our custom error logging init script
     $initScripts[] = <<<'JS'
-    const originalConsoleError = console.error;
-    console.error = function(...args) {
-        window.__pestBrowser.jsErrors.push({
-            message: "ERROR: " + args.map(a => a ? a.toString() : "null").join(" ")
-        }); 
-        originalConsoleError.apply(console, args);
-    };
+        const originalConsoleError = console.error;
+        console.error = function(...args) {
+            window.__pestBrowser.jsErrors.push({
+                message: "ERROR: " + args.map(a => a ? a.toString() : "null").join(" ")
+            }); 
+            originalConsoleError.apply(console, args);
+        };
 
-    window.addEventListener("unhandledrejection", (e) => {
-        window.__pestBrowser.jsErrors.push({
-            message: "Unhandled promise rejection: " + event.reason,
-            trace: event.reason?.stack || ''
+        window.addEventListener("unhandledrejection", (e) => {
+            window.__pestBrowser.jsErrors.push({
+                message: "Unhandled promise rejection: " + event.reason,
+                trace: event.reason?.stack || ''
+            });
         });
-    });
-    JS;
+        JS;
 
     return visit_with_custom_init($url, $options, $initScripts);
 }

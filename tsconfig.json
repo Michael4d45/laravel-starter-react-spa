@@ -113,8 +113,6 @@
         "resources/js/**/*.tsx",
     ],
     "exclude": [
-        "resources/js/routes",
-        "resources/js/actions",
         "resources/js/schemas",
         "vite.config.js"
     ]

@@ -30,6 +30,17 @@ class UsersTable
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
+                TextColumn::make('email_verified_at')
+                    ->label('Email Verified')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('verified_google_email')
+                    ->label('Google Verified')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(),
 
                 IconColumn::make('is_admin')
                     ->label('Admin')
@@ -43,18 +54,15 @@ class UsersTable
                     ->sortable()
                     ->toggleable(),
 
-                TextColumn::make('email_verified_at')
-                    ->label('Email Verified')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(),
-
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

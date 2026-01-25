@@ -19,8 +19,6 @@ class ResetPassword
      * - One-time token usage (token deleted after successful reset)
      * - Token expiration enforced (60 minutes by default)
      * - IP validation (optional - checks if reset from similar context)
-     * - All existing tokens invalidated after password change
-     * - All user sessions/API tokens revoked on password change
      */
     public function __invoke(ResetPasswordRequest $request): JsonResponse
     {
@@ -35,10 +33,6 @@ class ResetPassword
                 'password' => Hash::make($request->password),
             ])->save();
 
-            // SECURITY: Revoke all existing API tokens (Sanctum)
-            // This ensures compromised sessions can't be used after password change
-            $user->tokens()->delete();
-
             event(new PasswordReset($user));
         });
 
@@ -48,7 +42,6 @@ class ResetPassword
         // This is critical to prevent token reuse attacks
         if ($status === Password::PASSWORD_RESET) {
             return response()->json([
-                '_tag' => 'Success',
                 'message' => 'Your password has been reset successfully. Please login with your new password.',
             ]);
         }
@@ -60,10 +53,9 @@ class ResetPassword
         ];
 
         return response()->json([
-            '_tag' => 'ValidationError',
             'message' =>
                 $errorMessages[$status]
-                ?? 'Unable to reset password. Please try again.',
+                    ?? 'Unable to reset password. Please try again.',
             'errors' => ['email' => [__((string) $status)]],
         ], 422);
     }

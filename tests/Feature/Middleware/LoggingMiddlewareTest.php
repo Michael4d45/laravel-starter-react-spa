@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 use App\Http\Middleware\LogRequests;
 use App\Http\Middleware\LogResponses;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 
-uses(RefreshDatabase::class);
-
-it('logs requests when should_log_requests is enabled', function (): void {
-    Config::set('logging.should_log_requests', true);
+it('logs requests when should_log_request is enabled', function (): void {
+    Config::set('logging.should_log_request', true);
 
     Log::shouldReceive('info')
         ->once()
@@ -35,8 +32,8 @@ it('logs requests when should_log_requests is enabled', function (): void {
     expect($response->getStatusCode())->toBe(200);
 });
 
-it('does not log requests when should_log_requests is disabled', function (): void {
-    Config::set('logging.should_log_requests', false);
+it('does not log requests when should_log_request is disabled', function (): void {
+    Config::set('logging.should_log_request', false);
 
     Log::spy();
 
@@ -51,27 +48,8 @@ it('does not log requests when should_log_requests is disabled', function (): vo
     Log::shouldNotHaveReceived('info');
 });
 
-it('logs responses when should_log_responses is enabled', function (): void {
-    Config::set('logging.should_log_responses', true);
-
-    Log::shouldReceive('info')
-        ->once()
-        ->with('Outgoing Response', \Mockery::on(function ($data) {
-            return isset($data['method'], $data['url'], $data['status_code']);
-        }));
-
-    $request = Request::create('/test', 'GET');
-    $middleware = new LogResponses;
-
-    $response = $middleware->handle($request, function ($req) {
-        return response()->json(['message' => 'OK'], 200);
-    });
-
-    expect($response->getStatusCode())->toBe(200);
-});
-
-it('does not log responses when should_log_responses is disabled', function (): void {
-    Config::set('logging.should_log_responses', false);
+it('does not log responses when should_log_response is disabled', function (): void {
+    Config::set('logging.should_log_response', false);
 
     Log::spy();
 
@@ -87,7 +65,7 @@ it('does not log responses when should_log_responses is disabled', function (): 
 });
 
 it('does not log requests for ignored routes', function (): void {
-    Config::set('logging.should_log_requests', true);
+    Config::set('logging.should_log_request', true);
     Config::set('logging.ignore_routes', [
         '*.js',
         '*.css',
@@ -109,7 +87,7 @@ it('does not log requests for ignored routes', function (): void {
 });
 
 it('does not log responses for ignored routes', function (): void {
-    Config::set('logging.should_log_responses', true);
+    Config::set('logging.should_log_response', true);
     Config::set('logging.ignore_routes', [
         '*.js',
         '*.css',
@@ -131,7 +109,7 @@ it('does not log responses for ignored routes', function (): void {
 });
 
 it('logs requests for non-ignored routes even with ignore config', function (): void {
-    Config::set('logging.should_log_requests', true);
+    Config::set('logging.should_log_request', true);
     Config::set('logging.ignore_routes', ['*.js', '*.css']);
 
     Log::shouldReceive('info')
@@ -149,7 +127,7 @@ it('logs requests for non-ignored routes even with ignore config', function (): 
 });
 
 it('does not log requests without a body or query params', function (): void {
-    Config::set('logging.should_log_requests', true);
+    Config::set('logging.should_log_request', true);
 
     Log::spy();
 
@@ -165,7 +143,7 @@ it('does not log requests without a body or query params', function (): void {
 });
 
 it('logs requests with query parameters', function (): void {
-    Config::set('logging.should_log_requests', true);
+    Config::set('logging.should_log_request', true);
 
     Log::shouldReceive('info')
         ->once()

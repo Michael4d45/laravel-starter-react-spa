@@ -62,8 +62,8 @@ format_sql_query() {
 
     # Check if pg_format is available
     if command -v pg_format &>/dev/null; then
-        # Use pg_format for proper SQL formatting
-        formatted_sql=$(echo "$sql" | pg_format -N - 2>/dev/null || echo "$sql")
+        # Use pg_format for proper SQL formatting, then remove statement number comments
+        formatted_sql=$(echo "$sql" | pg_format -N - 2>/dev/null | grep -v '^[[:space:]]*-- Statement #' || echo "$sql")
 
         # Check if pygmentize is available for syntax highlighting
         if command -v pygmentize &>/dev/null; then
@@ -119,6 +119,39 @@ format_log_entry() {
     # Main log line
     echo -e "${color}${symbol} [$level]${NC} ${time_only} ${channel:+($channel)} ${message}"
 
+    # Special handling for User log entries
+    if [ "$message" = "User" ]; then
+        local user_id=$(echo "$entry" | jq -r '.context.id // empty')
+        local user_name=$(echo "$entry" | jq -r '.context.name // empty')
+        local user_email=$(echo "$entry" | jq -r '.context.email // empty')
+        local is_guest=$(echo "$entry" | jq -r '.context.is_guest // false')
+        local is_admin=$(echo "$entry" | jq -r '.context.is_admin // false')
+
+        if [ -n "$user_id" ]; then
+            echo -e "  ${CYAN}┌─ 👤 User Information${NC}"
+            echo -e "  ${CYAN}│${NC}   ${GREEN}ID:${NC} $user_id"
+
+            if [ -n "$user_name" ] && [ "$user_name" != "null" ]; then
+                echo -e "  ${CYAN}│${NC}   ${GREEN}Name:${NC} $user_name"
+            fi
+
+            if [ -n "$user_email" ] && [ "$user_email" != "null" ]; then
+                echo -e "  ${CYAN}│${NC}   ${GREEN}Email:${NC} $user_email"
+            fi
+
+            # Show flags with appropriate colors
+            if [ "$is_guest" = "true" ] || [ "$is_guest" = "1" ]; then
+                echo -e "  ${CYAN}│${NC}   ${YELLOW}Guest:${NC} Yes"
+            fi
+
+            if [ "$is_admin" = "true" ] || [ "$is_admin" = "1" ]; then
+                echo -e "  ${CYAN}│${NC}   ${MAGENTA}Admin:${NC} Yes"
+            fi
+
+            echo -e "  ${CYAN}└─${NC}"
+        fi
+    fi
+
     # Request info if available
     if [ -n "$request_id" ]; then
         echo -e "  ${GREEN}Request:${NC} ${request_id:0:8} ${method} ${path} ${status:+→ $status} ${duration:+(${duration}ms)}"
@@ -128,6 +161,10 @@ format_log_entry() {
     local events_count=$(echo "$entry" | jq '.context.events | length' 2>/dev/null || echo "0")
     if [ "$events_count" -gt 0 ]; then
         echo -e "  ${BLUE}Timeline:${NC}"
+
+        # Initialize SQL query counter (using a temp file to persist across subshell)
+        local sql_counter_file=$(mktemp)
+        echo "0" > "$sql_counter_file"
 
         # Extract events as newline-separated JSON, sort by timestamp, then format
         echo "$entry" | jq -c '.context.events[]?' 2>/dev/null | \
@@ -156,8 +193,42 @@ format_log_entry() {
             esac
 
             if [ "$msg" = "sql" ] && [ -n "$sql" ]; then
+                # Increment SQL query counter (read, increment, write back)
+                sql_query_num=$(cat "$sql_counter_file")
+                sql_query_num=$((sql_query_num + 1))
+                echo "$sql_query_num" > "$sql_counter_file"
+
+                # Extract SQL metadata
+                execution_time=$(echo "$event_json" | jq -r '.context.execution_time // ""')
+                file_type=$(echo "$event_json" | jq -r '.context.file | type' 2>/dev/null || echo "string")
+                
                 # Format SQL query with syntax highlighting
-                echo -e "  ${event_color}┌─ ${time_formatted} [${level_display}] SQL Query${NC}"
+                echo -e "  ${event_color}┌─ ${time_formatted} [${level_display}] SQL Query #${sql_query_num}${NC}"
+                
+                # Display metadata
+                if [ -n "$execution_time" ] || [ "$file_type" != "null" ]; then
+                    echo -e "  ${event_color}│${NC}"
+                    if [ -n "$execution_time" ]; then
+                        echo -e "  ${event_color}│${NC}   ${GREEN}Execution Time:${NC} ${execution_time}"
+                    fi
+                    if [ "$file_type" != "null" ]; then
+                        if [ "$file_type" = "array" ]; then
+                            # Handle array of trace lines
+                            echo -e "  ${event_color}│${NC}   ${GREEN}File:${NC}"
+                            echo "$event_json" | jq -r '.context.file[]?' 2>/dev/null | while IFS= read -r trace_line; do
+                                if [ -n "$trace_line" ]; then
+                                    echo -e "  ${event_color}│${NC}      ${GRAY}${trace_line}${NC}"
+                                fi
+                            done
+                        else
+                            # Handle string (backward compatibility)
+                            file=$(echo "$event_json" | jq -r '.context.file // ""')
+                            if [ -n "$file" ]; then
+                                echo -e "  ${event_color}│${NC}   ${GREEN}File:${NC} ${file}"
+                            fi
+                        fi
+                    fi
+                fi
                 echo -e "  ${event_color}│${NC}"
 
                 # Format SQL with basic syntax highlighting
@@ -286,12 +357,47 @@ format_log_entry() {
                 fi
 
                 echo -e "  ${event_color}└─${NC} ${GRAY}($timestamp_full)${NC}"
+            elif [ "$msg" = "User" ]; then
+                # Special handling for User log entries
+                local user_id=$(echo "$event_json" | jq -r '.context.id // empty')
+                local user_name=$(echo "$event_json" | jq -r '.context.name // empty')
+                local user_email=$(echo "$event_json" | jq -r '.context.email // empty')
+                local is_guest=$(echo "$event_json" | jq -r '.context.is_guest // false')
+                local is_admin=$(echo "$event_json" | jq -r '.context.is_admin // false')
+
+                echo -e "  ${event_color}┌─ ${time_formatted} [${level_display}] 👤 $msg${NC}"
+
+                if [ -n "$user_id" ] && [ "$user_id" != "null" ]; then
+                    echo -e "  ${event_color}│${NC}   ${GREEN}ID:${NC} $user_id"
+
+                    if [ -n "$user_name" ] && [ "$user_name" != "null" ]; then
+                        echo -e "  ${event_color}│${NC}   ${GREEN}Name:${NC} $user_name"
+                    fi
+
+                    if [ -n "$user_email" ] && [ "$user_email" != "null" ]; then
+                        echo -e "  ${event_color}│${NC}   ${GREEN}Email:${NC} $user_email"
+                    fi
+
+                    # Show flags with appropriate colors
+                    if [ "$is_guest" = "true" ] || [ "$is_guest" = "1" ]; then
+                        echo -e "  ${event_color}│${NC}   ${YELLOW}Guest:${NC} Yes"
+                    fi
+
+                    if [ "$is_admin" = "true" ] || [ "$is_admin" = "1" ]; then
+                        echo -e "  ${event_color}│${NC}   ${MAGENTA}Admin:${NC} Yes"
+                    fi
+                fi
+
+                echo -e "  ${event_color}└─${NC} ${GRAY}($timestamp_full)${NC}"
             else
                 # Regular event
                 echo -e "  ${event_color}┌─ ${time_formatted} [${level_display}]${NC} $msg"
                 echo -e "  ${event_color}└─${NC} ${GRAY}($timestamp_full)${NC}"
             fi
         done
+        
+        # Clean up temp file
+        [ -f "$sql_counter_file" ] && rm -f "$sql_counter_file"
     fi
 
     # Show exception details if present

@@ -12,9 +12,9 @@ test('it can fetch the authenticated user', function () {
         'email' => 'john@example.com',
     ]);
 
-    $token = $user->createToken('test-token')->plainTextToken;
+    $this->actingAs($user);
 
-    $response = $this->withToken($token)->getJson('/api/user');
+    $response = $this->getJson('/api/user');
 
     $response->assertSuccessful();
     $response->assertJson([
@@ -24,22 +24,11 @@ test('it can fetch the authenticated user', function () {
     ]);
 });
 
-test('it returns unauthorized when no token is provided', function () {
+test('it returns unauthorized when not authenticated', function () {
     $response = $this->getJson('/api/user');
 
     $response->assertStatus(401);
     $response->assertJson([
-        '_tag' => 'AuthenticationError',
-        'message' => 'Unauthenticated.',
-    ]);
-});
-
-test('it returns unauthorized when an invalid token is provided', function () {
-    $response = $this->withToken('invalid-token')->getJson('/api/user');
-
-    $response->assertStatus(401);
-    $response->assertJson([
-        '_tag' => 'AuthenticationError',
         'message' => 'Unauthenticated.',
     ]);
 });

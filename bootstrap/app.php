@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\LogRequests;
 use App\Http\Middleware\LogResponses;
 use Illuminate\Auth\AuthenticationException;
@@ -26,9 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(LogRequests::class);
         $middleware->append(LogResponses::class);
 
-        $middleware->encryptCookies(except: [
-            'oauth_token_handoff',
+        $middleware->alias([
+            'admin' => AdminMiddleware::class,
         ]);
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (ValidationException $e) {
@@ -36,41 +38,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 Log::warning('Validation error occurred', [
                     'errors' => $e->errors(),
                 ]);
-            }
-        });
-        $exceptions->render(function (Exception $e, $request) {
-            if ($request->expectsJson()) {
-                $body = [
-                    '_tag' => 'FatalError',
-                    'message' => $e->getMessage(),
-                ];
-                $status = 500;
-                if (method_exists($e, 'getStatusCode')) {
-                    $status = $e->getStatusCode();
-                }
-                if ($e instanceof AuthenticationException) {
-                    $body['_tag'] = 'AuthenticationError';
-                    $status = 401;
-                } else if ($e instanceof ValidationException) {
-                    $body['_tag'] = 'ValidationError';
-                    $body['errors'] = $e->errors();
-                    $status = 422;
-                } else if ($e instanceof HttpException) {
-                    $body['_tag'] = 'HttpError';
-                    switch ($status) {
-                        case 419:
-                            $body['_tag'] = 'CsrfTokenExpiredError';
-                            break;
-                        case 429:
-                            $body['_tag'] = 'TooManyAttemptsError';
-                            break;
-                        case 404:
-                            $body['_tag'] = 'NotFoundError';
-                            break;
-                        default:
-                    }
-                }
-                return response()->json($body, $status);
             }
         });
     })

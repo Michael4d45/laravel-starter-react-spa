@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Auth;
 
-use App\Data\Response\MessageResponse;
 use Illuminate\Http\Request;
-use Laravel\Sanctum\PersonalAccessToken;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class Logout
@@ -16,16 +15,11 @@ class Logout
      */
     public function __invoke(Request $request): Response
     {
-        $user = $request->user();
+        Auth::guard('web')->logout();
 
-        // Delete the current Sanctum token
-        $token = $user?->currentAccessToken();
-        if ($token instanceof PersonalAccessToken) {
-            $token->delete();
-        }
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return response()->json(MessageResponse::from([
-            'message' => 'Logged out successfully',
-        ]));
+        return response()->json(['message' => 'Logged out successfully']);
     }
 }

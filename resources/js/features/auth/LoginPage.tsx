@@ -2,8 +2,8 @@ import { Button } from '@/components/ui/Button';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 type ValidationErrors = Record<string, readonly string[]>;
 
@@ -15,7 +15,8 @@ export function LoginPage() {
     const { login, googleLogin, isLoading } = useAuth();
 
     const { isBlocked, blockReason } = useOfflineBlock();
-    const navigate = useNavigate();
+
+    const rememberRef = useRef<HTMLInputElement>(null);
 
     const getFieldError = (fieldName: string): string | null => {
         return validationErrors[fieldName]?.[0] || null;
@@ -42,12 +43,8 @@ export function LoginPage() {
             password: passwordValue,
             remember: rememberValue,
         });
-        if (result._tag === 'Success') {
-            navigate('/');
-        } else if (result._tag === 'ValidationError') {
+        if (result._tag === 'ValidationError') {
             setValidationErrors(result.errors);
-        } else {
-            alert(result.message);
         }
     };
 
@@ -125,6 +122,7 @@ export function LoginPage() {
                             defaultChecked={false}
                             className="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300"
                             disabled={isBlocked}
+                            ref={rememberRef}
                         />
                         <label
                             htmlFor="remember"
@@ -144,6 +142,7 @@ export function LoginPage() {
                     </div>
 
                     <Button
+                        data-test="login"
                         type="submit"
                         className="w-full"
                         disabled={isLoading || isBlocked}
@@ -168,7 +167,9 @@ export function LoginPage() {
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => googleLogin()}
+                            onClick={() =>
+                                googleLogin(false, rememberRef.current?.checked)
+                            }
                             className="flex w-full items-center justify-center gap-2"
                             disabled={isLoading || isBlocked}
                         >

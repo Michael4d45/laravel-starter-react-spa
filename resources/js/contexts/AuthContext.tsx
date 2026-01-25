@@ -1,7 +1,6 @@
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { ApiClient } from '@/lib/apiClient';
 import { authManager, AuthState } from '@/lib/auth';
-import { refreshBroadcasting } from '@/lib/echo';
 import { UserData } from '@/schemas/App/Data/Models';
 import { LoginRequest, RegisterRequest } from '@/schemas/App/Data/Requests';
 import {
@@ -13,16 +12,22 @@ import {
     useState,
 } from 'react';
 import toast from 'react-hot-toast';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
+
+export interface AuthContextState {
+    hasFetchedUser: boolean;
+    isAuthenticated: boolean;
+    user: UserData | null;
+}
 
 interface AuthContextType {
-    authState: AuthState;
+    authState: AuthContextState;
     user: UserData | null;
     login: typeof ApiClient.login;
     register: typeof ApiClient.register;
     logout: () => Promise<void>;
-    googleLogin: (forceConsent?: boolean) => void;
-    disconnectGoogle: () => Promise<void>;
+    googleLogin: (reconnect?: boolean, remember?: boolean) => Promise<void>;
+    disconnectGoogle: typeof ApiClient.disconnectGoogle;
     isLoading: boolean;
 }
 
@@ -33,169 +38,75 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-    const [authState, setAuthState] = useState<AuthState>(
-        authManager.getAuthState(),
-    );
+    const [authState, setAuthState] = useState<
+        AuthState & {
+            hasFetchedUser: boolean;
+        }
+    >({ ...authManager.getAuthState(), hasFetchedUser: false });
     const [isLoading, setIsLoading] = useState(false);
-    const processingAuthCallback = useRef(false);
     const hasMounted = useRef(false);
     const isOnline = useOnlineStatus();
+    const isFetchingUser = useRef(false);
 
     // Provide the current user directly for easier consumption and reactivity
     const user = authState.user;
 
+    const handleSetAuthState = (state: AuthState) => {
+        console.log('[AuthContext] Auth state changed:', state);
+        setAuthState({ ...state, hasFetchedUser: true });
+    };
+
+    const getUser = async () => {
+        if (isFetchingUser.current) return;
+        isFetchingUser.current = true;
+
+        const result = await ApiClient.showUser();
+        if (result._tag === 'Success') {
+            authManager.setUser(result.data);
+            console.log('[AuthContext] Fetched user data');
+        }
+
+        isFetchingUser.current = false;
+        return result;
+    };
+
     useEffect(() => {
-        // Avoid flapping the WS connection during initial boot.
-        // We still refresh whenever the token *changes* (login/logout/rotate).
+        // Avoid flapping during initial boot.
+        // Real-time connections are now handled by individual hooks when user changes
         if (!hasMounted.current) {
             hasMounted.current = true;
             return;
         }
-
-        refreshBroadcasting();
-    }, [authState.token]);
+    }, [authState.isAuthenticated]);
 
     useEffect(() => {
-        // Subscribe to auth state changes
-        const unsubscribe = authManager.subscribe(setAuthState);
-
-        // Handle OAuth callback redirects and check for session auth
-        const handleAuthInit = async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const authParam = urlParams.get('auth');
-            const tokenParam = urlParams.get('token');
-            const messageParam = urlParams.get('message');
-
-            if (processingAuthCallback.current) {
-                return;
-            }
-
-            // Handle OAuth callbacks
-            if (authParam === 'success' || authParam === 'connected') {
-                processingAuthCallback.current = true;
-
-                if (tokenParam) {
-                    // Use token from URL for stateless handoff
-                    try {
-                        // Reset clients to ensure they pick up the new token
-                        authManager.clearAuthData();
-                        localStorage.setItem('auth_token', tokenParam);
-
-                        // Fetch user data using the new token to ensure it's valid and get full user model
-                        const result = await ApiClient.showUser();
-
-                        if (result._tag === 'Success') {
-                            const user = result.data;
-                            authManager.setAuthData(tokenParam, user);
-                            setAuthState({
-                                token: tokenParam,
-                                user,
-                                isAuthenticated: true,
-                            });
-                            toast.success(
-                                authParam === 'success'
-                                    ? 'Successfully signed in with Google!'
-                                    : 'Google account connected successfully!',
-                            );
-                        } else {
-                            localStorage.removeItem('auth_token');
-                            toast.error('Failed to validate OAuth token.');
-                        }
-                    } catch (error) {
-                        localStorage.removeItem('auth_token');
-                        toast.error('Error during OAuth initialization.');
-                    }
-                } else {
-                    // Fallback to session-based token retrieval (legacy/bridge)
-                    const result = await ApiClient.fetchOAuthToken();
-
-                    if (result._tag === 'Success') {
-                        const { token, user } = result.data;
-                        authManager.setAuthData(token, user);
-                        setAuthState({ token, user, isAuthenticated: true });
-                        toast.success(
-                            authParam === 'success'
-                                ? 'Successfully signed in with Google!'
-                                : 'Google account connected successfully!',
-                        );
-                    } else {
-                        console.error(
-                            'Failed to retrieve OAuth token:',
-                            result,
-                        );
-                        toast.error(
-                            'Authentication completed but failed to retrieve session.',
-                        );
-                    }
-                }
-                window.history.replaceState({}, '', window.location.pathname);
-                return;
-            }
-
-            if (authParam === 'error' && messageParam) {
-                toast.error(decodeURIComponent(messageParam));
-                window.history.replaceState({}, '', window.location.pathname);
-                return;
-            }
-
-            // No OAuth callback - check if we need to validate existing JWT token
-            const existingToken = authManager.getToken();
-
-            if (!existingToken) {
-                // Try to restore auth from server session (useful for tests with actingAs)
-                // This silently fails for unauthenticated users - that's expected
-                processingAuthCallback.current = true;
-                try {
-                    const result = await ApiClient.fetchSessionToken();
-                    if (result._tag === 'Success') {
-                        authManager.setAuthData(
-                            result.data.token,
-                            result.data.user,
-                        );
-                    }
-                    // Silently ignore errors - user simply isn't logged in
-                } catch {
-                    // Silently ignore - user isn't logged in via session
-                }
-                processingAuthCallback.current = false;
-            } else {
-                // Validate existing JWT token with backend when online
-                if (isOnline) {
-                    processingAuthCallback.current = true;
-                    try {
-                        const result = await ApiClient.showUser();
-                        if (result._tag === 'Success') {
-                            // Token is valid, update user data in case it changed
-                            // Use getToken() to get potentially rotated token from the API call
-                            const currentToken = authManager.getToken();
-                            if (currentToken) {
-                                authManager.setAuthData(
-                                    currentToken,
-                                    result.data,
-                                );
-                            }
-                        } else {
-                            authManager.clearAuthData();
-                        }
-                    } catch (error) {
-                        authManager.clearAuthData();
-                    }
-                    processingAuthCallback.current = false;
-                }
-                // If offline, skip validation and keep existing token
-            }
-        };
-        handleAuthInit();
-
+        const unsubscribe = authManager.subscribe(handleSetAuthState);
+        const urlParams = new URLSearchParams(window.location.search);
+        const auth = urlParams.get('auth');
+        if (auth === 'success') {
+            toast.success('Logged in successfully');
+        } else if (auth === 'error') {
+            const message =
+                urlParams.get('message') ||
+                'An error occurred during authentication';
+            toast.error(message);
+        }
+        // Clean up URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('auth');
+        url.searchParams.delete('message');
+        window.history.replaceState({}, document.title, url.toString());
+        if (isOnline) getUser();
         return unsubscribe;
-    }, []);
+    }, [isOnline]);
 
     const login = async (credentials: LoginRequest) => {
         setIsLoading(true);
+
         const result = await ApiClient.login(credentials);
         if (result._tag === 'Success') {
-            authManager.setAuthData(result.data.token, result.data.user);
-            toast.success('Login successful!');
+            // Fetch user after successful login
+            await getUser();
         }
         setIsLoading(false);
         return result;
@@ -203,10 +114,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const register = async (data: RegisterRequest) => {
         setIsLoading(true);
+
         const result = await ApiClient.register(data);
         if (result._tag === 'Success') {
-            authManager.setAuthData(result.data.token, result.data.user);
-            toast.success('Account created successfully!');
+            // Fetch user after successful register
+            await getUser();
         }
         setIsLoading(false);
         return result;
@@ -214,7 +126,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const logout = async () => {
         try {
-            // Call backend logout endpoint to invalidate server-side session/token
+            // Call backend logout endpoint to invalidate server-side session
             await ApiClient.logout();
         } catch (error) {
             // Silently ignore logout errors
@@ -223,27 +135,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Clear client-side authentication data
         authManager.clearAuthData();
+
         toast.success('Logged out successfully');
     };
 
-    const googleLogin = (forceConsent = false) => {
-        ApiClient.googleLogin(forceConsent);
+    const googleLogin = async (reconnect?: boolean) => {
+        // Redirect to Google OAuth
+        window.location.href = `/auth/google${reconnect ? '?reconnect=1' : ''}`;
     };
 
     const disconnectGoogle = async () => {
-        setIsLoading(true);
         const result = await ApiClient.disconnectGoogle();
         if (result._tag === 'Success') {
-            // Update user data with the fresh data from the server
-            const token = authManager.getToken();
-            if (token) {
-                authManager.setAuthData(token, result.data.user);
-            }
-            toast.success('Google account disconnected successfully!');
-        } else {
-            toast.error('Failed to disconnect Google account');
+            // Update user data after disconnecting Google
+            authManager.setUser(result.data.user);
+            toast.success(result.data.message);
         }
-        setIsLoading(false);
+        return result;
     };
 
     const value: AuthContextType = {
@@ -276,13 +184,46 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     const navigate = useNavigate();
     const location = useLocation();
 
+    const isOnAuthPage =
+        location.pathname === '/login' ||
+        location.pathname === '/register' ||
+        location.pathname === '/forgot-password' ||
+        location.pathname.startsWith('/reset-password');
+
     useEffect(() => {
-        const isOnAuthPage =
-            location.pathname === '/login' || location.pathname === '/register';
+        if (!authState.hasFetchedUser) return;
+
         if (authState.isAuthenticated && isOnAuthPage) {
             navigate('/', { replace: true });
         }
-    }, [authState.isAuthenticated, location.pathname, navigate]);
+
+        if (
+            !authState.isAuthenticated &&
+            !isOnAuthPage &&
+            location.pathname !== '/'
+        ) {
+            navigate('/login', { replace: true });
+        }
+    }, [
+        authState.isAuthenticated,
+        authState.hasFetchedUser,
+        isOnAuthPage,
+        location.pathname,
+        navigate,
+    ]);
+
+    if (!authState.hasFetchedUser) {
+        return null; // or a spinner
+    }
+
+    if (
+        (authState.isAuthenticated && isOnAuthPage) ||
+        (!authState.isAuthenticated &&
+            !isOnAuthPage &&
+            location.pathname !== '/')
+    ) {
+        return null;
+    }
 
     return <>{children}</>;
 }

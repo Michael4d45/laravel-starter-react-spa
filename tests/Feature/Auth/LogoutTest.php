@@ -4,39 +4,16 @@ declare(strict_types=1);
 
 use App\Models\User;
 
-it('can logout with personal access token', function () {
+it('can logout when authenticated', function () {
     $user = User::factory()->create();
 
-    // Create a personal access token
-    $token = $user->createToken('test-token')->plainTextToken;
+    $this->actingAs($user);
 
-    $response = $this->withToken($token)->postJson('/api/logout');
+    $response = $this->postJson('/api/logout');
 
-    $response
-        ->assertSuccessful()
-        ->assertJson(['message' => 'Logged out successfully']);
-
-    // Verify token was deleted
-    $this->assertDatabaseMissing('personal_access_tokens', [
-        'name' => 'test-token',
-        'tokenable_id' => $user->id,
+    assert_status($response, 200)->assertJson([
+        'message' => 'Logged out successfully',
     ]);
-});
-
-it('can logout with transient token', function () {
-    $user = User::factory()->create();
-
-    // Create a transient token (simulating SPA authentication)
-    // Note: Transient tokens are created differently - they don't persist
-    $token = $user->createToken('test-token');
-
-    $response = $this->withToken($token->plainTextToken)->postJson(
-        '/api/logout',
-    );
-
-    $response
-        ->assertSuccessful()
-        ->assertJson(['message' => 'Logged out successfully']);
 });
 
 it('returns unauthorized when not authenticated', function () {

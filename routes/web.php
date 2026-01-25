@@ -1,12 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+declare(strict_types=1);
 
-Route::prefix('auth')
-    ->withoutMiddleware(['web'])
-    ->group(function () {
-        require __DIR__ . '/oauth-spa.php';
-    });
+use Illuminate\Support\Facades\Route;
 
 Route::get(
     'verify-email/{id}/{hash}',
@@ -18,9 +14,21 @@ Route::get('reset-password/{email}/{token}', fn() => view('app'))->middleware([
     'throttle:6,1',
 ])->name('password.reset');
 
+Route::post('login', \App\Actions\Auth\Login::class);
+Route::post('register', \App\Actions\Auth\Register::class);
+
+// Google OAuth routes
+Route::get('auth/google', \App\Actions\Auth\RedirectToGoogle::class)->name(
+    'auth.google',
+);
+Route::get(
+    'auth/google/callback',
+    \App\Actions\Auth\HandleGoogleCallback::class,
+)->name('auth.google.callback');
+
 Route::get('login', fn() => view('app'))->name('login');
 
 Route::get('{any?}', fn() => view('app'))->where(
     'any',
-    '^(?!api|storage|admin).*$',
+    '^(?!api|storage).*$',
 )->name('home');

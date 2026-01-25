@@ -94,6 +94,34 @@ class LoggingHelper
     }
 
     /**
+     * Mask sensitive cookies in a cookies array.
+     */
+    /**
+     * @param array<string, mixed> $cookies
+     * @return array<string, mixed>
+     */
+    public static function maskCookies(array $cookies): array
+    {
+        $maskedCookies = config()->array('logging.masked_cookies', []);
+        $maskedCookies = array_map('strtolower', array_filter(
+            $maskedCookies,
+            'is_string',
+        ));
+
+        $masked = [];
+        foreach ($cookies as $name => $value) {
+            $lowerName = strtolower($name);
+            if (in_array($lowerName, $maskedCookies, true)) {
+                $masked[$name] = self::MASK_VALUE;
+            } else {
+                $masked[$name] = $value;
+            }
+        }
+
+        return $masked;
+    }
+
+    /**
      * Check if a field should be masked based on the configured patterns.
      *
      * @param array<array-key, mixed> $maskedFields

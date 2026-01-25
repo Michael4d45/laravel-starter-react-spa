@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Auth;
 
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -15,86 +13,34 @@ use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
+//TODO: account for $user->is_guest.
 class HandleGoogleCallback
 {
-    private const STATE_MAX_AGE_SECONDS = 300;
-
-    function __invoke(Request $request): RedirectResponse
+    function __invoke(): RedirectResponse
     {
-        $wasAuthenticated = Auth::check();
-
         /** @var User|null $currentUser */
         $currentUser = Auth::user();
-        $isGuest = $currentUser instanceof User && $currentUser->is_guest;
-
-        /** @var User|null $intendedUser */
-        $intendedUser = null;
-
-        // Decrypt and validate the signed state parameter
-        $state = $request->query('state');
-        if (is_string($state)) {
-            try {
-                $decryptedState = Crypt::decryptString($state);
-                $stateData = json_decode($decryptedState, true);
-
-                // Validate state timestamp to prevent replay attacks
-                if (is_array($stateData)) {
-                    $timestamp = isset($stateData['timestamp'])
-                    && is_int($stateData['timestamp'])
-                        ? $stateData['timestamp']
-                        : 0;
-                    $userId = $stateData['user_id'] ?? null;
-                    $currentTimestamp = (int) now()->timestamp;
-
-                    if (
-                        ($currentTimestamp - $timestamp)
-                        < self::STATE_MAX_AGE_SECONDS
-                    ) {
-                        if (is_string($userId)) {
-                            $intendedUser = User::find($userId);
-                        }
-                    } else {
-                        Log::warning('OAuth state expired or invalid', [
-                            'timestamp' => $timestamp,
-                            'now' => now()->timestamp,
-                        ]);
-                    }
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Failed to decrypt OAuth state', [
-                    'error' => $e->getMessage(),
-                ]);
-
-                // Continue without intended user - this is not fatal
-            }
-        }
+        $wasAuthenticated = $currentUser instanceof User;
 
         try {
             /** @var \Laravel\Socialite\Two\GoogleProvider $driver */
-            // @phpstan-ignore method.notFound
-            $driver = Socialite::driver('google')->stateless();
+            $driver = Socialite::driver('google');
 
-            /** @var SocialiteUser $googleUser */
             $googleUser = $driver->user();
-
-            /** @var string $googleId */
             $googleId = $googleUser->getId();
-            /** @var string|null $email */
             $email = $googleUser->getEmail();
 
             if (!$email) {
                 return $this->rejectMissingEmail($wasAuthenticated);
             }
 
-            // Determine the user and redirect path
+            // Determine the user
             $user = $this->resolveUser(
                 googleId: $googleId,
                 email: $email,
                 googleUser: $googleUser,
-                intendedUser: $intendedUser,
                 currentUser: $currentUser,
                 wasAuthenticated: $wasAuthenticated,
-                isGuest: $isGuest,
             );
 
             if ($user instanceof RedirectResponse) {
@@ -102,49 +48,23 @@ class HandleGoogleCallback
                 return $user;
             }
 
-            // Create a Sanctum token for the user
-            $token = $user->createToken('api-token')->plainTextToken;
+            $remember = session()->pull('auth.google.remember', false);
+            if (!is_bool($remember)) {
+                $remember = false;
+            }
+            // Log the user in
+            Auth::login($user, $remember);
 
-            // Set an HttpOnly cookie for a secure, stateless handoff
-            // This avoids putting the token in the URL or using a full PHP session.
-            $cookie = cookie(
-                'oauth_token_handoff',
-                $token,
-                5, // 5 minutes is plenty for the SPA to fetch it
-                '/',
-                null,
-                $request->isSecure(), // Only secure if on HTTPS
-                true, // HttpOnly
-                false,
-                'Lax',
-            );
-
-            // Redirect without sensitive data in URL
-            $redirectPath = $intendedUser !== null ? '/profile' : '/';
-            $authStatus = $intendedUser !== null ? 'connected' : 'success';
-
-            return redirect($redirectPath . '?auth=' . $authStatus)->withCookie(
-                $cookie,
+            return redirect(
+                ($wasAuthenticated ? '/profile' : '/') . '?auth=success',
             );
         } catch (\Throwable $e) {
-            $errorUserId = match (true) {
-                $currentUser instanceof User => $currentUser->id,
-                $intendedUser instanceof User => $intendedUser->id,
-                default => null,
-            };
-
-            Log::error('Google OAuth Error', [
+            Log::error('Google Error', [
                 'error' => $e->getMessage(),
-                'user_id' => $errorUserId,
             ]);
 
             $redirectPath = $wasAuthenticated ? '/profile' : '/login';
-            return redirect(
-                $redirectPath . '?auth=error&message='
-                    . urlencode(
-                        'Google authentication failed. Please try again.',
-                    ),
-            );
+            return redirect($redirectPath);
         }
     }
 
@@ -157,123 +77,53 @@ class HandleGoogleCallback
         string $googleId,
         string $email,
         SocialiteUser $googleUser,
-        null|User $intendedUser,
         null|User $currentUser,
         bool $wasAuthenticated,
-        bool $isGuest,
     ): User|RedirectResponse {
         // Step 1: Check if Google account is already linked to a user
         $googleAccountUser = User::where('google_id', $googleId)->first();
 
         if ($googleAccountUser instanceof User) {
-            // Handle account transfer if intended user differs
-            if (
-                $intendedUser instanceof User
-                && $intendedUser->id !== $googleAccountUser->id
-            ) {
-                return $this->transferGoogleAccount(
-                    $googleAccountUser,
-                    $intendedUser,
-                    $googleId,
-                    $email,
-                    $googleUser,
-                );
-            }
-
-            // Reject if logged in as different non-guest user
+            // Reject if logged in as different user
             if (
                 $wasAuthenticated
-                && !$isGuest
                 && $currentUser instanceof User
                 && $currentUser->id !== $googleAccountUser->id
-                && (
-                    !$intendedUser instanceof User
-                    || $intendedUser->id !== $googleAccountUser->id
-                )
             ) {
                 return $this->rejectGoogleAlreadyLinked();
-            }
-
-            // Merge guest data if upgrading
-            if (
-                $isGuest
-                && $currentUser instanceof User
-                && $currentUser->id !== $googleAccountUser->id
-            ) {
-                User::mergeGuestData($currentUser, $googleAccountUser);
             }
 
             return $googleAccountUser;
         }
 
-        // Step 2: Link Google to intended user (from state)
-        if ($intendedUser instanceof User) {
-            if (
-                $intendedUser->google_id
-                && $intendedUser->google_id !== $googleId
-            ) {
-                return $this->rejectGoogleAlreadyLinked();
-            }
-
-            $emailToUse = $intendedUser->email ?? $email;
-
-            $name = $googleUser->getName() ?? $intendedUser->name;
-            assert(is_string($name), 'User name must be a string');
-            $intendedUser->update([
-                'name' => Str::limit($name, 255),
-                'email' => $emailToUse,
-                'verified_google_email' => $email,
-                'google_id' => $googleId,
-                'email_verified_at' =>
-                    $intendedUser->email_verified_at
-                    ?? ($emailToUse === $email ? now() : null),
-                'is_guest' => false,
-            ]);
-
-            return $intendedUser;
-        }
-
-        // Step 3: Check if email matches existing user
+        // Step 2: Check if email matches existing user
         $emailUser = User::where('email', $email)->first();
 
         if ($emailUser instanceof User) {
             if (
                 $wasAuthenticated
-                && !$isGuest
                 && $currentUser instanceof User
                 && $currentUser->id !== $emailUser->id
             ) {
                 return $this->rejectEmailMismatch();
             }
 
-            if (
-                $wasAuthenticated
-                && $isGuest
-                && $currentUser instanceof User
-                && $currentUser->id !== $emailUser->id
-            ) {
-                User::mergeGuestData($currentUser, $emailUser);
-            }
-
             $name = $googleUser->getName() ?? $emailUser->name;
-            assert(is_string($name), 'User name must be a string');
             $emailUser->update([
                 'name' => Str::limit($name, 255),
                 'google_id' => $googleId,
                 'verified_google_email' => $email,
                 'email_verified_at' => $emailUser->email_verified_at ?? now(),
-                'is_guest' => false,
             ]);
 
             return $emailUser;
         }
 
-        // Step 4: Link to current authenticated user
+        // Step 3: Link to current authenticated user
         if ($wasAuthenticated && $currentUser instanceof User) {
             $emailToUse = $currentUser->email ?? $email;
 
             $name = $googleUser->getName() ?? $currentUser->name;
-            assert(is_string($name), 'User name must be a string');
             $currentUser->update([
                 'name' => Str::limit($name, 255),
                 'email' => $emailToUse,
@@ -281,14 +131,13 @@ class HandleGoogleCallback
                 'verified_google_email' => $email,
                 'email_verified_at' =>
                     $currentUser->email_verified_at
-                    ?? ($emailToUse === $email ? now() : null),
-                'is_guest' => false,
+                        ?? ($emailToUse === $email ? now() : null),
             ]);
 
             return $currentUser;
         }
 
-        // Step 5: Create new user
+        // Step 4: Create new user
         $name = $googleUser->getName();
         assert(is_string($name), 'User name must be a string');
         return User::create([
@@ -298,38 +147,7 @@ class HandleGoogleCallback
             'google_id' => $googleId,
             'verified_google_email' => $email,
             'email_verified_at' => now(),
-            'is_guest' => false,
         ]);
-    }
-
-    /**
-     * Transfer Google account from one user to another.
-     */
-    private function transferGoogleAccount(
-        User $fromUser,
-        User $toUser,
-        string $googleId,
-        string $email,
-        SocialiteUser $googleUser,
-    ): User {
-        $fromUser->update(['google_id' => null]);
-
-        $emailToUse = $toUser->email ?? $email;
-
-        $name = $googleUser->getName() ?? $toUser->name;
-        assert(is_string($name), 'User name must be a string');
-        $toUser->update([
-            'name' => Str::limit($name, 255),
-            'email' => $emailToUse,
-            'verified_google_email' => $email,
-            'google_id' => $googleId,
-            'email_verified_at' =>
-                $toUser->email_verified_at
-                ?? ($emailToUse === $email ? now() : null),
-            'is_guest' => false,
-        ]);
-
-        return $toUser;
     }
 
     private function rejectMissingEmail(bool $authenticated): RedirectResponse

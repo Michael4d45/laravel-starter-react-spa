@@ -48,34 +48,20 @@ class PresenceConnectionsWidget extends Widget
      */
     private function fetchPresenceUserIds(string $channel): array
     {
-        $appConfig = config('reverb.apps.apps.0');
-        $appId = is_array($appConfig) ? $appConfig['app_id'] ?? null : null;
-        $appKey = is_array($appConfig) ? $appConfig['key'] ?? null : null;
-        $appSecret = is_array($appConfig) ? $appConfig['secret'] ?? null : null;
+        $appId = config()->string('reverb.apps.apps.0.app_id');
+        $appKey = config()->string('reverb.apps.apps.0.key');
+        $appSecret = config()->string('reverb.apps.apps.0.secret');
 
-        if (
-            !is_string($appId)
-            || !is_string($appKey)
-            || !is_string($appSecret)
-        ) {
-            throw new \RuntimeException('Missing Reverb app credentials.');
-        }
-
-        $serverName = config('reverb.default', 'reverb');
-        $serverName = is_string($serverName) ? $serverName : 'reverb';
-        $serverConfig = config("reverb.servers.{$serverName}");
-        $host = is_array($serverConfig)
-            ? $serverConfig['host'] ?? '127.0.0.1'
-            : '127.0.0.1';
-        $host = is_string($host) ? $host : '127.0.0.1';
-        $portValue = is_array($serverConfig)
-            ? $serverConfig['port'] ?? 8080
-            : 8080;
-        $port = is_numeric($portValue) ? (int) $portValue : 8080;
-        $options = is_array($appConfig) ? $appConfig['options'] ?? [] : [];
-        $scheme = is_array($options) && is_string($options['scheme'] ?? null)
-            ? $options['scheme']
-            : 'http';
+        $serverName = config()->string('reverb.default', 'reverb');
+        $host = config()->string(
+            "reverb.servers.{$serverName}.host",
+            '127.0.0.1',
+        );
+        $port = config()->integer("reverb.servers.{$serverName}.port", 8080);
+        $scheme = config()->string(
+            "reverb.servers.{$serverName}.options.scheme",
+            'http',
+        );
 
         if ($host === '0.0.0.0') {
             $host = '127.0.0.1';
@@ -94,7 +80,7 @@ class PresenceConnectionsWidget extends Widget
 
         $url = sprintf('%s://%s:%d%s', $scheme, $host, $port, $path);
 
-        $response = Http::timeout(3)->get($url, $query);
+        $response = Http::get($url, $query);
 
         return $this->parseUserIds($response);
     }

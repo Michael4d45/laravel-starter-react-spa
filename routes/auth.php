@@ -1,19 +1,8 @@
 <?php
 
-use App\Http\Middleware\RefreshSanctumToken;
+declare(strict_types=1);
+
 use Illuminate\Support\Facades\Route;
-
-Route::get('token', \App\Actions\Auth\CreateToken::class)->middleware('web');
-
-// Retrieve OAuth token after successful callback (Stateless handoff via HttpOnly cookie)
-Route::get('oauth-token', \App\Actions\Auth\GetOAuthToken::class)->middleware([
-    \Illuminate\Cookie\Middleware\EncryptCookies::class,
-    \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-]);
-
-// Login and register are now purely token-based and don't create web sessions
-Route::post('login', \App\Actions\Auth\Login::class);
-Route::post('register', \App\Actions\Auth\Register::class);
 
 // Password reset endpoints with rate limiting to prevent abuse
 Route::middleware('throttle:5,1')->group(function () {
@@ -25,11 +14,10 @@ Route::middleware('throttle:5,1')->group(function () {
 });
 
 Route::middleware([
-    RefreshSanctumToken::class,
+    'web',
     'auth:sanctum',
 ])->group(function () {
     Route::get('user', \App\Actions\Auth\ShowUser::class);
-
     Route::post('logout', \App\Actions\Auth\Logout::class);
     Route::post('confirm-password', \App\Actions\Auth\ConfirmPassword::class);
     Route::post('update-password', \App\Actions\Auth\UpdatePassword::class);
@@ -44,8 +32,4 @@ Route::middleware([
         'broadcasting/auth',
         App\Actions\Broadcasting\AuthenticateBroadcasting::class,
     );
-
-    // Token management endpoints
-    Route::get('tokens', App\Actions\Auth\ListTokens::class);
-    Route::delete('tokens/{tokenId}', App\Actions\Auth\DeleteToken::class);
 });

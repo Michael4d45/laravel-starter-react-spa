@@ -12,6 +12,8 @@ class RecentStatsWidget extends BaseWidget
 {
     protected string|null $heading = 'Recent Stats';
 
+    protected null|string $pollingInterval = '60s';
+
     protected function getStats(): array
     {
         return [

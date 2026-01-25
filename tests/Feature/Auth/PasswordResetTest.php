@@ -26,11 +26,7 @@ describe('Send Password Reset Link', function () {
             'email' => 'test@example.com',
         ]);
 
-        $response
-            ->assertOk()
-            ->assertJson([
-                '_tag' => 'Success',
-            ]);
+        $response->assertOk();
 
         // Verify notification was sent
         Notification::assertSentTo($user, ResetPasswordNotification::class);
@@ -52,7 +48,6 @@ describe('Send Password Reset Link', function () {
         $response
             ->assertOk()
             ->assertJson([
-                '_tag' => 'Success',
                 'message' => 'If an account exists with that email, a password reset link has been sent.',
             ]);
 
@@ -143,11 +138,7 @@ describe('Reset Password', function () {
             'password_confirmation' => 'new-password123',
         ]);
 
-        $response
-            ->assertOk()
-            ->assertJson([
-                '_tag' => 'Success',
-            ]);
+        $response->assertOk();
 
         // Verify password was changed
         $user->refresh();
@@ -162,36 +153,6 @@ describe('Reset Password', function () {
         ]);
     });
 
-    test('revokes all user tokens after password reset', function () {
-        $user = User::factory()->create();
-
-        // Create some API tokens
-        $token1 = $user->createToken('token1')->plainTextToken;
-        $token2 = $user->createToken('token2')->plainTextToken;
-
-        $this->assertEquals(2, $user->tokens()->count());
-
-        // Reset password
-        $resetToken = app('auth.password.broker')->createToken($user);
-
-        $this->postJson('/api/reset-password', [
-            'token' => $resetToken,
-            'email' => $user->email,
-            'password' => 'new-password123',
-            'password_confirmation' => 'new-password123',
-        ]);
-
-        // Verify all tokens were revoked
-        $user->refresh();
-        $this->assertEquals(0, $user->tokens()->count());
-
-        // Verify old tokens don't work
-        $response = $this->getJson('/api/user', [
-            'Authorization' => 'Bearer ' . $token1,
-        ]);
-        $response->assertStatus(401);
-    });
-
     test('rejects invalid token', function () {
         $user = User::factory()->create();
 
@@ -202,11 +163,7 @@ describe('Reset Password', function () {
             'password_confirmation' => 'new-password123',
         ]);
 
-        $response
-            ->assertStatus(422)
-            ->assertJson([
-                '_tag' => 'ValidationError',
-            ]);
+        $response->assertStatus(422);
 
         // Verify password was not changed
         $user->refresh();
@@ -234,11 +191,7 @@ describe('Reset Password', function () {
             'password_confirmation' => 'new-password123',
         ]);
 
-        $response
-            ->assertStatus(422)
-            ->assertJson([
-                '_tag' => 'ValidationError',
-            ]);
+        $response->assertStatus(422);
 
         // Verify the token check failed (expected behavior - token is rejected)
         expect($response->json('message'))->toContain('password reset token');
@@ -269,7 +222,6 @@ describe('Reset Password', function () {
         $response
             ->assertStatus(422)
             ->assertJson([
-                '_tag' => 'ValidationError',
                 'message' => 'This password reset token is invalid.',
             ]);
 
@@ -328,7 +280,6 @@ describe('Reset Password', function () {
         $response
             ->assertStatus(422)
             ->assertJson([
-                '_tag' => 'ValidationError',
                 'message' => 'This password reset token is invalid.',
             ]);
     });

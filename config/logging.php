@@ -94,9 +94,9 @@ return [
                 'port' => env('PAPERTRAIL_PORT'),
                 'connectionString' =>
                     'tls://'
-                    . env('PAPERTRAIL_URL')
-                    . ':'
-                    . env('PAPERTRAIL_PORT'),
+                        . env('PAPERTRAIL_URL')
+                        . ':'
+                        . env('PAPERTRAIL_PORT'),
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],
@@ -140,13 +140,13 @@ return [
     'should_log_db' => (bool) env('SHOULD_LOG_DB', false),
 
     // Used in LogRequests middleware
-    'should_log_requests' => (bool) env('SHOULD_LOG_REQUESTS', false),
+    'should_log_request' => (bool) env('SHOULD_LOG_REQUESTS', false),
 
     // Used in LogResponses middleware
     'should_log_user' => (bool) env('SHOULD_LOG_USER', false),
 
     // Used in LogResponses middleware
-    'should_log_responses' => (bool) env('SHOULD_LOG_RESPONSES', false),
+    'should_log_response' => (bool) env('SHOULD_LOG_RESPONSES', false),
 
     // Used in bootstrap/app.php
     'should_log_validation_errors' => (bool) env(
@@ -160,6 +160,7 @@ return [
         '*.js.map',
         '_boost/browser-logs',
         'livewire/update',
+        'livewire-*/update',
     ],
 
     /*
@@ -195,6 +196,8 @@ return [
         'pin',
         'html',
         'auth',
+        'code',
+        'code_verifier',
     ],
 
     /*
@@ -214,5 +217,25 @@ return [
         'x-csrf-token',
         'cookie',
         'set-cookie',
+    ],
+
+    /*
+     |--------------------------------------------------------------------------
+     | Masked Cookies
+     |--------------------------------------------------------------------------
+     |
+     | Cookies that should be masked in request logging.
+     | Case-insensitive matching.
+     |
+     | Used in LogRequests middleware
+     */
+    'masked_cookies' => [
+        'session',
+        'laravel_session',
+        'xsrf-token',
+        'remember_web_*',
+        'auth_token',
+        'access_token',
+        'refresh_token',
     ],
 ];

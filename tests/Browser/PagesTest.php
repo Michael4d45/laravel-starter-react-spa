@@ -27,7 +27,7 @@ it('register page loads without JS errors', function (): void {
 it('profile page loads without JS errors', function (): void {
     $user = User::factory()->create();
     $this->actingAs($user);
-    visit('/profile')->assertNoJavaScriptErrors();
+    visit_with_custom_init('/profile')->assertNoJavaScriptErrors();
 });
 
 it('displays 404 error page with expected content', function (): void {

@@ -1,8 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
-import {
-    setRealtimeUser,
-    subscribeRealtimeMessages,
-} from '@/lib/realtimeClient';
+import { useNotificationsChannel } from '@/hooks/useNotificationsChannel';
+import { RealtimeMessageDataSchema } from '@/schemas/App/Data/Events';
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 
@@ -11,36 +9,33 @@ import toast from 'react-hot-toast';
  * and displays them as toasts.
  */
 export function GlobalRealtimeListener() {
-    const { user } = useAuth();
+    const { authState } = useAuth();
+    const { messages } = useNotificationsChannel(
+        authState,
+        authState.user ? `App.Models.User.${authState.user.id}` : '',
+        RealtimeMessageDataSchema,
+        'GlobalRealtimeListener',
+    );
     const lastCountRef = useRef(0);
 
     useEffect(() => {
-        setRealtimeUser(user?.id ?? null);
-        return () => setRealtimeUser(null);
-    }, [user]);
+        const lastCount = lastCountRef.current;
 
-    useEffect(() => {
-        const unsubscribe = subscribeRealtimeMessages((messages) => {
-            const lastCount = lastCountRef.current;
-
-            if (messages.length > lastCount) {
-                messages.slice(lastCount).forEach((message) => {
-                    toast.success(message.message, {
-                        duration: 5000,
-                        icon: '🔔',
-                    });
+        if (messages.length > lastCount) {
+            messages.slice(lastCount).forEach((message) => {
+                toast.success(message.message, {
+                    duration: 5000,
+                    icon: '🔔',
                 });
-            }
+            });
+        }
 
-            if (messages.length < lastCount) {
-                // Messages were cleared
-            }
+        if (messages.length < lastCount) {
+            // Messages were cleared
+        }
 
-            lastCountRef.current = messages.length;
-        });
-
-        return unsubscribe;
-    }, []);
+        lastCountRef.current = messages.length;
+    }, [messages]);
 
     return null;
 }

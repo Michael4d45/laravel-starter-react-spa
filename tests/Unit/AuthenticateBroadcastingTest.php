@@ -10,7 +10,6 @@ uses(RefreshDatabase::class);
 
 test('can authenticate broadcasting channel', function () {
     $user = User::factory()->create();
-    $token = $user->createToken('test-token')->plainTextToken;
 
     // Mock the Broadcast::auth method to return expected auth data
     Broadcast::shouldReceive('auth')->andReturn([
@@ -18,7 +17,7 @@ test('can authenticate broadcasting channel', function () {
         'channel_data' => '{"id":"' . $user->id . '","name":"Test"}',
     ]);
 
-    $response = $this->withToken($token)->postJson('/api/broadcasting/auth', [
+    $response = $this->actingAs($user)->postJson('/api/broadcasting/auth', [
         'socket_id' => 'socket-123',
         'channel_name' => 'App.Models.User.' . $user->id,
     ]);
@@ -33,11 +32,10 @@ test('can authenticate broadcasting channel', function () {
 
 test('supports string auth responses', function () {
     $user = User::factory()->create();
-    $token = $user->createToken('test-token')->plainTextToken;
 
     Broadcast::shouldReceive('auth')->andReturn('test-auth-string');
 
-    $response = $this->withToken($token)->postJson('/api/broadcasting/auth', [
+    $response = $this->actingAs($user)->postJson('/api/broadcasting/auth', [
         'socket_id' => 'socket-123',
         'channel_name' => 'online',
     ]);
@@ -61,11 +59,10 @@ test('returns 401 when user is not authenticated', function () {
 
 test('returns 403 when channel authentication fails', function () {
     $user = User::factory()->create();
-    $token = $user->createToken('test-token')->plainTextToken;
 
     Broadcast::shouldReceive('auth')->andThrow(new \RuntimeException('fail'));
 
-    $response = $this->withToken($token)->postJson('/api/broadcasting/auth', [
+    $response = $this->actingAs($user)->postJson('/api/broadcasting/auth', [
         'socket_id' => 'socket-123',
         'channel_name' => 'invalid-channel',
     ]);

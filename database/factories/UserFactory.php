@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
-use Override;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
     /**
      * The current password being used by the factory.
      */
-    protected static null|string $password;
+    protected static string|null $password;
 
-    #[Override]
+    #[\Override]
     public function definition(): array
     {
         return [
@@ -26,10 +26,10 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
-            'is_guest' => false,
-            'is_admin' => false,
             'google_id' => null,
             'verified_google_email' => null,
+            'is_admin' => false,
+            'is_guest' => false,
         ];
     }
 

@@ -5,14 +5,26 @@ declare(strict_types=1);
 namespace App\Actions\Auth;
 
 use App\Data\Requests\LoginRequest;
-use App\Data\Response\AuthResponse;
+use App\Data\Response\MessageResponse;
 use Illuminate\Auth\Events\Lockout;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * IMPORTANT: This action establishes session-based authentication.
+ *
+ * This action only:
+ * 1. Validates credentials
+ * 2. Establishes a Laravel session
+ * 3. Returns success status
+ *
+ * The frontend stores user data in localStorage and uses session cookies for API auth.
+ *
+ * TODO: account for "is_guest" users.
+ */
 class Login
 {
     /**
@@ -69,7 +81,13 @@ class Login
         return Str::transliterate(Str::lower($email) . '|' . request()->ip());
     }
 
-    public function __invoke(LoginRequest $loginData): Response
+    /**
+     * Authenticate user and establish session.
+     *
+     * After session authentication, the frontend stores user data and uses
+     * session cookies for subsequent API requests.
+     */
+    public function __invoke(LoginRequest $loginData): JsonResponse
     {
         $this->authenticate(
             $loginData->email,
@@ -77,13 +95,14 @@ class Login
             $loginData->remember,
         );
 
-        $user = Auth::user();
+        if (request()->hasSession()) {
+            request()->session()->regenerate();
+        }
 
-        $token = $user?->createToken('api-token')->plainTextToken;
+        RateLimiter::clear($this->throttleKey($loginData->email));
 
-        return response()->json(AuthResponse::from([
-            'token' => $token,
-            'user' => $user,
+        return response()->json(MessageResponse::from([
+            'message' => 'Authentication successful',
         ]));
     }
 }

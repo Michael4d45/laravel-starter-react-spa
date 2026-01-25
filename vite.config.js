@@ -32,6 +32,7 @@ export default defineConfig({
                 name: 'Laravel React PWA',
                 short_name: 'ReactPWA',
                 start_url: '/',
+                scope: '/',
                 display: 'standalone',
                 background_color: '#ffffff',
                 theme_color: '#000000',

@@ -4,30 +4,30 @@ declare(strict_types=1);
 
 return [
     /*
-    |--------------------------------------------------------------------------
-    | Default Output Path
-    |--------------------------------------------------------------------------
-    |
-    | The default path where the JSON report will be saved if no --output
-    | option is provided to the check:migrations-resources command.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Default Output Path
+     |--------------------------------------------------------------------------
+     |
+     | The default path where the JSON report will be saved if no --output
+     | option is provided to the check:migrations-resources command.
+     |
+     */
     'output_path' => 'reports/migration_resource_report.json',
 
     /*
-    |--------------------------------------------------------------------------
-    | Ignored Tables
-    |--------------------------------------------------------------------------
-    |
-    | Tables that should be ignored when comparing migrations, resources, and models.
-    | You can specify which components to ignore for each table.
-    | Available components: 'resources', 'models', 'phpdoc'
-    |
-    | Examples:
-    | 'users' => ['resources'] - ignore users table only for resources
-    | 'migrations' => ['resources', 'models', 'phpdoc'] - ignore for all components
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Ignored Tables
+     |--------------------------------------------------------------------------
+     |
+     | Tables that should be ignored when comparing migrations, resources, and models.
+     | You can specify which components to ignore for each table.
+     | Available components: 'resources', 'models', 'phpdoc'
+     |
+     | Examples:
+     | 'users' => ['resources'] - ignore users table only for resources
+     | 'migrations' => ['resources', 'models', 'phpdoc'] - ignore for all components
+     |
+     */
     'ignored_tables' => [
         'failed_jobs' => ['resources', 'models', 'phpdoc'],
         'jobs' => ['resources', 'models', 'phpdoc'],
@@ -87,19 +87,19 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Ignored Fields
-    |--------------------------------------------------------------------------
-    |
-    | Fields that should be ignored when comparing migrations, resources, and models.
-    | You can specify which components to ignore for each field.
-    | Available components: 'resources', 'models', 'phpdoc'
-    |
-    | Examples:
-    | 'created_at' => ['models'] - ignore created_at field only for models
-    | 'password' => ['resources', 'phpdoc'] - ignore for resources and PHPDoc
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Ignored Fields
+     |--------------------------------------------------------------------------
+     |
+     | Fields that should be ignored when comparing migrations, resources, and models.
+     | You can specify which components to ignore for each field.
+     | Available components: 'resources', 'models', 'phpdoc'
+     |
+     | Examples:
+     | 'created_at' => ['models'] - ignore created_at field only for models
+     | 'password' => ['resources', 'phpdoc'] - ignore for resources and PHPDoc
+     |
+     */
     'ignored_fields' => [
         'id' => ['models'],
         'created_at' => ['models'],
@@ -109,14 +109,14 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Column Type Mappings
-    |--------------------------------------------------------------------------
-    |
-    | Maps Laravel migration column methods to PHP types for PHPDoc generation.
-    | Add custom mappings for packages like Magellan (PostGIS) here.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Column Type Mappings
+     |--------------------------------------------------------------------------
+     |
+     | Maps Laravel migration column methods to PHP types for PHPDoc generation.
+     | Add custom mappings for packages like Magellan (PostGIS) here.
+     |
+     */
     'column_type_mappings' => [
         'id' => 'int',
         'int' => 'int',
@@ -176,7 +176,6 @@ return [
 
         'json' => 'array',
         'jsonb' => 'array',
-
         // Custom types for packages
         // 'magellanPoint' => 'Point',
         // 'magellanBox2D' => 'Box2D',
@@ -184,13 +183,13 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Type Normalizations
-    |--------------------------------------------------------------------------
-    |
-    | Maps short type names to their full qualified class names for type compatibility checks.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Type Normalizations
+     |--------------------------------------------------------------------------
+     |
+     | Maps short type names to their full qualified class names for type compatibility checks.
+     |
+     */
     'type_normalizations' => [
         'Carbon' => '\\Illuminate\\Support\\Carbon',
         // 'Point' => '\\Clickbar\\Magellan\\Data\\Geometries\\Point',
@@ -200,13 +199,13 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Cast Type Mappings
-    |--------------------------------------------------------------------------
-    |
-    | Maps Eloquent cast names to their expected PHPDoc types.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Cast Type Mappings
+     |--------------------------------------------------------------------------
+     |
+     | Maps Eloquent cast names to their expected PHPDoc types.
+     |
+     */
     'cast_type_mappings' => [
         'datetime' => '\\Illuminate\\Support\\Carbon',
         'timestamp' => '\\Illuminate\\Support\\Carbon',
@@ -220,13 +219,13 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Form Component Classes
-    |--------------------------------------------------------------------------
-    |
-    | Filament form component classes to look for when parsing resources.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Form Component Classes
+     |--------------------------------------------------------------------------
+     |
+     | Filament form component classes to look for when parsing resources.
+     |
+     */
     'form_component_classes' => [
         '\\Forms\\Components',
         '\\Forms\\Components\\Field',
@@ -249,15 +248,15 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Resource Component Type Mapping
-    |--------------------------------------------------------------------------
-    |
-    | Maps detected Filament form components to the expected migration type.
-    | Keys should be the fully-qualified component class names (or short names)
-    | resolved during parsing, and values are normalized field types.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Resource Component Type Mapping
+     |--------------------------------------------------------------------------
+     |
+     | Maps detected Filament form components to the expected migration type.
+     | Keys should be the fully-qualified component class names (or short names)
+     | resolved during parsing, and values are normalized field types.
+     |
+     */
     'resource_component_type_map' => [
         '\\Filament\\Forms\\Components\\TextInput' => 'string',
         '\\Filament\\Forms\\Components\\Textarea' => 'string',
@@ -280,30 +279,30 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Resource Component Required Methods
-    |--------------------------------------------------------------------------
-    |
-    | Method names that, when called on a component, imply the field should be
-    | treated as non-nullable. Example: ->required() or ->rules(['required']).
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Resource Component Required Methods
+     |--------------------------------------------------------------------------
+     |
+     | Method names that, when called on a component, imply the field should be
+     | treated as non-nullable. Example: ->required() or ->rules(['required']).
+     |
+     */
     'resource_component_required_methods' => [
         'required',
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Resource Component Mappings
-    |--------------------------------------------------------------------------
-    |
-    | Determines which Filament component should be generated when the
-    | --fix-add-fields-to-resources flag adds missing form fields. Keys are the
-    | normalized migration column types (lowercase) and values are component
-    | class names. The "resource_component_default" value is used when a type
-    | does not have an explicit mapping.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Resource Component Mappings
+     |--------------------------------------------------------------------------
+     |
+     | Determines which Filament component should be generated when the
+     | --fix-add-fields-to-resources flag adds missing form fields. Keys are the
+     | normalized migration column types (lowercase) and values are component
+     | class names. The "resource_component_default" value is used when a type
+     | does not have an explicit mapping.
+     |
+     */
     'resource_component_default' => '\\Filament\\Forms\\Components\\TextInput',
     'resource_component_mappings' => [
         'text' => '\\Filament\\Forms\\Components\\Textarea',
@@ -321,14 +320,14 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Numeric Field Types
-    |--------------------------------------------------------------------------
-    |
-    | Column types that should call ->numeric() when generating Filament
-    | components.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Numeric Field Types
+     |--------------------------------------------------------------------------
+     |
+     | Column types that should call ->numeric() when generating Filament
+     | components.
+     |
+     */
     'resource_numeric_types' => [
         'int',
         'integer',

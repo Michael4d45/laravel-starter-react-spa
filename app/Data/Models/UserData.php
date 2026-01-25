@@ -13,12 +13,12 @@ class UserData extends Data
         public string $id,
         public string|null $name,
         public string|null $email,
-        public string|null $google_id,
-        public string|null $verified_google_email,
         public Carbon|null $email_verified_at,
+        public string|null $verified_google_email,
+        public bool $is_admin,
+        public bool $is_guest,
         public Carbon|null $created_at,
         public Carbon|null $updated_at,
-        public bool $is_guest,
-        public bool $is_admin,
+        public Carbon|null $deleted_at,
     ) {}
 }

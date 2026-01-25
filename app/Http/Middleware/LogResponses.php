@@ -38,7 +38,7 @@ class LogResponses
         }
 
         if (
-            config()->boolean('logging.should_log_responses')
+            config()->boolean('logging.should_log_response')
             && !LoggingHelper::shouldIgnoreRoute($request)
             && $this->isJsonResponse($response)
         ) {

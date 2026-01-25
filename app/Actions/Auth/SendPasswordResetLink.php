@@ -36,7 +36,6 @@ class SendPasswordResetLink
         // SECURITY: Always return the same message to prevent email enumeration attacks
         // This prevents attackers from determining which emails are registered
         return response()->json([
-            '_tag' => 'Success',
             'message' => 'If an account exists with that email, a password reset link has been sent.',
         ]);
     }

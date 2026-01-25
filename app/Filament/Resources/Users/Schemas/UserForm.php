@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Users\Schemas;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Schema;
 
 class UserForm
@@ -14,13 +15,13 @@ class UserForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('name')->required()->maxLength(255),
+            TextInput::make('name')->maxLength(255),
 
             TextInput::make('email')
                 ->email()
-                ->required()
                 ->maxLength(255)
                 ->unique(ignoreRecord: true),
+            DateTimePicker::make('email_verified_at'),
 
             TextInput::make('password')
                 ->password()
@@ -37,12 +38,15 @@ class UserForm
 
             Checkbox::make('is_admin')->label('Administrator'),
             Checkbox::make('is_guest')->label('Guest'),
-            TextInput::make('id')->required()->disabled(),
-            DateTimePicker::make('email_verified_at'),
             TextInput::make('google_id')->disabled(),
             TextInput::make('verified_google_email')->email()->disabled(),
-            DateTimePicker::make('created_at')->disabled(),
-            DateTimePicker::make('updated_at')->disabled(),
+
+            Flex::make([
+                TextInput::make('id')->copyable()->disabled(),
+                DateTimePicker::make('created_at')->disabled(),
+                DateTimePicker::make('updated_at')->disabled(),
+                DateTimePicker::make('deleted_at')->disabled(),
+            ])->columnSpanFull()->hiddenOn('create'),
         ]);
     }
 }

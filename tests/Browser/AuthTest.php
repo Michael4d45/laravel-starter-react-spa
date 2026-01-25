@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\URL;
 it('can register a new user', function (): void {
     $email = 'test-user-registration@example.com';
     $logPath = setup_log_capture('auth.log');
-    $page = visit_with_error_init('/register')
+    $page = visit('/register')
         ->assertNoJavaScriptErrors()
         ->waitForText('Create Account')
         ->type('#name', 'John Doe')
@@ -39,16 +39,19 @@ it('can login with valid credentials', function (): void {
         'password' => bcrypt('password1234'),
     ]);
 
-    visit('/login')
+    $page = visit('/login')
         ->assertNoJavaScriptErrors()
         ->waitForText('Login', 10)
         ->wait(1)
         ->type('#email', 'test@example.com')
         ->type('#password', 'password1234')
-        ->click('Login')
+        ->click('@login')
         ->wait(1)
         ->assertNoJavaScriptErrors()
         ->assertDontSee('Login failed'); // Should not show login error
+
+    // Verify we're logged in by checking for logout button
+    $page->assertSee('Sign out')->assertPathIs('/');
 });
 
 it('shows validation errors for invalid login', function (): void {
@@ -57,7 +60,7 @@ it('shows validation errors for invalid login', function (): void {
         ->waitForText('Login')
         ->type('#email', 'invalid@example.com')
         ->type('#password', 'wrongpassword')
-        ->click('Login')
+        ->click('@login')
         ->wait(1)
         ->assertNoJavaScriptErrors()
         ->assertPathIs('/login') // Should stay on login page with errors
@@ -200,12 +203,11 @@ it('shows google account connection on profile page', function (): void {
         'password' => bcrypt('password1234'),
     ]);
 
-    // Use actingAs to create a session - the frontend will detect this and get a token
     $this->actingAs($user);
 
     visit('/profile')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Logout', 10)
+        ->waitForText('Sign out', 3)
         ->assertSee('Google Account')
         ->assertSee('Connect Google Account');
 });
@@ -215,17 +217,16 @@ it('shows google account as connected on profile page', function (): void {
         'email' => 'test@example.com',
         'password' => bcrypt('password1234'),
         'google_id' => '123456789',
+        'verified_google_email' => 'test@example.com',
     ]);
 
-    // Use actingAs to create a session - the frontend will detect this and get a token
     $this->actingAs($user);
 
     visit('/profile')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Logout', 10)
+        ->waitForText('Sign out', 3)
         ->assertSee('Google Account')
-        ->assertSee('Connected')
-        ->assertSee('Reconnect');
+        ->assertSee('Connected');
 });
 
 it('can logout', function (): void {
@@ -234,38 +235,18 @@ it('can logout', function (): void {
     // Create and authenticate user (Laravel session) - frontend should auto-fetch JWT token
     $user = User::factory()->create();
 
-    // Use actingAs to create a session - the frontend will detect this and get a token
     $this->actingAs($user);
 
-    // Visit profile page - frontend should automatically fetch JWT token via session
-    visit('/profile')
+    visit_with_error_init('/profile')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Logout', 10)
-        ->assertSee('Logout') // Confirm we're logged in
-        ->click('Logout')
+        ->screenshot(filename: 'before-logout.png')
+        ->click('@profile-logout')
+        ->wait(1)
         ->assertNoJavaScriptErrors()
-        ->wait(2); // Wait for logout to complete
+        ->screenshot(filename: 'after-logout.png')
+        ->assertPathIs('/');
 
     assert_no_log_errors($logPath);
-});
-
-it('validates JWT token on app boot when online', function (): void {
-    $user = User::factory()->create([
-        'email' => 'jwt-validation-test@example.com',
-        'password' => bcrypt('password1234'),
-    ]);
-
-    // Use actingAs to create a session - the frontend will detect this and get a token
-    $this->actingAs($user);
-
-    // Visit home page - the AuthContext should validate the JWT token on boot
-    visit('/')
-        ->assertNoJavaScriptErrors()
-        ->waitForText('Welcome back', 10)
-        // The app should successfully load without redirecting to login
-        // since JWT validation should pass
-        ->assertPathIs('/')
-        ->assertDontSee('Get started by signing in'); // Should show authenticated content
 });
 
 it('shows forgot password page', function (): void {
@@ -280,7 +261,7 @@ it('shows forgot password page', function (): void {
 it('can navigate to forgot password from login page', function (): void {
     visit('/login')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Login')
+        ->waitForText('Log in')
         ->assertSee('Forgot password?')
         ->click('Forgot password?')
         ->wait(1)

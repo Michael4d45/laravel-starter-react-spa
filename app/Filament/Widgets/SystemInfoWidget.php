@@ -41,8 +41,6 @@ class SystemInfoWidget extends BaseSystemInfoWidget
         ],
     ];
 
-    protected string|null $heading = 'React SPA - System Information';
-
     protected null|string $pollingInterval = '60s';
 
     protected bool $showDeploymentInfo = true;

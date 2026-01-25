@@ -14,7 +14,7 @@ This is an API-first SPA with:
 
 - **Backend**: Laravel API routes returning Spatie Data objects as JSON
 - **Frontend**: React + React Router with Effect-based data loading
-- **Auth**: Sanctum tokens + Google OAuth
+- **Auth**: Session-based authentication + Google OAuth
 - **Type Safety**: PHP Data classes auto-generate TypeScript Effect Schemas in `@/schemas/App/Data/*`
 
 ---
@@ -117,7 +117,7 @@ class ContentData extends Data
 }
 ```
 
-**With Relationships and Lazy Loading**:
+**With Relationships and Optional**:
 
 ```php
 <?php
@@ -128,9 +128,8 @@ namespace App\Data\Models;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Spatie\LaravelData\Attributes\AutoWhenLoadedLazy;
 use Spatie\LaravelData\Data;
-use Spatie\LaravelData\Lazy;
+use Spatie\LaravelData\Optional;
 
 class UserData extends Data
 {
@@ -140,14 +139,9 @@ class UserData extends Data
         public string|null $email,
         public Carbon|null $created_at,
         public Carbon|null $updated_at,
-
-        // Lazy-loaded relationships
-        #[AutoWhenLoadedLazy]
-        public Lazy|ProfileData $profile,
-
+        public Optional|ProfileData $profile,
         /** @var Collection<array-key,PostData> $posts */
-        #[AutoWhenLoadedLazy('posts')]
-        public Collection|Lazy $posts,
+        public Optional|Collection $posts,
     ) {}
 }
 ```
@@ -267,12 +261,12 @@ Routes in `routes/api.php` are prefixed with `/api/`.
 use Illuminate\Support\Facades\Route;
 
 // Public routes
-Route::post('/login', App\Actions\Auth\Login::class)->name('api.login');
-Route::post('/register', App\Actions\Auth\Register::class)->name('api.register');
+Route::post('/login', App\Actions\Auth\Login::class)->name('web.login');
+Route::post('/register', App\Actions\Auth\Register::class)->name('web.register');
 Route::get('/content', App\Actions\Content\ShowContent::class)->name('api.content');
 
 // Authenticated routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:api')->group(function () {
     Route::get('/user', App\Actions\Auth\ShowUser::class)->name('api.user');
     Route::post('/logout', App\Actions\Auth\Logout::class)->name('api.logout');
 });
@@ -360,34 +354,6 @@ export async function contentLoader() {
 }
 ```
 
-**Authenticated Route Loader with Redirect**:
-
-```typescript
-import { redirect } from 'react-router-dom';
-import { authManager } from '@/lib/auth';
-import { ApiClient } from '@/lib/apiClient';
-
-export async function profileLoader() {
-    let user = authManager.getUser();
-    let token = authManager.getToken();
-
-    // Try to restore from session if no local token
-    if (!user || !token) {
-        const result = await ApiClient.fetchSessionToken();
-        if (result._tag === 'Success') {
-            authManager.setAuthData(result.data.token, result.data.user);
-            user = result.data.user;
-            token = result.data.token;
-        }
-    }
-
-    if (!user || !token) {
-        return redirect('/login');
-    }
-
-    return user;
-}
-```
 
 ### React Page Component
 

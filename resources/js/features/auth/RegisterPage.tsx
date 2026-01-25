@@ -3,7 +3,7 @@ import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 type ValidationErrors = Record<string, readonly string[]>;
 
@@ -15,7 +15,6 @@ export function RegisterPage() {
     const { register, googleLogin, isLoading } = useAuth();
 
     const { isBlocked, blockReason } = useOfflineBlock();
-    const navigate = useNavigate();
 
     const getFieldError = (fieldName: string): string | null => {
         return validationErrors[fieldName]?.[0] || null;
@@ -62,13 +61,10 @@ export function RegisterPage() {
             password: passwordValue,
             password_confirmation: passwordConfirmationValue,
         });
-        if (result._tag === 'Success') {
-            navigate('/');
-        } else if (result._tag === 'ValidationError') {
+        if (result._tag === 'ValidationError') {
             setValidationErrors(result.errors);
-        } else {
-            alert(result.message);
         }
+        // Success case is handled by AuthContext (redirect/navigation)
     };
 
     return (
