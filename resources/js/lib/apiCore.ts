@@ -139,7 +139,7 @@ export const httpRequest = <A, R>(
                 }),
             catch: (error) => ({
                 _tag: 'FatalError' as const,
-                message: `Network error: ${error}`,
+                message: `Network error: Failed to fetch ${url} with method ${options.method || 'GET'}. This could be due to network connectivity issues, CORS policy violations, invalid URL, server unavailability, or certificate problems. Error details: ${error}${error instanceof Error && error.stack ? `\nStack: ${error.stack}` : ''}`,
             }),
         });
 
@@ -251,11 +251,13 @@ export const withRetry = <A>(
             return Effect.fail(error);
         }),
         Effect.tap((result) =>
-            Effect.sync(() => console.log(`${context}: success`, result)),
+            Effect.sync(() =>
+                console.log(`${context}: success`, JSON.stringify(result)),
+            ),
         ),
         Effect.tapError((error) =>
             Effect.sync(() => {
-                console.log(`${context}: error`, error);
+                console.log(`${context}: error`, JSON.stringify(error));
                 if (error._tag === 'AuthenticationError') {
                     authManager.clearAuthData();
                 }

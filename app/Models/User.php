@@ -98,7 +98,7 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
      */
     public function initials(): string
     {
-        return Str::of($this->name)
+        return Str::of($this->name ?? 'User')
             ->explode(' ')
             ->take(2)
             ->map(static fn($word) => Str::substr($word, 0, 1))

@@ -108,7 +108,7 @@ class HandleGoogleCallback
                 return $this->rejectEmailMismatch();
             }
 
-            $name = $googleUser->getName() ?? $emailUser->name;
+            $name = $googleUser->getName() ?? $emailUser->name ?? 'User';
             $emailUser->update([
                 'name' => Str::limit($name, 255),
                 'google_id' => $googleId,
@@ -123,7 +123,7 @@ class HandleGoogleCallback
         if ($wasAuthenticated && $currentUser instanceof User) {
             $emailToUse = $currentUser->email ?? $email;
 
-            $name = $googleUser->getName() ?? $currentUser->name;
+            $name = $googleUser->getName() ?? $currentUser->name ?? 'User';
             $currentUser->update([
                 'name' => Str::limit($name, 255),
                 'email' => $emailToUse,

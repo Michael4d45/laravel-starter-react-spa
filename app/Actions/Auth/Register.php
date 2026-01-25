@@ -6,7 +6,6 @@ namespace App\Actions\Auth;
 
 use App\Data\Requests\RegisterRequest;
 use App\Data\Response\MessageResponse;
-use App\Enums\Visibility;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
@@ -38,9 +37,8 @@ class Register
             'password' => Hash::make($registerData->password),
             'email_verified_at' => null,
             'is_admin' => false,
+            'is_guest' => false,
             'google_id' => null,
-            'units' => 'metric',
-            'visibility' => Visibility::Public,
         ]);
 
         event(new Registered($user));

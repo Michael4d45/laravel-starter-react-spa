@@ -12,7 +12,7 @@
     <!-- Favicon -->
     <link rel="icon" href="{{ asset('favicon.ico') }}">
     <link rel="apple-touch-icon" href="{{ asset('pwa-192x192.png') }}">
-    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="manifest" href="{{ asset('build/manifest.webmanifest') }}">
 
     <!-- Theme initialization script to prevent FOUC -->
     <script>

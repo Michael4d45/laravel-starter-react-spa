@@ -12,7 +12,7 @@ import {
     useState,
 } from 'react';
 import toast from 'react-hot-toast';
-import { useLocation, useNavigate } from 'react-router';
+import { useMatches, useNavigate } from 'react-router';
 
 export interface AuthContextState {
     hasFetchedUser: boolean;
@@ -182,45 +182,40 @@ export function useAuth(): AuthContextType {
 export function AuthGuard({ children }: { children: ReactNode }) {
     const { authState } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
+    const matches = useMatches();
 
-    const isOnAuthPage =
-        location.pathname === '/login' ||
-        location.pathname === '/register' ||
-        location.pathname === '/forgot-password' ||
-        location.pathname.startsWith('/reset-password');
+    const isOnAuthPage = matches.some(
+        (match) => (match.handle as any)?.isAuthPage,
+    );
+    const isOnProtectedPage = matches.some(
+        (match) => (match.handle as any)?.isProtected,
+    );
 
     useEffect(() => {
-        if (!authState.hasFetchedUser) return;
+        if (!(isOnProtectedPage || isOnAuthPage) || !authState.hasFetchedUser) {
+            return;
+        }
 
         if (authState.isAuthenticated && isOnAuthPage) {
             navigate('/', { replace: true });
         }
 
-        if (
-            !authState.isAuthenticated &&
-            !isOnAuthPage &&
-            location.pathname !== '/'
-        ) {
+        if (!authState.isAuthenticated && !isOnAuthPage) {
             navigate('/login', { replace: true });
         }
     }, [
         authState.isAuthenticated,
         authState.hasFetchedUser,
         isOnAuthPage,
-        location.pathname,
         navigate,
+        isOnProtectedPage,
     ]);
 
-    if (!authState.hasFetchedUser) {
-        return null; // or a spinner
-    }
-
     if (
-        (authState.isAuthenticated && isOnAuthPage) ||
-        (!authState.isAuthenticated &&
-            !isOnAuthPage &&
-            location.pathname !== '/')
+        isOnProtectedPage &&
+        (!authState.hasFetchedUser ||
+            (authState.isAuthenticated && isOnAuthPage) ||
+            (!authState.isAuthenticated && !isOnAuthPage))
     ) {
         return null;
     }

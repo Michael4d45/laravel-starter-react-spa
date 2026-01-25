@@ -16,11 +16,12 @@ pest()->extend(TestCase::class)->use(RefreshDatabase::class)->in(
     'Unit',
 );
 
-function add_logs()
+function enable_logs()
 {
     config()->set('logging.should_log_user', true);
     config()->set('logging.should_log_request', true);
     config()->set('logging.should_log_response', true);
+    config()->set('logging.should_log_validation_errors', true);
 }
 
 function assert_status($response, int $expectedStatus): \Pest\Expectation
