@@ -41,8 +41,8 @@ export function ErrorPage() {
 
     // For non-route errors (like thrown errors from loaders)
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50">
-            <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+        <div className="bg-primary flex min-h-screen items-center justify-center">
+            <div className="bg-card w-full max-w-md rounded-lg p-8 shadow-lg">
                 <div className="text-center">
                     <h1 className="text-secondary mb-4 text-6xl font-bold">
                         Oops!

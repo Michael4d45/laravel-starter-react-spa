@@ -29,7 +29,7 @@ export function OfflineBanner() {
     return (
         <div
             className={cn(
-                'fixed inset-x-0 top-0 z-50 bg-orange-500 p-2 text-center text-sm text-white transition-transform duration-300',
+                'fixed inset-x-0 top-0 z-50 bg-(--warning) p-2 text-center text-sm text-white transition-transform duration-300',
                 isOffline ? 'translate-y-0' : '-translate-y-full',
             )}
         >

@@ -14,17 +14,17 @@ export default function Header({ children }: HeaderProps) {
 
     return (
         <>
-            <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 dark:border-gray-800 dark:bg-gray-900">
+            <div className="border-secondary bg-card sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
                 <button
                     type="button"
-                    className="-m-2.5 p-2.5 text-gray-700 lg:hidden dark:text-gray-300"
+                    className="text-secondary -m-2.5 p-2.5 lg:hidden"
                     onClick={() => setSidebarOpen(true)}
                 >
                     <span className="sr-only">Open sidebar</span>
                     <Menu className="h-6 w-6" />
                 </button>
 
-                <div className="h-6 w-px bg-gray-200 lg:hidden dark:bg-gray-800" />
+                <div className="border-secondary bg-secondary h-6 w-px lg:hidden" />
 
                 <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
                     <div className="flex items-center gap-x-4 lg:gap-x-6">
@@ -42,7 +42,7 @@ export default function Header({ children }: HeaderProps) {
             {sidebarOpen && (
                 <div className="relative z-50 lg:hidden">
                     <div
-                        className="fixed inset-0 bg-gray-900/80"
+                        className="fixed inset-0 bg-secondary-900/80"
                         onClick={() => setSidebarOpen(false)}
                     />
                     <div className="fixed inset-0 flex">
@@ -60,7 +60,7 @@ export default function Header({ children }: HeaderProps) {
                                 </button>
                             </div>
 
-                            <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4 dark:bg-gray-900">
+                            <div className="bg-card flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4">
                                 <div className="flex h-16 shrink-0 items-center">
                                     <Link
                                         to="/"

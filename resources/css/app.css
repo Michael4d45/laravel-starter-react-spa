@@ -124,6 +124,7 @@
     --bg-primary: var(--color-gray-50);
     --bg-secondary: var(--color-white);
     --bg-card: var(--color-white);
+    --bg-popover: var(--color-white);
 
     /* Logo theming - Light mode values */
     --logo-text-color: var(--color-gray-900, #0a0a0a);
@@ -149,6 +150,7 @@
     --bg-primary: var(--color-gray-900);
     --bg-secondary: var(--color-gray-800);
     --bg-card: var(--color-gray-800);
+    --bg-popover: var(--color-gray-800);
 
     /* Semantic colors - Dark mode values (lighter for better contrast) */
     --success: var(--color-success-500);
@@ -437,6 +439,14 @@
         background-color: var(--bg-card);
     }
 
+    .bg-popover {
+        background-color: var(--bg-popover);
+    }
+
+    .bg-accent {
+        background-color: var(--secondary-bg);
+    }
+
     /* Border utilities */
     .border-secondary {
         border-color: var(--secondary-border);
@@ -473,6 +483,14 @@
 
     .hover-bg-secondary:hover {
         background-color: var(--secondary-bg);
+    }
+
+    .hover\:bg-accent:hover {
+        background-color: var(--color-secondary-100);
+    }
+
+    .dark .hover\:bg-accent:hover {
+        background-color: var(--color-secondary-700);
     }
 
     /* Text utilities for muted/secondary text */
