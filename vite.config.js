@@ -22,9 +22,7 @@ export default defineConfig({
             },
         }),
         tailwindcss(),
-        laravelDataTypes({
-            refactorPaginators: false,
-        }),
+        laravelDataTypes(),
         VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'robots.txt', 'pwa-192x192.png', 'pwa-512x512.png'],

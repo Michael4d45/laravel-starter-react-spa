@@ -48,6 +48,10 @@ export const FatalErrorSchema = Schema.Struct({
     message: Schema.String,
 });
 
+export const FetchErrorSchema = Schema.Struct({
+    _tag: Schema.Literal('FetchError'),
+    message: Schema.String,
+});
 export type ValidationError = Schema.Schema.Type<typeof ValidationErrorSchema>;
 export type CsrfTokenExpiredError = Schema.Schema.Type<
     typeof CsrfTokenExpiredErrorSchema
@@ -61,16 +65,18 @@ export type TooManyAttemptsError = Schema.Schema.Type<
 >;
 export type ParseError = Schema.Schema.Type<typeof ParseErrorSchema>;
 export type FatalError = Schema.Schema.Type<typeof FatalErrorSchema>;
+export type FetchError = Schema.Schema.Type<typeof FetchErrorSchema>;
 type Errors = Schema.Schema.Type<typeof ErrorsSchema>;
 
-type ApiError =
+export type ApiError =
     | ValidationError
     | CsrfTokenExpiredError
     | AuthenticationError
     | NotFoundError
     | TooManyAttemptsError
     | ParseError
-    | FatalError;
+    | FatalError
+    | FetchError;
 
 type EffectResult<A> =
     | { _tag: 'Success'; data: A }
@@ -80,7 +86,8 @@ type EffectResult<A> =
     | { _tag: 'NotFoundError'; message: string }
     | { _tag: 'TooManyAttemptsError'; message: string }
     | { _tag: 'ParseError'; message: string }
-    | { _tag: 'FatalError'; message: string };
+    | { _tag: 'FatalError'; message: string }
+    | { _tag: 'FetchError'; message: string };
 
 type RunEffect<A> = Promise<EffectResult<A>>;
 
@@ -138,7 +145,7 @@ export const httpRequest = <A, R>(
                     headers,
                 }),
             catch: (error) => ({
-                _tag: 'FatalError' as const,
+                _tag: 'FetchError' as const,
                 message: `Network error: Failed to fetch ${url} with method ${options.method || 'GET'}. This could be due to network connectivity issues, CORS policy violations, invalid URL, server unavailability, or certificate problems. Error details: ${error}${error instanceof Error && error.stack ? `\nStack: ${error.stack}` : ''}`,
             }),
         });
@@ -225,6 +232,7 @@ export const httpRequest = <A, R>(
 
 type RetryContext = {
     retried419?: boolean;
+    retriedFetchError?: boolean;
 };
 
 export const withRetry = <A>(
@@ -248,6 +256,18 @@ export const withRetry = <A>(
             // Already retried, clear auth and fail
             console.log(`${context}: CSRF expired after retry, clearing auth`);
             authManager.clearAuthData();
+            return Effect.fail(error);
+        }),
+        Effect.catchTag('FetchError', (error) => {
+            if (!retryCtx.retriedFetchError) {
+                console.log(`${context}: Fetch failed, retrying...`);
+                return withRetry(effect, `${context} (fetch retry)`, {
+                    ...retryCtx,
+                    retriedFetchError: true,
+                });
+            }
+            // Already retried, fail
+            console.log(`${context}: Fetch failed after retry`);
             return Effect.fail(error);
         }),
         Effect.tap((result) =>
