@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/contexts/AuthContext';
-import { ApiClient } from '@/lib/apiClient';
+import { resendVerificationEmail } from '@/lib/apiClient';
 import { authManager } from '@/lib/auth';
 import { UserData } from '@/schemas/App/Data/Models';
 import { useState } from 'react';
@@ -9,14 +9,14 @@ import toast from 'react-hot-toast';
 import { useLoaderData, useNavigate } from 'react-router-dom';
 
 interface ProfileData {
-    user: UserData;
+    user: UserData | null;
 }
 
 /**
  * React Router loader function that uses the Effect-based loader
  * This will automatically redirect to login if the user is not authenticated
  */
-export const profileLoader = async () => {
+export const profileLoader = async (): Promise<ProfileData> => {
     const user = authManager.getUser();
 
     return { user };
@@ -50,7 +50,7 @@ export function ProfilePage() {
 
     const handleResendVerification = async () => {
         setIsResendingVerification(true);
-        const result = await ApiClient.resendVerificationEmail();
+        const result = await resendVerificationEmail();
         if (result._tag === 'Success') {
             toast.success('Verification link sent!');
         } else {
@@ -60,7 +60,7 @@ export function ProfilePage() {
     };
 
     return (
-        <div className="mx-auto max-w-md">
+        <div className="container mx-auto max-w-md px-4 py-8">
             <div className="bg-card rounded-lg p-8 shadow-md">
                 <h1 className="mb-6 text-2xl font-bold">Profile</h1>
 

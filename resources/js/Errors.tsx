@@ -1,3 +1,4 @@
+import { modal } from '@/lib/modal';
 import { useEffect } from 'react';
 
 function parseStackTrace(stack: string) {
@@ -8,7 +9,7 @@ function parseStackTrace(stack: string) {
 
         // Format: "FunctionName in URL at line X, column Y"
         const regex1 = /^(.*?) in (.+) at line (\d+), column (\d+)$/;
-        const m1 = line.match(regex1);
+        const m1 = regex1.exec(line);
         if (m1) {
             return {
                 functionName: m1[1] || '(anonymous)',
@@ -20,7 +21,7 @@ function parseStackTrace(stack: string) {
 
         // Format: "at FunctionName (file:line:column)"
         const regex2 = /^at (.*?) \((.*):(\d+):(\d+)\)$/;
-        const m2 = line.match(regex2);
+        const m2 = regex2.exec(line);
         if (m2) {
             return {
                 functionName: m2[1] || '(anonymous)',
@@ -32,7 +33,7 @@ function parseStackTrace(stack: string) {
 
         // Format: "FunctionName@file:line:column"
         const regex3 = /^(.*?)@(.*):(\d+):(\d+)$/;
-        const m3 = line.match(regex3);
+        const m3 = regex3.exec(line);
         if (m3) {
             return {
                 functionName: m3[1] || '(anonymous)',
@@ -65,7 +66,10 @@ export class JsonError extends Error {
     ) {
         super(message);
         this.name = 'JsonError';
-        this.stack = new Error().stack;
+        const stack = new Error().stack;
+        if (stack) {
+            this.stack = stack;
+        }
     }
 }
 
@@ -73,28 +77,29 @@ export function ErrorFallback({
     error,
     resetErrorBoundary,
 }: {
-    error: Error;
+    error: unknown;
     resetErrorBoundary: () => void;
 }) {
+    const errorObj = error instanceof Error ? error : new Error(String(error));
     if (import.meta.env.DEV) {
-        console.error('🔥 Dev error caught:', error);
+        console.error('🔥 Dev error caught:', errorObj);
     }
 
     useEffect(() => {
-        window.__lastError = error;
-    }, [error]);
+        window.__lastError = errorObj;
+    }, [errorObj]);
 
-    const parsedStack = error.stack ? parseStackTrace(error.stack) : [];
+    const parsedStack = errorObj.stack ? parseStackTrace(errorObj.stack) : [];
 
     const handleCopyError = () => {
-        const details = `Error Message:\n${error.message}\n\nStack Trace:\n${error.stack ?? 'No stack trace available.'}`;
+        const details = `Error Message:\n${errorObj.message}\n\nStack Trace:\n${errorObj.stack ?? 'No stack trace available.'}`;
         navigator.clipboard
             .writeText(details)
             .then(() => {
-                alert('Error details copied to clipboard!');
+                modal.alert({ message: 'Error details copied to clipboard!' });
             })
             .catch(() => {
-                alert('Failed to copy error details.');
+                modal.alert({ message: 'Failed to copy error details.' });
             });
     };
 
@@ -112,17 +117,17 @@ export function ErrorFallback({
                     Message
                 </p>
                 <pre className="bg-danger-light text-danger-dark dark:bg-danger-dark dark:text-danger-light rounded-md p-4 font-mono text-sm whitespace-pre-wrap">
-                    {error.message}
+                    {errorObj.message}
                 </pre>
             </div>
 
-            {error instanceof JsonError && (
+            {errorObj instanceof JsonError && (
                 <div className="mb-6">
                     <p className="text-danger dark:text-danger-light text-sm font-semibold tracking-wide uppercase">
                         JSON Error Details
                     </p>
                     <pre className="bg-danger-light text-danger-dark dark:bg-danger-dark dark:text-danger-light rounded-md p-4 font-mono text-sm whitespace-pre-wrap">
-                        {JSON.stringify(error.json, null, 2)}
+                        {JSON.stringify(errorObj.json, null, 2)}
                     </pre>
                 </div>
             )}
@@ -156,13 +161,13 @@ export function ErrorFallback({
                 </div>
             )}
 
-            {error.stack && (
+            {errorObj.stack && (
                 <details className="bg-danger-light dark:bg-danger-dark mb-6 rounded-md p-4">
                     <summary className="text-danger dark:text-danger-light cursor-pointer font-semibold">
                         Raw Stack Trace
                     </summary>
                     <pre className="text-danger-dark dark:text-danger-light mt-2 text-xs whitespace-pre-wrap">
-                        {error.stack}
+                        {errorObj.stack}
                     </pre>
                 </details>
             )}

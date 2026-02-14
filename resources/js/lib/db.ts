@@ -4,6 +4,7 @@ export interface ApiCacheEntry {
     key: string;
     data: unknown;
     timestamp: number;
+    size: number; // Size in bytes
 }
 
 export const db = new Dexie('AppCacheDB') as Dexie & {
@@ -11,5 +12,5 @@ export const db = new Dexie('AppCacheDB') as Dexie & {
 };
 
 db.version(1).stores({
-    apiCache: 'key, timestamp',
+    apiCache: 'key, timestamp, size',
 });

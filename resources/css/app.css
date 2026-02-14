@@ -213,6 +213,7 @@
     input[type='search'],
     input[type='tel'],
     input[type='url'],
+    input[type='time'],
     textarea,
     select {
         display: block;
@@ -243,6 +244,7 @@
     input[type='search']::placeholder,
     input[type='tel']::placeholder,
     input[type='url']::placeholder,
+    input[type='time']::placeholder,
     textarea::placeholder,
     select::placeholder {
         color: var(--color-secondary-400);
@@ -255,6 +257,7 @@
     .dark input[type='search']::placeholder,
     .dark input[type='tel']::placeholder,
     .dark input[type='url']::placeholder,
+    .dark input[type='time']::placeholder,
     .dark textarea::placeholder,
     .dark select::placeholder {
         color: var(--color-secondary-500);
@@ -309,6 +312,7 @@
     }
 
     /* Buttons - base styles */
+    .button,
     button,
     [type='button'],
     [type='submit'],
@@ -317,13 +321,36 @@
         --tw-ring-color: var(--primary);
     }
 
+    .button.btn-sm,
+    button.btn-sm {
+        @apply px-3 py-1.5 text-sm;
+    }
+
+    .button.btn-md,
+    button.btn-md {
+        @apply px-4 py-2 text-base;
+    }
+
+    .button.btn-lg,
+    button.btn-lg {
+        @apply px-5 py-3 text-base;
+    }
+
+    .btn-focus-contained:focus-visible {
+        box-shadow:
+            0 1px 2px 0 rgb(0 0 0 / 0.05),
+            inset 0 0 0 2px var(--primary-focus);
+    }
+
     /* Primary button - uses primary color variables */
+    a.btn-primary,
     button.btn-primary,
     [type='submit']:not([class*='btn-']) {
         background-color: var(--primary);
         color: white;
     }
 
+    a.btn-primary:hover,
     button.btn-primary:hover,
     [type='submit']:not([class*='btn-']):hover {
         background-color: var(--primary-hover);
@@ -351,16 +378,19 @@
     }
 
     /* Danger button - uses danger color variables */
+    a.btn-danger,
     button.btn-danger {
         background-color: var(--danger);
         color: white;
     }
 
+    a.btn-danger:hover,
     button.btn-danger:hover {
         background-color: var(--danger-light);
     }
 
     /* Outline button - uses gray colors for border and text */
+    a.btn-outline,
     button.btn-outline {
         display: inline-flex;
         align-items: center;
@@ -385,12 +415,14 @@
         --tw-ring-color: var(--primary);
     }
 
+    a.btn-outline:focus,
     button.btn-outline:focus {
         --tw-ring-offset-width: 2px;
         --tw-ring-width: 2px;
         --tw-ring-offset-color: transparent;
     }
 
+    a.btn-outline:hover,
     button.btn-outline:hover {
         background-color: var(--secondary-bg);
         color: var(--secondary-hover);
@@ -425,6 +457,10 @@
     /* Background utilities */
     .bg-primary {
         background-color: var(--bg-primary);
+    }
+
+    .bg-primary-light {
+        background-color: var(--primary-light);
     }
 
     .bg-secondary {
@@ -474,6 +510,24 @@
 
     .btn-info:hover {
         background-color: var(--color-info-500);
+    }
+
+    /* Custom button utilities for routes components */
+    /* Pagination utilities */
+    .page-link {
+        @apply rounded border px-3 py-2 transition-colors;
+        border-color: var(--secondary-border);
+        color: var(--secondary);
+    }
+
+    .page-link:hover {
+        background-color: var(--secondary-bg);
+    }
+
+    .page-link-active {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary);
     }
 
     /* Hover utilities */
@@ -707,6 +761,89 @@
 
     .dark .select-clear:hover {
         color: var(--danger-light);
+    }
+
+    /* SearchSelect Component - Base styles with dark mode support */
+    .search-select-trigger {
+        @apply relative flex w-full cursor-text items-center justify-between rounded-md border px-3 py-2 text-left shadow-sm transition-colors;
+        border-color: var(--secondary-border);
+        background-color: var(--bg-card);
+        color: var(--secondary);
+    }
+
+    .search-select-trigger:hover:not(:disabled) {
+        border-color: var(--primary);
+    }
+
+    .search-select-trigger:focus {
+        border-color: var(--primary-focus);
+        box-shadow: 0 0 0 1px var(--primary-focus);
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+    }
+
+    .search-select-trigger:disabled,
+    .search-select-trigger.search-select-disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+        background-color: var(--secondary-bg);
+    }
+
+    .search-select-open {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .search-select-dropdown {
+        @apply absolute z-50 mt-1 w-full rounded-md border shadow-lg;
+        border-color: var(--secondary-border);
+        background-color: var(--bg-popover);
+    }
+
+    .search-select-search-input {
+        @apply w-full border-b px-2 py-1 text-sm;
+        border-color: var(--secondary-border);
+        background-color: var(--bg-popover);
+        color: var(--secondary);
+    }
+
+    .search-select-search-input:focus {
+        border-color: var(--primary-focus);
+        box-shadow: 0 0 0 1px var(--primary-focus);
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+    }
+
+    .search-select-list {
+        @apply max-h-60 overflow-auto py-1;
+    }
+
+    .search-select-item {
+        @apply cursor-pointer px-3 py-2 text-sm transition-colors;
+        color: var(--secondary);
+    }
+
+    .search-select-item:hover {
+        background-color: var(--secondary-bg);
+    }
+
+    .search-select-item-highlighted {
+        background-color: var(--secondary-bg);
+    }
+
+    .search-select-item-selected {
+        background-color: var(--primary);
+        color: white;
+        font-weight: 500;
+    }
+
+    .search-select-no-results {
+        @apply px-3 py-2 text-sm;
+        color: var(--color-secondary-500);
+    }
+
+    .dark .search-select-no-results {
+        color: var(--color-secondary-400);
     }
 
     /* Mobile: Slightly larger text for better readability */

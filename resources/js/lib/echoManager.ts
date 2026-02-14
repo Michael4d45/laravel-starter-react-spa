@@ -14,15 +14,30 @@ interface PresenceSubscription {
     leavingCallbacks: Set<(member: any) => void>;
 }
 
+interface PresenceNotificationSubscription {
+    channel: any;
+    refCount: number;
+    callbacks: Set<(data: unknown) => void>;
+}
+
 class EchoManager {
     private notificationSubscriptions = new Map<
         string,
         NotificationSubscription
     >();
+    private publicNotificationSubscriptions = new Map<
+        string,
+        NotificationSubscription
+    >();
     private presenceSubscriptions = new Map<string, PresenceSubscription>();
+    private presenceNotificationSubscriptions = new Map<
+        string,
+        PresenceNotificationSubscription
+    >();
 
     subscribeNotifications(
         channelName: string,
+        eventName: string,
         callback: (data: unknown) => void,
     ) {
         let sub = this.notificationSubscriptions.get(channelName);
@@ -36,7 +51,30 @@ class EchoManager {
 
             // Listen to the event
             const currentSub = sub;
-            sub.channel.listen('.TestRealtimeEvent', (data: unknown) => {
+            sub.channel.listen(`.${eventName}`, (data: unknown) => {
+                currentSub.callbacks.forEach((cb) => cb(data));
+            });
+        }
+        sub.callbacks.add(callback);
+        sub.refCount++;
+    }
+
+    subscribePublicNotifications(
+        channelName: string,
+        eventName: string,
+        callback: (data: unknown) => void,
+    ) {
+        let sub = this.publicNotificationSubscriptions.get(channelName);
+        if (!sub) {
+            sub = {
+                channel: echo.channel(channelName),
+                refCount: 0,
+                callbacks: new Set(),
+            };
+            this.publicNotificationSubscriptions.set(channelName, sub);
+
+            const currentSub = sub;
+            sub.channel.listen(`.${eventName}`, (data: unknown) => {
                 currentSub.callbacks.forEach((cb) => cb(data));
             });
         }
@@ -46,6 +84,7 @@ class EchoManager {
 
     unsubscribeNotifications(
         channelName: string,
+        eventName: string,
         callback: (data: unknown) => void,
     ) {
         const sub = this.notificationSubscriptions.get(channelName);
@@ -53,9 +92,25 @@ class EchoManager {
         sub.callbacks.delete(callback);
         sub.refCount--;
         if (sub.refCount === 0) {
-            sub.channel.stopListening('.TestRealtimeEvent');
+            sub.channel.stopListening(`.${eventName}`);
             echo.leave(channelName);
             this.notificationSubscriptions.delete(channelName);
+        }
+    }
+
+    unsubscribePublicNotifications(
+        channelName: string,
+        eventName: string,
+        callback: (data: unknown) => void,
+    ) {
+        const sub = this.publicNotificationSubscriptions.get(channelName);
+        if (!sub) return;
+        sub.callbacks.delete(callback);
+        sub.refCount--;
+        if (sub.refCount === 0) {
+            sub.channel.stopListening(`.${eventName}`);
+            echo.leave(channelName);
+            this.publicNotificationSubscriptions.delete(channelName);
         }
     }
 
@@ -79,13 +134,19 @@ class EchoManager {
             const currentSub = sub;
             sub.channel
                 .here((members: any[]) => {
-                    currentSub.hereCallbacks.forEach((cb) => cb(members));
+                    currentSub.hereCallbacks.forEach(
+                        (cb: (members: any[]) => void) => cb(members),
+                    );
                 })
                 .joining((member: any) => {
-                    currentSub.joiningCallbacks.forEach((cb) => cb(member));
+                    currentSub.joiningCallbacks.forEach(
+                        (cb: (member: any) => void) => cb(member),
+                    );
                 })
                 .leaving((member: any) => {
-                    currentSub.leavingCallbacks.forEach((cb) => cb(member));
+                    currentSub.leavingCallbacks.forEach(
+                        (cb: (member: any) => void) => cb(member),
+                    );
                 });
         }
         sub.hereCallbacks.add(hereCallback);
@@ -109,6 +170,46 @@ class EchoManager {
         if (sub.refCount === 0) {
             echo.leave(channelName);
             this.presenceSubscriptions.delete(channelName);
+        }
+    }
+
+    subscribePresenceNotifications(
+        channelName: string,
+        eventName: string,
+        callback: (data: unknown) => void,
+    ) {
+        let sub = this.presenceNotificationSubscriptions.get(channelName);
+        if (!sub) {
+            sub = {
+                channel: echo.join(channelName),
+                refCount: 0,
+                callbacks: new Set(),
+            };
+            this.presenceNotificationSubscriptions.set(channelName, sub);
+
+            // Listen to the event
+            const currentSub = sub;
+            sub.channel.listen(`.${eventName}`, (data: unknown) => {
+                currentSub.callbacks.forEach((cb) => cb(data));
+            });
+        }
+        sub.callbacks.add(callback);
+        sub.refCount++;
+    }
+
+    unsubscribePresenceNotifications(
+        channelName: string,
+        eventName: string,
+        callback: (data: unknown) => void,
+    ) {
+        const sub = this.presenceNotificationSubscriptions.get(channelName);
+        if (!sub) return;
+        sub.callbacks.delete(callback);
+        sub.refCount--;
+        if (sub.refCount === 0) {
+            sub.channel.stopListening(`.${eventName}`);
+            echo.leave(channelName);
+            this.presenceNotificationSubscriptions.delete(channelName);
         }
     }
 }

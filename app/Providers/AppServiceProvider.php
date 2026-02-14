@@ -93,7 +93,7 @@ if (!function_exists('earliest_app_caller')) {
         $inVendorBlock = false;
 
         foreach ($trace as $frame) {
-            $file = isset($frame['file'])
+            $file = array_key_exists('file', $frame)
                 ? str_replace('\\', '/', $frame['file'])
                 : null;
             $line = $frame['line'] ?? 0;

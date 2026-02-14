@@ -1,6 +1,7 @@
 import { Effect, Schema } from 'effect';
 import { apiCache } from './apiCache';
 import { authManager } from './auth';
+import { db } from './db';
 import { getCookieValue } from './utils';
 
 /* ============================================================================
@@ -89,13 +90,19 @@ type EffectResult<A> =
     | { _tag: 'FatalError'; message: string }
     | { _tag: 'FetchError'; message: string };
 
-type RunEffect<A> = Promise<EffectResult<A>>;
+export type RunEffect<A> = Promise<EffectResult<A>>;
 
 /* ============================================================================
  * Core HTTP Effect Constructors
  * ============================================================================ */
 
 // Effect that ensures CSRF token is ready
+const CSRF_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+let tokenExpiresAt: number | null = null;
+
+let csrfToken = decodeURIComponent(getCookieValue('XSRF-TOKEN') ?? '');
+
 export const ensureCsrfToken = Effect.gen(function* () {
     const response = yield* Effect.tryPromise({
         try: () =>
@@ -115,23 +122,57 @@ export const ensureCsrfToken = Effect.gen(function* () {
             message: 'Failed to obtain CSRF token',
         });
     }
+
+    // Re-read the cookie after fetch
+    csrfToken = decodeURIComponent(getCookieValue('XSRF-TOKEN') ?? '');
+    tokenExpiresAt = Date.now() + CSRF_TTL_MS;
+
+    if (!csrfToken) {
+        return yield* Effect.fail({
+            _tag: 'FatalError' as const,
+            message: 'CSRF token missing after fetch',
+        });
+    }
+});
+
+export const clearCsrfToken = () => {
+    csrfToken = '';
+    tokenExpiresAt = null;
+};
+
+export const csrfTokenCheck = Effect.gen(function* () {
+    const tokenInCookie = decodeURIComponent(
+        getCookieValue('XSRF-TOKEN') ?? '',
+    );
+
+    // Token missing or expired
+    if (
+        !csrfToken ||
+        !tokenInCookie ||
+        !tokenExpiresAt ||
+        tokenExpiresAt < Date.now()
+    ) {
+        yield* ensureCsrfToken;
+    }
+
+    return csrfToken;
 });
 
 // Effect that performs HTTP request
-export const httpRequest = <A, R>(
-    url: string,
-    options: RequestInit,
-    successSchema: Schema.Schema<A, R>,
-) =>
+export const httpRequest = (url: string, options?: RequestInit) =>
     Effect.gen(function* () {
-        // Get CSRF token from cookie
-        const csrfToken = decodeURIComponent(
-            getCookieValue('XSRF-TOKEN') ?? '',
-        );
+        if (!options) {
+            options = { method: 'GET' };
+        }
 
         // Build headers
         const headers = new Headers(options.headers);
-        headers.set('Accept', 'application/json');
+
+        if (!headers.has('Accept')) {
+            headers.set('Accept', 'application/json');
+        }
+
+        const csrfToken = yield* csrfTokenCheck;
         if (csrfToken) {
             headers.set('X-XSRF-TOKEN', csrfToken);
         }
@@ -146,7 +187,7 @@ export const httpRequest = <A, R>(
                 }),
             catch: (error) => ({
                 _tag: 'FetchError' as const,
-                message: `Network error: Failed to fetch ${url} with method ${options.method || 'GET'}. This could be due to network connectivity issues, CORS policy violations, invalid URL, server unavailability, or certificate problems. Error details: ${error}${error instanceof Error && error.stack ? `\nStack: ${error.stack}` : ''}`,
+                message: `Network error: Failed to fetch ${url} with method ${options?.method || 'GET'}. This could be due to network connectivity issues, CORS policy violations, invalid URL, server unavailability, or certificate problems. Error details: ${error}${error instanceof Error && error.stack ? `\nStack: ${error.stack}` : ''}`,
             }),
         });
 
@@ -208,117 +249,187 @@ export const httpRequest = <A, R>(
             });
         }
 
-        // Parse successful response
-        const data = yield* Effect.tryPromise({
-            try: () => response.json(),
-            catch: (error) => ({
-                _tag: 'ParseError' as const,
-                message: `JSON parse error: ${error}`,
-            }),
-        });
-
-        // Decode using schema
-        return yield* Schema.decodeUnknown(successSchema)(data).pipe(
-            Effect.mapError((error) => ({
-                _tag: 'ParseError' as const,
-                message: error.message,
-            })),
-        );
+        return response;
     });
+
+export function buildQueryString(params?: Record<string, any>): string {
+    if (!params) return '';
+    const parts: string[] = [];
+    for (const [key, value] of Object.entries(params)) {
+        if (value === null || value === undefined) continue;
+        if (Array.isArray(value)) {
+            for (const item of value) {
+                parts.push(
+                    `${encodeURIComponent(key)}[]=${encodeURIComponent(String(item))}`,
+                );
+            }
+        } else {
+            parts.push(
+                `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+            );
+        }
+    }
+    return parts.length ? `?${parts.join('&')}` : '';
+}
+
+export const getWithQuery = (url: string, options?: RequestInit) =>
+    Effect.flatMap((decodedQuery: Record<string, any> | undefined) =>
+        httpRequest(`${url}${buildQueryString(decodedQuery)}`, {
+            method: 'GET',
+            ...(options || {}),
+        }),
+    );
+
+export const sendWithPayload = (url: string, options?: RequestInit) =>
+    Effect.flatMap((decodedPayload) =>
+        httpRequest(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(decodedPayload),
+            ...(options || {}),
+        }),
+    );
+
+export const sendWithFormData = (url: string, options?: RequestInit) =>
+    Effect.flatMap((formData: FormData) =>
+        httpRequest(url, {
+            method: 'POST',
+            body: formData,
+            ...(options || {}),
+        }),
+    );
 
 /* ============================================================================
  * Retry Logic
  * ============================================================================ */
 
-type RetryContext = {
+interface RetryContext {
     retried419?: boolean;
     retriedFetchError?: boolean;
-};
+}
 
-export const withRetry = <A>(
-    effect: Effect.Effect<A, ApiError>,
-    context: string,
-    retryCtx: RetryContext = {},
-): Effect.Effect<A, ApiError> => {
-    return effect.pipe(
-        Effect.catchTag('CsrfTokenExpiredError', (error) => {
-            if (!retryCtx.retried419) {
-                console.log(`${context}: CSRF expired, retrying...`);
-                return ensureCsrfToken.pipe(
-                    Effect.flatMap(() =>
-                        withRetry(effect, `${context} (csrf retry)`, {
-                            ...retryCtx,
-                            retried419: true,
-                        }),
-                    ),
-                );
-            }
-            // Already retried, clear auth and fail
-            console.log(`${context}: CSRF expired after retry, clearing auth`);
-            authManager.clearAuthData();
-            return Effect.fail(error);
-        }),
-        Effect.catchTag('FetchError', (error) => {
-            if (!retryCtx.retriedFetchError) {
-                console.log(`${context}: Fetch failed, retrying...`);
-                return withRetry(effect, `${context} (fetch retry)`, {
-                    ...retryCtx,
-                    retriedFetchError: true,
-                });
-            }
-            // Already retried, fail
-            console.log(`${context}: Fetch failed after retry`);
-            return Effect.fail(error);
-        }),
-        Effect.tap((result) =>
-            Effect.sync(() =>
-                console.log(`${context}: success`, JSON.stringify(result)),
-            ),
-        ),
-        Effect.tapError((error) =>
-            Effect.sync(() => {
-                console.log(`${context}: error`, JSON.stringify(error));
-                if (error._tag === 'AuthenticationError') {
-                    authManager.clearAuthData();
+export const withRetry =
+    (context: string, retryCtx: RetryContext = {}) =>
+    <A>(effect: Effect.Effect<A, ApiError>): Effect.Effect<A, ApiError> => {
+        return effect.pipe(
+            Effect.catchTag('CsrfTokenExpiredError', (error) => {
+                if (!retryCtx.retried419) {
+                    console.log(`${context}: CSRF expired, retrying...`);
+                    return ensureCsrfToken.pipe(
+                        Effect.flatMap(() =>
+                            withRetry(context + ' (csrf retry)', {
+                                ...retryCtx,
+                                retried419: true,
+                            })(effect),
+                        ),
+                    );
                 }
+                console.log(
+                    `${context}: CSRF expired after retry, clearing auth`,
+                );
+                authManager.clearAuthData();
+                return Effect.fail(error);
             }),
-        ),
-    );
-};
+            Effect.catchTag('FetchError', (error) => {
+                if (!retryCtx.retriedFetchError) {
+                    console.log(`${context}: Fetch failed, retrying...`);
+                    return withRetry(context + ' (fetch retry)', {
+                        ...retryCtx,
+                        retriedFetchError: true,
+                    })(effect);
+                }
+                console.log(`${context}: Fetch failed after retry`);
+                return Effect.fail(error);
+            }),
+        );
+    };
 
 /* ============================================================================
  * Caching Layer
  * ============================================================================ */
 
-export const withCache = <A>(
-    effect: Effect.Effect<A, ApiError>,
-    cacheKey: string,
-): Effect.Effect<A, ApiError> => {
-    return Effect.gen(function* () {
-        // If offline, try cache
-        if (!navigator.onLine) {
-            const cached = yield* Effect.promise(() =>
-                apiCache.get<A>(cacheKey),
-            );
-            if (cached !== undefined) {
-                console.log(`${cacheKey}: returning cached data (offline)`);
-                return cached;
+export const withCache = <A>(cacheKey: string) => {
+    return (effect: Effect.Effect<A, ApiError>) =>
+        Effect.gen(function* () {
+            // If offline, try cache
+            if (!navigator.onLine) {
+                const cached = yield* Effect.promise(() =>
+                    apiCache.get<A>(cacheKey),
+                );
+                if (cached !== undefined) {
+                    console.log(`${cacheKey}: returning cached data (offline)`);
+                    return cached;
+                }
+                return yield* Effect.fail({
+                    _tag: 'FatalError' as const,
+                    message: 'You are offline and no cached data is available.',
+                });
             }
-            return yield* Effect.fail({
-                _tag: 'FatalError' as const,
-                message: 'You are offline and no cached data is available.',
-            });
-        }
 
-        // Online: fetch fresh data
-        const data = yield* effect;
+            // Online: fetch fresh data
+            const data = yield* effect;
 
-        // Cache the result
-        yield* Effect.promise(() => apiCache.set(cacheKey, data));
+            // Cache the result
+            yield* Effect.promise(() => apiCache.set(cacheKey, data));
 
-        return data;
-    });
+            return data;
+        });
 };
+
+export const withCacheFirst = <A>(cacheKey: string, ttlSeconds?: number) => {
+    return (effect: Effect.Effect<A, ApiError>) =>
+        Effect.gen(function* () {
+            // Check cache first
+            const entry = yield* Effect.promise(() =>
+                db.apiCache.get(cacheKey),
+            );
+            if (
+                entry &&
+                (!ttlSeconds ||
+                    Date.now() - entry.timestamp < ttlSeconds * 1000)
+            ) {
+                return entry.data as A;
+            }
+
+            // If offline and no valid cache, fail
+            if (!navigator.onLine) {
+                return yield* Effect.fail({
+                    _tag: 'FatalError' as const,
+                    message:
+                        'You are offline and no valid cached data is available.',
+                });
+            }
+
+            // Fetch fresh data
+            const data = yield* effect;
+
+            // Cache the result
+            yield* Effect.promise(() => apiCache.set(cacheKey, data));
+
+            return data;
+        });
+};
+
+export const encodeUndefined =
+    <A, I>(schema: Schema.Schema<A, I>) =>
+    (data: A | undefined) =>
+        Schema.decodeUnknown(Schema.Union(schema, Schema.Undefined))(data);
+
+export const decodeJson =
+    <A, I>(schema: Schema.Schema<A, I>) =>
+    (effect: Effect.Effect<Response, ApiError>) =>
+        effect.pipe(
+            Effect.flatMap((response: Response) =>
+                Effect.tryPromise({
+                    try: () => response.json(),
+                    catch: (error) => ({
+                        _tag: 'ParseError' as const,
+                        message: `JSON parse error: ${error}`,
+                    }),
+                }),
+            ),
+            Effect.flatMap((data) => Schema.decodeUnknown(schema)(data)),
+        );
 
 /* ============================================================================
  * Result Converter (Effect → Promise of Tagged Union)
@@ -326,16 +437,21 @@ export const withCache = <A>(
 
 export const runEffect = <A>(
     effect: Effect.Effect<A, ApiError>,
-    context: string,
 ): RunEffect<A> => {
-    console.log(`calling: ${context}`);
-
     return Effect.runPromise(
         effect.pipe(
             Effect.map((data) => ({
                 _tag: 'Success' as const,
                 data,
             })),
+            Effect.tapError((error) =>
+                Effect.sync(() => {
+                    console.error(error);
+                    if (error._tag === 'AuthenticationError') {
+                        authManager.clearAuthData();
+                    }
+                }),
+            ),
             Effect.catchAll((error) => Effect.succeed(error)),
         ),
     );

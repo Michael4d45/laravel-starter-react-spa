@@ -46,7 +46,6 @@ return [
         // 'pivot_table' => ['resources'], // Ignore only for resources
         // 'system_logs' => ['models', 'phpdoc'], // Ignore for models and PHPDoc but not resources
         // 'temp_data' => ['resources', 'models', 'phpdoc'], // Ignore for all components
-        'event_route' => ['resources', 'models', 'phpdoc'],
         'spatial_ref_sys' => ['resources', 'models', 'phpdoc'],
         'addr' => ['resources', 'models', 'phpdoc'],
         'addrfeat' => ['resources', 'models', 'phpdoc'],

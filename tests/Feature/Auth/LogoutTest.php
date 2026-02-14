@@ -9,7 +9,7 @@ it('can logout when authenticated', function () {
 
     $this->actingAs($user);
 
-    $response = $this->postJson('/api/logout');
+    $response = $this->postJson('/logout');
 
     assert_status($response, 200)->assertJson([
         'message' => 'Logged out successfully',
@@ -17,7 +17,7 @@ it('can logout when authenticated', function () {
 });
 
 it('returns unauthorized when not authenticated', function () {
-    $response = $this->postJson('/api/logout');
+    $response = $this->postJson('/logout');
 
     $response->assertUnauthorized();
 });

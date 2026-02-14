@@ -1,8 +1,15 @@
-import { UserDataSchema } from '@/schemas/App/Data/Models';
 import {
+    UserDataSchema,
+} from '@/schemas/App/Data/Models';
+import {
+    AuthenticateBroadcastingRequest,
+    AuthenticateBroadcastingRequestSchema,
     LoginRequest,
+    LoginRequestSchema,
     RegisterRequest,
+    RegisterRequestSchema,
     ResetPasswordRequest,
+    ResetPasswordRequestSchema,
 } from '@/schemas/App/Data/Requests';
 import {
     AuthenticateBroadcastingResponseSchema,
@@ -10,217 +17,153 @@ import {
     DisconnectGoogleResponseSchema,
     MessageResponseSchema,
 } from '@/schemas/App/Data/Response';
-import { Effect, pipe } from 'effect';
+import { Effect, pipe, Schema } from 'effect';
 import { apiCache } from './apiCache';
 import {
+    clearCsrfToken,
+    decodeJson,
     ensureCsrfToken,
     httpRequest,
     runEffect,
-    withCache,
+    sendWithPayload,
     withRetry,
 } from './apiCore';
 
-/* ============================================================================
- * API Client Singleton
- * ============================================================================ */
+/* ==========================================================================
+ * Auth Methods
+ * ========================================================================== */
 
-class ApiClientSingleton {
-    private csrfInitialized = false;
-
-    private async ensureCsrf(): Promise<void> {
-        if (!this.csrfInitialized) {
-            await Effect.runPromise(ensureCsrfToken);
-            this.csrfInitialized = true;
-        }
-    }
-
-    /* ==========================================================================
-     * Content
-     * ========================================================================= */
-
-    async showContent() {
-        const effect = pipe(
-            httpRequest(
-                `/api/content`,
-                {
-                    method: 'GET',
-                },
-                ContentItemsSchema,
-            ),
-            (eff) => withRetry(eff, 'getContent'),
-            (eff) => withCache(eff, `content`),
-        );
-
-        return runEffect(effect, 'getContent');
-    }
-
-    /* ==========================================================================
-     * Auth Methods
-     * ========================================================================== */
-
-    async login(payload: LoginRequest) {
-        await this.ensureCsrf();
-
-        const effect = pipe(
-            httpRequest(
-                '/login',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                },
-                MessageResponseSchema,
-            ),
-            (eff) => withRetry(eff, 'login'),
-        );
-
-        return runEffect(effect, 'login');
-    }
-
-    async register(payload: RegisterRequest) {
-        await this.ensureCsrf();
-
-        const effect = pipe(
-            httpRequest(
-                '/register',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                },
-                MessageResponseSchema,
-            ),
-            (eff) => withRetry(eff, 'register'),
-        );
-
-        return runEffect(effect, 'register');
-    }
-
-    async logout() {
-        const effect = pipe(
-            httpRequest(
-                '/api/logout',
-                {
-                    method: 'POST',
-                },
-                MessageResponseSchema,
-            ),
-            Effect.tap(() => Effect.promise(() => apiCache.clear())),
-        );
-
-        return runEffect(effect, 'logout');
-    }
-
-    async sendPasswordResetLink(email: string) {
-        await this.ensureCsrf();
-
-        const effect = pipe(
-            httpRequest(
-                '/api/send-password-reset-link',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email }),
-                },
-                MessageResponseSchema,
-            ),
-            (eff) => withRetry(eff, 'sendPasswordResetLink'),
-        );
-
-        return runEffect(effect, 'sendPasswordResetLink');
-    }
-
-    async resetPassword(payload: ResetPasswordRequest) {
-        await this.ensureCsrf();
-
-        const effect = pipe(
-            httpRequest(
-                '/api/reset-password',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                },
-                MessageResponseSchema,
-            ),
-            (eff) => withRetry(eff, 'resetPassword'),
-        );
-
-        return runEffect(effect, 'resetPassword');
-    }
-
-    async resendVerificationEmail() {
-        const effect = pipe(
-            httpRequest(
-                '/api/send-email-verification-notification',
-                {
-                    method: 'POST',
-                },
-                MessageResponseSchema,
-            ),
-            (eff) => withRetry(eff, 'resendVerificationEmail'),
-        );
-
-        return runEffect(effect, 'resendVerificationEmail');
-    }
-
-    async disconnectGoogle() {
-        const effect = pipe(
-            httpRequest(
-                '/api/disconnect-google',
-                {
-                    method: 'POST',
-                },
-                DisconnectGoogleResponseSchema,
-            ),
-            (eff) => withRetry(eff, 'disconnectGoogle'),
-        );
-
-        return runEffect(effect, 'disconnectGoogle');
-    }
-
-    /* ==========================================================================
-     * User Methods
-     * ========================================================================== */
-
-    async showUser() {
-        const effect = pipe(
-            httpRequest(
-                '/api/user',
-                {
-                    method: 'GET',
-                },
-                UserDataSchema,
-            ),
-            (eff) => withRetry(eff, 'showUser'),
-        );
-
-        return runEffect(effect, 'showUser');
-    }
-
-    /* ==========================================================================
-     * Broadcasting Methods
-     * ========================================================================== */
-
-    async authenticateBroadcasting(socketId: string, channelName: string) {
-        const effect = pipe(
-            httpRequest(
-                '/api/broadcasting/auth',
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        socket_id: socketId,
-                        channel_name: channelName,
-                    }),
-                },
-                AuthenticateBroadcastingResponseSchema,
-            ),
-            (eff) => withRetry(eff, 'authenticateBroadcasting'),
-        );
-
-        return runEffect(effect, 'authenticateBroadcasting');
-    }
+export async function login(payload: LoginRequest) {
+    return runEffect(
+        pipe(
+            payload,
+            Schema.encodeUnknown(LoginRequestSchema),
+            sendWithPayload('/login'),
+            withRetry('login'),
+            decodeJson(MessageResponseSchema),
+            Effect.tap(ensureCsrfToken),
+        ),
+    );
 }
 
-export const ApiClient = new ApiClientSingleton();
+export async function register(payload: RegisterRequest) {
+    return runEffect(
+        pipe(
+            payload,
+            Schema.encodeUnknown(RegisterRequestSchema),
+            sendWithPayload('/register'),
+            withRetry('register'),
+            decodeJson(MessageResponseSchema),
+            Effect.tap(ensureCsrfToken),
+        ),
+    );
+}
+
+export async function logout() {
+    return runEffect(
+        pipe(
+            httpRequest('/logout', { method: 'POST' }),
+            decodeJson(MessageResponseSchema),
+            Effect.tap(() =>
+                Effect.sync(() => {
+                    apiCache.clear();
+                    clearCsrfToken();
+                }),
+            ),
+        ),
+    );
+}
+
+export async function sendPasswordResetLink(email: string) {
+    return runEffect(
+        pipe(
+            httpRequest('/api/send-password-reset-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            }),
+            withRetry('sendPasswordResetLink'),
+            decodeJson(MessageResponseSchema),
+        ),
+    );
+}
+
+export async function resetPassword(payload: ResetPasswordRequest) {
+    return runEffect(
+        pipe(
+            payload,
+            Schema.encodeUnknown(ResetPasswordRequestSchema),
+            sendWithPayload('/api/reset-password'),
+            withRetry('resetPassword'),
+            decodeJson(MessageResponseSchema),
+        ),
+    );
+}
+
+export async function resendVerificationEmail() {
+    return runEffect(
+        pipe(
+            httpRequest('/api/send-email-verification-notification', {
+                method: 'POST',
+            }),
+            withRetry('resendVerificationEmail'),
+            decodeJson(MessageResponseSchema),
+        ),
+    );
+}
+
+export async function disconnectGoogle() {
+    return runEffect(
+        pipe(
+            httpRequest('/api/disconnect-google', { method: 'POST' }),
+            withRetry('disconnectGoogle'),
+            decodeJson(DisconnectGoogleResponseSchema),
+        ),
+    );
+}
+
+/* ==========================================================================
+ * User Methods
+ * ========================================================================== */
+
+export async function showUser() {
+    return runEffect(
+        pipe(
+            httpRequest('/api/user'),
+            withRetry('showUser'),
+            decodeJson(UserDataSchema),
+        ),
+    );
+}
+
+/* ==========================================================================
+ * Content Methods
+ * ========================================================================== */
+
+export async function showContent() {
+    return runEffect(
+        pipe(
+            httpRequest('/api/content'),
+            withRetry('showContent'),
+            decodeJson(ContentItemsSchema),
+        ),
+    );
+}
+
+/* ==========================================================================
+ * Broadcasting Methods
+ * ========================================================================== */
+
+export async function authenticateBroadcasting(
+    payload: AuthenticateBroadcastingRequest,
+) {
+    return runEffect(
+        pipe(
+            payload,
+            Schema.encodeUnknown(AuthenticateBroadcastingRequestSchema),
+            sendWithPayload('/api/broadcasting/auth'),
+            withRetry('authenticateBroadcasting'),
+            decodeJson(AuthenticateBroadcastingResponseSchema),
+        ),
+    );
+}

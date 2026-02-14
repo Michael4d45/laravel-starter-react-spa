@@ -8,6 +8,7 @@ SESSION_NAME="react-spa-dev"
 # Check for flags
 ATTACH=true
 DOCKER=false
+RESET=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --no-attach)
@@ -18,6 +19,10 @@ while [[ $# -gt 0 ]]; do
             DOCKER=true
             shift
             ;;
+        --reset)
+            RESET=true
+            shift
+            ;;
         *)
             shift
             ;;
@@ -26,11 +31,16 @@ done
 
 # Check if session already exists
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    if [ "$RESET" = true ]; then
+        echo "Resetting existing session '$SESSION_NAME'..."
+        tmux kill-session -t "$SESSION_NAME"
+    else
     echo "Session '$SESSION_NAME' already exists."
     if [ "$ATTACH" = true ]; then
         tmux attach-session -t "$SESSION_NAME"
     fi
     exit 0
+    fi
 fi
 
 # Create new session with single window containing 5-pane layout
@@ -86,7 +96,7 @@ fi
 # NOW EQUALIZE: This is the magic part.
 # main-vertical makes the first pane (Logs) take up 'main-pane-width' 
 # and all other panes split the right side equally.
-tmux set-window-option -t "$SESSION_NAME:dev" main-pane-width 80
+tmux set-window-option -t "$SESSION_NAME:dev" main-pane-width 60
 tmux select-layout -t "$SESSION_NAME:dev" main-vertical
 
 # Select the backend pane (top-right) as active

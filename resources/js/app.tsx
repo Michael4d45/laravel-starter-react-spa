@@ -1,17 +1,44 @@
 import { Toaster } from 'react-hot-toast';
 import { Outlet } from 'react-router-dom';
 import Header from './components/Header';
+import { ModalRenderer } from './components/ModalRenderer';
 import { OfflineBanner } from './components/offline/OfflineBanner';
 import { GlobalRealtimeListener } from './components/realtime/GlobalRealtimeListener';
 import Sidebar from './components/Sidebar';
 import { AuthGuard } from './contexts/AuthContext';
+import { useSidebarMode } from './hooks/useSidebarMode';
 import './lib/echo';
+import { cn } from './lib/utils';
 
 export function App() {
+    const { isCompact } = useSidebarMode();
+
     return (
-        <div className="bg-primary min-h-screen">
+        <div className="bg-primary flex h-screen flex-col">
             <OfflineBanner />
             <GlobalRealtimeListener />
+
+            {/* Desktop sidebar */}
+            <Sidebar />
+
+            {/* Mobile header */}
+            <div className="md:hidden">
+                <Header />
+            </div>
+
+            {/* Main content */}
+            <main
+                className={cn(
+                    'min-h-0 flex-1',
+                    isCompact ? 'md:pl-20' : 'md:pl-64',
+                )}
+            >
+                <AuthGuard>
+                    <Outlet />
+                </AuthGuard>
+            </main>
+
+            <ModalRenderer />
             <Toaster
                 position="top-right"
                 toastOptions={{
@@ -35,23 +62,6 @@ export function App() {
                     },
                 }}
             />
-
-            {/* Desktop sidebar */}
-            <Sidebar />
-
-            {/* Mobile header */}
-            <div className="md:hidden">
-                <Header />
-            </div>
-
-            {/* Main content */}
-            <main className="md:pl-64">
-                <div className="px-4 py-8 sm:px-6 lg:px-8">
-                    <AuthGuard>
-                        <Outlet />
-                    </AuthGuard>
-                </div>
-            </main>
         </div>
     );
 }

@@ -16,14 +16,10 @@ class AuthenticateBroadcasting
     /**
      * Authenticate a broadcasting channel
      */
-    public function __invoke(Request $request): JsonResponse
-    {
-        // Validate request data
-        $data = AuthenticateBroadcastingRequest::from($request->only([
-            'socket_id',
-            'channel_name',
-        ]));
-
+    public function __invoke(
+        Request $request,
+        AuthenticateBroadcastingRequest $data,
+    ): JsonResponse {
         $user = Auth::user();
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
@@ -41,7 +37,7 @@ class AuthenticateBroadcasting
         $auth = '';
         if (is_string($authData)) {
             $auth = $authData;
-        } elseif (is_array($authData) && isset($authData['auth'])) {
+        } elseif (is_array($authData) && array_key_exists('auth', $authData)) {
             $auth = $authData['auth'];
         }
 

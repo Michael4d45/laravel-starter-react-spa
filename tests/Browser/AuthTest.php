@@ -17,7 +17,7 @@ it('can register a new user', function (): void {
         ->type('#password_confirmation', 'password1234')
         ->screenshot(filename: 'register.png')
         ->click('@create-account')
-        ->wait(1); // Give more time for API call to complete
+        ->waitForText('Sign out', 10);
 
     assert_no_log_errors($logPath);
 
@@ -42,11 +42,10 @@ it('can login with valid credentials', function (): void {
     $page = visit('/login')
         ->assertNoJavaScriptErrors()
         ->waitForText('Login', 10)
-        ->wait(1)
         ->type('#email', 'test@example.com')
         ->type('#password', 'password1234')
         ->click('@login')
-        ->wait(1)
+        ->waitForText('Sign out', 10)
         ->assertNoJavaScriptErrors()
         ->assertDontSee('Login failed'); // Should not show login error
 
@@ -61,7 +60,7 @@ it('shows validation errors for invalid login', function (): void {
         ->type('#email', 'invalid@example.com')
         ->type('#password', 'wrongpassword')
         ->click('@login')
-        ->wait(1)
+        ->waitForText('Login', 10)
         ->assertNoJavaScriptErrors()
         ->assertPathIs('/login') // Should stay on login page with errors
         ->assertNoJavaScriptErrors();
@@ -77,7 +76,7 @@ it('validates password requirements during registration', function (): void {
         ->type('#password', '123') // Too short
         ->type('#password_confirmation', '123')
         ->click('@create-account')
-        ->wait(2)
+        ->waitForText('Create Account', 10)
         // Check that we're still on the registration page (validation prevented redirect)
         ->assertPathIs('/register')
         // Verify no JavaScript errors occurred during validation
@@ -96,7 +95,7 @@ it('validates password confirmation matching during registration', function (): 
         ->type('#password', 'password123')
         ->type('#password_confirmation', 'different123') // Doesn't match
         ->click('@create-account')
-        ->wait(2)
+        ->waitForText('Create Account', 10)
         // Check that we're still on the registration page (validation prevented redirect)
         ->assertPathIs('/register')
         // Verify no JavaScript errors occurred during validation
@@ -115,7 +114,7 @@ it('validates both password length and confirmation during registration', functi
         ->type('#password', '123456789')
         ->type('#password_confirmation', '1234567890')
         ->click('@create-account')
-        ->wait(2)
+        ->waitForText('Create Account', 10)
         ->screenshot(filename: 'password-validation-failed1.png')
         // Check that we're still on the registration page (validation prevented redirect)
         ->assertPathIs('/register')
@@ -145,7 +144,7 @@ it('validates email uniqueness during registration', function (): void {
         ->type('#password', '123456789')
         ->type('#password_confirmation', '123456789')
         ->click('@create-account')
-        ->wait(2)
+        ->waitForText('Create Account', 10)
         ->screenshot(filename: 'email-validation-failed1.png')
         // Check that we're still on the registration page (validation prevented redirect)
         ->assertPathIs('/register')
@@ -158,10 +157,8 @@ it('validates email uniqueness during registration', function (): void {
         // Verify that no success toast or redirect occurred
         ->assertDontSee('Account created successfully')
         ->assertPathIs('/register')
-        // Wait a bit more for the validation error to be displayed
-        ->wait(3)
-        // Verify that validation error is displayed inline
-        ->assertSee('The email has already been taken')
+        // Wait for the validation error to be displayed
+        ->waitForText('The email has already been taken')
         // Take a screenshot to verify visual state
         ->screenshot(filename: 'email-validation-failed2.png');
 });
@@ -174,8 +171,8 @@ it('shows validation errors for invalid registration', function (): void {
         ->type('#email', 'invalid-email')
         ->type('#password', 'short')
         ->type('#password_confirmation', 'different')
-        ->click('Create Account')
-        ->wait(1)
+        ->click('@create-account')
+        ->waitForText('Create Account', 10)
         ->assertNoJavaScriptErrors()
         ->assertPathIs('/register') // Should stay on register page with errors
         ->assertNoJavaScriptErrors();
@@ -241,7 +238,7 @@ it('can logout', function (): void {
         ->assertNoJavaScriptErrors()
         ->screenshot(filename: 'before-logout.png')
         ->click('@profile-logout')
-        ->wait(1)
+        ->waitForText('Welcome', 10)
         ->assertNoJavaScriptErrors()
         ->screenshot(filename: 'after-logout.png')
         ->assertPathIs('/');
@@ -263,8 +260,8 @@ it('can navigate to forgot password from login page', function (): void {
         ->assertNoJavaScriptErrors()
         ->waitForText('Log in')
         ->assertSee('Forgot password?')
-        ->click('Forgot password?')
-        ->wait(1)
+        ->click('@forgot-password-link')
+        ->assertSee('Forgot Password')
         ->assertNoJavaScriptErrors()
         ->assertPathIs('/forgot-password')
         ->assertSee('Forgot Password');

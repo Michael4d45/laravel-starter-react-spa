@@ -67,11 +67,7 @@ export default function Header({ children }: HeaderProps) {
                                         className="flex items-center"
                                         onClick={() => setSidebarOpen(false)}
                                     >
-                                        <Logo
-                                            width={120}
-                                            height={30}
-                                            className="mr-3"
-                                        />
+                                        <Logo />
                                     </Link>
                                 </div>
                                 <NavigationList

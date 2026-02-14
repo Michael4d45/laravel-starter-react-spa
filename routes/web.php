@@ -16,6 +16,7 @@ Route::get('reset-password/{email}/{token}', fn() => view('app'))->middleware([
 
 Route::post('login', \App\Actions\Auth\Login::class);
 Route::post('register', \App\Actions\Auth\Register::class);
+Route::middleware('auth')->post('logout', \App\Actions\Auth\Logout::class);
 
 // Google OAuth routes
 Route::get('auth/google', \App\Actions\Auth\RedirectToGoogle::class)->name(
@@ -30,5 +31,5 @@ Route::get('login', fn() => view('app'))->name('login');
 
 Route::get('{any?}', fn() => view('app'))->where(
     'any',
-    '^(?!api|storage).*$',
+    '^(?!api|storage|js).*$',
 )->name('home');

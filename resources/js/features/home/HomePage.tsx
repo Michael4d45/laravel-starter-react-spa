@@ -11,7 +11,7 @@ export function HomePage() {
             <div className="mx-auto max-w-7xl">
                 <div className="flex h-screen flex-col items-center justify-center text-center">
                     <h1 className="text-4xl">Welcome</h1>
-                    <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    <p className="text-muted mt-4 text-lg">
                         Get started by signing in or creating an account
                     </p>
                     <div className="mt-8 flex gap-4">
@@ -31,10 +31,10 @@ export function HomePage() {
     }
 
     return (
-        <div className="mx-auto max-w-7xl space-y-8">
+        <div className="container mx-auto space-y-8 px-4 py-8">
             <div>
                 <h1>Welcome back, {user.name}!</h1>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                <p className="text-muted mt-2">
                     You're all set to get started.
                 </p>
             </div>
@@ -45,9 +45,7 @@ export function HomePage() {
                     className="card block p-6 transition hover:shadow-lg"
                 >
                     <h2 className="mb-2 text-xl font-semibold">Content</h2>
-                    <p className="text-gray-600 dark:text-gray-400">
-                        Browse and explore content
-                    </p>
+                    <p className="text-muted">Browse and explore content</p>
                 </Link>
 
                 <Link
@@ -55,9 +53,7 @@ export function HomePage() {
                     className="card block p-6 transition hover:shadow-lg"
                 >
                     <h2 className="mb-2 text-xl font-semibold">Profile</h2>
-                    <p className="text-gray-600 dark:text-gray-400">
-                        Manage your account settings
-                    </p>
+                    <p className="text-muted">Manage your account settings</p>
                 </Link>
             </div>
 

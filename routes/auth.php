@@ -18,7 +18,6 @@ Route::middleware([
     'auth:sanctum',
 ])->group(function () {
     Route::get('user', \App\Actions\Auth\ShowUser::class);
-    Route::post('logout', \App\Actions\Auth\Logout::class);
     Route::post('confirm-password', \App\Actions\Auth\ConfirmPassword::class);
     Route::post('update-password', \App\Actions\Auth\UpdatePassword::class);
     Route::post('disconnect-google', \App\Actions\Auth\DisconnectGoogle::class);

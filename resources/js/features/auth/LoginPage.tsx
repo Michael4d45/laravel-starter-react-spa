@@ -1,51 +1,27 @@
+import { Toggle } from '@/components/Toggle';
 import { Button } from '@/components/ui/Button';
+import { Form, FormField } from '@/components/ui/Form';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-type ValidationErrors = Record<string, readonly string[]>;
-
 export function LoginPage() {
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
-        {},
-    );
-
     const { login, googleLogin, isLoading } = useAuth();
-
     const { isBlocked, blockReason } = useOfflineBlock();
+    const [remember, setRemember] = useState(false);
 
-    const rememberRef = useRef<HTMLInputElement>(null);
+    const handleSubmit = async (formData: FormData) => {
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
+        const remember = formData.get('remember') === 'on';
 
-    const getFieldError = (fieldName: string): string | null => {
-        return validationErrors[fieldName]?.[0] || null;
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (isBlocked) {
-            alert(blockReason || 'Cannot login while offline');
-            return;
-        }
-
-        setValidationErrors({}); // Clear previous errors
-
-        // Read values directly from form elements (works with browser automation)
-        const formData = new FormData(e.target as HTMLFormElement);
-        const emailValue = formData.get('email') as string;
-        const passwordValue = formData.get('password') as string;
-        const rememberValue = formData.get('remember') === 'on';
-
-        const result = await login({
-            email: emailValue,
-            password: passwordValue,
-            remember: rememberValue,
+        return await login({
+            email,
+            password,
+            remember,
         });
-        if (result._tag === 'ValidationError') {
-            setValidationErrors(result.errors);
-        }
     };
 
     return (
@@ -59,83 +35,41 @@ export function LoginPage() {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label
-                            htmlFor="email"
-                            className="text-secondary mb-1 block text-sm font-medium"
-                        >
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            defaultValue=""
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
-                                getFieldError('email')
-                                    ? 'border-danger focus:ring-danger'
-                                    : 'focus:ring-primary border-gray-300'
-                            }`}
-                            required
-                            disabled={isBlocked}
-                        />
-                        {getFieldError('email') && (
-                            <p className="text-danger mt-1 text-sm">
-                                {getFieldError('email')}
-                            </p>
-                        )}
-                    </div>
+                <Form
+                    onSubmit={handleSubmit}
+                    offlineBlock={{ isBlocked, blockReason }}
+                    className="space-y-4"
+                >
+                    <FormField
+                        type="email"
+                        id="email"
+                        name="email"
+                        label="Email"
+                        required
+                    />
 
-                    <div>
-                        <label
-                            htmlFor="password"
-                            className="text-secondary mb-1 block text-sm font-medium"
-                        >
-                            Password
-                        </label>
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            defaultValue=""
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
-                                getFieldError('password')
-                                    ? 'border-danger focus:ring-danger'
-                                    : 'focus:ring-primary border-gray-300'
-                            }`}
-                            required
-                            disabled={isBlocked}
-                        />
-                        {getFieldError('password') && (
-                            <p className="text-danger mt-1 text-sm">
-                                {getFieldError('password')}
-                            </p>
-                        )}
-                    </div>
+                    <FormField
+                        type="password"
+                        id="password"
+                        name="password"
+                        label="Password"
+                        required
+                    />
 
-                    <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            id="remember"
-                            name="remember"
-                            defaultChecked={false}
-                            className="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300"
-                            disabled={isBlocked}
-                            ref={rememberRef}
-                        />
-                        <label
-                            htmlFor="remember"
-                            className="text-secondary ml-2 block text-sm"
-                        >
-                            Remember me
-                        </label>
-                    </div>
+                    <Toggle
+                        checked={remember}
+                        onChange={setRemember}
+                        label="Remember me"
+                        name="remember"
+                        id="remember"
+                        disabled={isBlocked}
+                    />
 
                     <div className="text-right">
                         <Link
                             to="/forgot-password"
                             className="text-primary hover:text-primary-hover text-sm font-medium"
+                            data-test="forgot-password-link"
                         >
                             Forgot password?
                         </Link>
@@ -149,12 +83,12 @@ export function LoginPage() {
                     >
                         {isLoading ? 'Logging in...' : 'Login'}
                     </Button>
-                </form>
+                </Form>
 
                 <div className="mt-6">
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300" />
+                            <div className="border-secondary w-full border-t" />
                         </div>
                         <div className="relative flex justify-center text-sm">
                             <span className="bg-card text-secondary px-2">
@@ -167,9 +101,7 @@ export function LoginPage() {
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() =>
-                                googleLogin(false, rememberRef.current?.checked)
-                            }
+                            onClick={() => googleLogin(false, remember)}
                             className="flex w-full items-center justify-center gap-2"
                             disabled={isLoading || isBlocked}
                         >

@@ -39,13 +39,21 @@ export function useNotificationsChannel<A, R>(
             }
         };
 
-        echoManager.subscribeNotifications(channelName, callback);
+        echoManager.subscribeNotifications(
+            channelName,
+            'TestRealtimeEvent',
+            callback,
+        );
 
         return () => {
             console.info(
                 `[${debugContext}][useNotificationsChannel] Unsubscribing from ${channelName}`,
             );
-            echoManager.unsubscribeNotifications(channelName, callback);
+            echoManager.unsubscribeNotifications(
+                channelName,
+                'TestRealtimeEvent',
+                callback,
+            );
         };
     }, [authState.hasFetchedUser, authState.isAuthenticated, channelName]);
 

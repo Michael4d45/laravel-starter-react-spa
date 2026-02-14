@@ -8,7 +8,15 @@ return [
      * is an array, it will try to convert from the first format that works,
      * and will serialize dates using the first format from the array.
      */
-    'date_format' => DATE_ATOM,
+    'date_format' => [
+        'Y-m-d\TH:i:s.uP',
+        'Y-m-d\TH:i:sP',
+        DATE_ATOM,
+        'Y-m-d H:i:s',
+        'Y-m-d',
+        'H:i:s',
+        'Y-m-d\TH:i:s',
+    ],
 
     /*
      * When transforming or casting dates, the following timezone will be used to
@@ -23,7 +31,7 @@ return [
      * version of the package, these features will be enabled by default.
      */
     'features' => [
-        'cast_and_transform_iterables' => false,
+        'cast_and_transform_iterables' => true,
 
         /*
          * When trying to set a computed property value, the package will throw an exception.
@@ -52,7 +60,7 @@ return [
      */
     'casts' => [
         DateTimeInterface::class =>
-            Spatie\LaravelData\Casts\DateTimeInterfaceCast::class,
+            \Spatie\LaravelData\Casts\DateTimeInterfaceCast::class,
         BackedEnum::class => Spatie\LaravelData\Casts\EnumCast::class,
         //        Enumerable::class => Spatie\LaravelData\Casts\EnumerableCast::class,
     ],

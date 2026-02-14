@@ -70,9 +70,6 @@ export function useAppearance() {
         );
     });
 
-    // Track system preference changes to trigger re-render
-    const [systemPrefersDark, setSystemPrefersDark] = useState(prefersDark);
-
     const resolvedTheme = computeResolvedTheme(appearance);
 
     const updateAppearance = (mode: Appearance) => {
@@ -85,6 +82,13 @@ export function useAppearance() {
         setCookie('appearance', mode);
 
         applyTheme(mode);
+
+        // Dispatch custom event for same-tab updates
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+                new CustomEvent('appearanceChange', { detail: mode }),
+            );
+        }
     };
 
     useEffect(() => {
@@ -92,14 +96,38 @@ export function useAppearance() {
 
         const mq = mediaQuery();
         const listener = () => {
-            setSystemPrefersDark(prefersDark());
             if (appearance === 'system') {
                 applyTheme('system');
             }
         };
 
         mq?.addEventListener('change', listener);
-        return () => mq?.removeEventListener('change', listener);
+
+        // Listen for appearance changes from other components (same tab)
+        const handleAppearanceChange = (e: CustomEvent<Appearance>) => {
+            setAppearance(e.detail);
+        };
+        window.addEventListener(
+            'appearanceChange',
+            handleAppearanceChange as EventListener,
+        );
+
+        // Listen for storage changes (cross-tab)
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === 'appearance') {
+                setAppearance(e.newValue as Appearance);
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+
+        return () => {
+            mq?.removeEventListener('change', listener);
+            window.removeEventListener(
+                'appearanceChange',
+                handleAppearanceChange as EventListener,
+            );
+            window.removeEventListener('storage', handleStorage);
+        };
     }, [appearance]);
 
     return { appearance, updateAppearance, resolvedTheme } as const;

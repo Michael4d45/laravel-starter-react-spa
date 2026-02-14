@@ -1,4 +1,5 @@
 import { Appearance, useAppearance } from '@/hooks/useAppearance';
+import { IconButton } from '@/components/ui/IconButton';
 import { cn } from '@/lib/utils';
 import { LucideIcon, Monitor, Moon, Sun } from 'lucide-react';
 import { HTMLAttributes } from 'react';
@@ -15,11 +16,14 @@ export default function AppearanceToggleTab({ className = '', showText = true, .
     return (
         <div className={cn('inline-flex gap-1.5 rounded-lg bg-secondary-bg p-1.5 md:gap-1 md:p-1', className)} {...props}>
             {tabs.map(({ value, icon: Icon, label }) => (
-                <button
+                <IconButton
                     key={value}
+                    type="button"
                     onClick={() => updateAppearance(value)}
+                    variant="outline"
+                    size="md"
                     className={cn(
-                        'flex flex-1 items-center justify-center rounded-md px-4 py-2 transition-colors md:px-3.5 md:py-1.5',
+                        'h-auto w-auto flex-1 rounded-md px-4 py-2 transition-colors md:px-3.5 md:py-1.5',
                         appearance === value
                             ? 'bg-card shadow-xs text-secondary'
                             : 'text-muted hover-bg-secondary hover:text-secondary',
@@ -27,7 +31,7 @@ export default function AppearanceToggleTab({ className = '', showText = true, .
                 >
                     <Icon className={cn('h-6 w-6 shrink-0 md:h-5 md:w-5', appearance === value ? 'text-(--primary)' : 'text-muted')} />
                     {showText && <span className="ml-1.5 text-base md:text-sm">{label}</span>}
-                </button>
+                </IconButton>
             ))}
         </div>
     );

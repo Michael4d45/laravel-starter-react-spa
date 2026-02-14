@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
-use App\Filament\Widgets\PresenceConnectionsWidget;
-use App\Filament\Widgets\RecentStatsWidget;
-use App\Filament\Widgets\SystemInfoWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -30,7 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->globalSearch(false)
             ->id('admin')
-            ->topbar(false)
+            ->topbar(true)
             ->colors([
                 'primary' => Color::Purple,
             ])
@@ -56,11 +53,6 @@ class AdminPanelProvider extends PanelProvider
                 in: app_path('Filament/Widgets'),
                 for: 'App\Filament\Widgets',
             )
-            ->widgets([
-                RecentStatsWidget::class,
-                SystemInfoWidget::class,
-                PresenceConnectionsWidget::class,
-            ])
             ->unsavedChangesAlerts()
             ->middleware([
                 EncryptCookies::class,

@@ -27,14 +27,4 @@ export const navigationSections: NavigationSection[] = [
             },
         ],
     },
-    {
-        title: 'Account',
-        items: [
-            {
-                href: '/profile',
-                label: 'Profile',
-                icon: User,
-            },
-        ],
-    },
 ];

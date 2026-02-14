@@ -1,6 +1,6 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
-import { ApiClient } from './apiClient';
+import { authenticateBroadcasting } from './apiClient';
 
 // Echo instance type for Reverb broadcaster
 type ReverbEcho = InstanceType<typeof Echo<'reverb'>>;
@@ -25,7 +25,7 @@ export const initEcho = (): ReverbEcho => {
     }
 
     const rawHost = String(
-        import.meta.env.VITE_REVERB_HOST ?? window.location.hostname,
+        import.meta.env['VITE_REVERB_HOST'] ?? window.location.hostname,
     );
     // Firefox often prefers IPv6 for `localhost` (i.e. ::1). Our Reverb dev
     // server is typically bound on IPv4 (0.0.0.0), so normalize `localhost`
@@ -33,18 +33,19 @@ export const initEcho = (): ReverbEcho => {
     const wsHost = rawHost === 'localhost' ? window.location.hostname : rawHost;
 
     const configuredPort = Number.parseInt(
-        String(import.meta.env.VITE_REVERB_PORT ?? ''),
+        String(import.meta.env['VITE_REVERB_PORT'] ?? ''),
         10,
     );
     const port = Number.isFinite(configuredPort) ? configuredPort : undefined;
 
     echoInstance = new Echo({
         broadcaster: 'reverb',
-        key: import.meta.env.VITE_REVERB_APP_KEY,
+        key: import.meta.env['VITE_REVERB_APP_KEY'],
         wsHost,
         wsPort: port ?? 80,
         wssPort: port ?? 443,
-        forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+        forceTLS:
+            (import.meta.env['VITE_REVERB_SCHEME'] ?? 'https') === 'https',
         enabledTransports: ['ws', 'wss'],
         authorizer: (channel, options) => {
             return {
@@ -53,13 +54,12 @@ export const initEcho = (): ReverbEcho => {
                     callback: (error: Error | null, data?: any) => void,
                 ) => {
                     try {
-                        console.log('calling echo auth');
                         // Backend automatically disconnects previous connections
                         // for the same user+channel when authenticating a new one
-                        const result = await ApiClient.authenticateBroadcasting(
-                            socketId,
-                            channel.name,
-                        );
+                        const result = await authenticateBroadcasting({
+                            socket_id: socketId,
+                            channel_name: channel.name,
+                        });
                         if (result._tag === 'Success') {
                             callback(null, result.data);
                         } else {

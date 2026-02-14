@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
-import { ApiClient } from '@/lib/apiClient';
+import { showContent } from '@/lib/apiClient';
 import { ContentItems } from '@/schemas/App/Data/Response';
 import toast from 'react-hot-toast';
 import { Link, useLoaderData } from 'react-router-dom';
@@ -8,8 +8,8 @@ import { Link, useLoaderData } from 'react-router-dom';
 /**
  * React Router loader function that uses the Effect-based loader
  */
-export async function contentLoader() {
-    const result = await ApiClient.showContent();
+export async function contentLoader(): Promise<ContentItems> {
+    const result = await showContent();
     if (result._tag === 'Success') {
         return result.data;
     } else {

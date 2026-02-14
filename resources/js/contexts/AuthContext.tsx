@@ -1,5 +1,11 @@
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { ApiClient } from '@/lib/apiClient';
+import {
+    disconnectGoogle as apiDisconnectGoogle,
+    login as apiLogin,
+    logout as apiLogout,
+    register as apiRegister,
+    showUser,
+} from '@/lib/apiClient';
 import { authManager, AuthState } from '@/lib/auth';
 import { UserData } from '@/schemas/App/Data/Models';
 import { LoginRequest, RegisterRequest } from '@/schemas/App/Data/Requests';
@@ -23,11 +29,11 @@ export interface AuthContextState {
 interface AuthContextType {
     authState: AuthContextState;
     user: UserData | null;
-    login: typeof ApiClient.login;
-    register: typeof ApiClient.register;
+    login: typeof apiLogin;
+    register: typeof apiRegister;
     logout: () => Promise<void>;
     googleLogin: (reconnect?: boolean, remember?: boolean) => Promise<void>;
-    disconnectGoogle: typeof ApiClient.disconnectGoogle;
+    disconnectGoogle: typeof apiDisconnectGoogle;
     isLoading: boolean;
 }
 
@@ -52,22 +58,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const user = authState.user;
 
     const handleSetAuthState = (state: AuthState) => {
+        if (
+            JSON.stringify({ ...state, hasFetchedUser: true }) ===
+            JSON.stringify(authState)
+        ) {
+            return;
+        }
         console.log('[AuthContext] Auth state changed:', state);
         setAuthState({ ...state, hasFetchedUser: true });
     };
 
-    const getUser = async () => {
+    const getUser = () => {
         if (isFetchingUser.current) return;
         isFetchingUser.current = true;
 
-        const result = await ApiClient.showUser();
-        if (result._tag === 'Success') {
-            authManager.setUser(result.data);
-            console.log('[AuthContext] Fetched user data');
-        }
+        return showUser().then((result) => {
+            if (result._tag === 'Success') {
+                authManager.setUser(result.data);
+                console.log('[AuthContext] Fetched user data');
+            }
 
-        isFetchingUser.current = false;
-        return result;
+            isFetchingUser.current = false;
+            return result;
+        });
     };
 
     useEffect(() => {
@@ -103,7 +116,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const login = async (credentials: LoginRequest) => {
         setIsLoading(true);
 
-        const result = await ApiClient.login(credentials);
+        const result = await apiLogin(credentials);
         if (result._tag === 'Success') {
             // Fetch user after successful login
             await getUser();
@@ -115,7 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const register = async (data: RegisterRequest) => {
         setIsLoading(true);
 
-        const result = await ApiClient.register(data);
+        const result = await apiRegister(data);
         if (result._tag === 'Success') {
             // Fetch user after successful register
             await getUser();
@@ -125,18 +138,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     const logout = async () => {
-        try {
-            // Call backend logout endpoint to invalidate server-side session
-            await ApiClient.logout();
-        } catch (error) {
-            // Silently ignore logout errors
-            console.warn('[AuthContext] Logout API call failed:', error);
+        const response = await apiLogout();
+
+        if (response._tag === 'Success') {
+            // Clear client-side authentication data
+            authManager.clearAuthData();
+
+            toast.success(response.data.message);
+        } else {
+            toast.error('Failed to log out. Please try again.');
         }
-
-        // Clear client-side authentication data
-        authManager.clearAuthData();
-
-        toast.success('Logged out successfully');
     };
 
     const googleLogin = async (reconnect?: boolean) => {
@@ -145,7 +156,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     const disconnectGoogle = async () => {
-        const result = await ApiClient.disconnectGoogle();
+        const result = await apiDisconnectGoogle();
         if (result._tag === 'Success') {
             // Update user data after disconnecting Google
             authManager.setUser(result.data.user);

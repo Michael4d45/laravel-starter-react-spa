@@ -25,7 +25,7 @@ export function RealtimeNotifications() {
     return (
         <div
             className="bg-card rounded-lg p-4 shadow-md"
-            data-testid="realtime-notifications"
+            data-test="realtime-notifications"
         >
             <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -35,9 +35,9 @@ export function RealtimeNotifications() {
                 <div className="flex items-center gap-2">
                     <span
                         className={`flex items-center gap-1 text-sm ${
-                            connected ? 'text-green-600' : 'text-red-600'
+                            connected ? 'text-success' : 'text-error'
                         }`}
-                        data-testid={`connection-status-${connected ? 'connected' : 'disconnected'}`}
+                        data-test={`connection-status-${connected ? 'connected' : 'disconnected'}`}
                     >
                         {connected ? (
                             <Bell className="h-4 w-4" />
@@ -62,12 +62,12 @@ export function RealtimeNotifications() {
                             <X className="h-4 w-4" />
                         </button>
                     </div>
-                    <ul className="space-y-1" data-testid="realtime-messages">
+                    <ul className="space-y-1" data-test="realtime-messages">
                         {messages.map((msg, idx) => (
                             <li
                                 key={idx}
                                 className="bg-primary/5 rounded p-2 text-sm"
-                                data-testid="realtime-message"
+                                data-test="realtime-message"
                             >
                                 <span className="font-medium">
                                     {msg.message}
@@ -82,7 +82,7 @@ export function RealtimeNotifications() {
                     </ul>
                 </div>
             ) : (
-                <p className="text-secondary text-sm" data-testid="no-messages">
+                <p className="text-secondary text-sm" data-test="no-messages">
                     No real-time messages yet.
                 </p>
             )}

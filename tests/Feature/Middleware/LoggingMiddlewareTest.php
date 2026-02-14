@@ -14,11 +14,11 @@ it('logs requests when should_log_request is enabled', function (): void {
     Log::shouldReceive('info')
         ->once()
         ->with('Incoming Request', \Mockery::on(function ($data) {
-            return isset(
-                $data['method'],
-                $data['url'],
-                $data['query_params'],
-                $data['timestamp'],
+            return (
+                array_key_exists('method', $data)
+                && array_key_exists('url', $data)
+                && array_key_exists('query_params', $data)
+                && array_key_exists('timestamp', $data)
             );
         }));
 
@@ -115,7 +115,11 @@ it('logs requests for non-ignored routes even with ignore config', function (): 
     Log::shouldReceive('info')
         ->once()
         ->with('Incoming Request', \Mockery::on(function ($data) {
-            return isset($data['method'], $data['url'], $data['query_params']);
+            return (
+                array_key_exists('method', $data)
+                && array_key_exists('url', $data)
+                && array_key_exists('query_params', $data)
+            );
         }));
 
     $request = Request::create('/api/users', 'POST', ['name' => 'John']);
@@ -148,11 +152,11 @@ it('logs requests with query parameters', function (): void {
     Log::shouldReceive('info')
         ->once()
         ->with('Incoming Request', \Mockery::on(function ($data) {
-            return isset(
-                $data['method'],
-                $data['url'],
-                $data['query_params'],
-                $data['timestamp'],
+            return (
+                array_key_exists('method', $data)
+                && array_key_exists('url', $data)
+                && array_key_exists('query_params', $data)
+                && array_key_exists('timestamp', $data)
             );
         }));
 

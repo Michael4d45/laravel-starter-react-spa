@@ -1,70 +1,49 @@
 import { Button } from '@/components/ui/Button';
+import { Form, FormField } from '@/components/ui/Form';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-type ValidationErrors = Record<string, readonly string[]>;
-
 export function RegisterPage() {
-    const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
-        {},
-    );
-
     const { register, googleLogin, isLoading } = useAuth();
-
     const { isBlocked, blockReason } = useOfflineBlock();
 
-    const getFieldError = (fieldName: string): string | null => {
-        return validationErrors[fieldName]?.[0] || null;
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (isBlocked) {
-            alert(blockReason || 'Cannot register while offline');
-            return;
-        }
-
-        // Read values directly from form elements (works with browser automation)
-        const formData = new FormData(e.target as HTMLFormElement);
-        const nameValue = formData.get('name') as string;
-        const emailValue = formData.get('email') as string;
-        const passwordValue = formData.get('password') as string;
-        const passwordConfirmationValue = formData.get(
+    const handleSubmit = async (formData: FormData) => {
+        const name = formData.get('name') as string;
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
+        const password_confirmation = formData.get(
             'password_confirmation',
         ) as string;
 
-        // Client-side validation
-        const errors: ValidationErrors = {};
-
-        if (passwordValue.length < 8) {
-            errors.password = ['Password must be at least 8 characters'];
-        }
-
-        if (passwordValue !== passwordConfirmationValue) {
-            errors.password_confirmation = ['Passwords do not match'];
-        }
-
-        if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
-            return;
-        }
-
-        setValidationErrors({}); // Clear previous errors
-
-        const result = await register({
-            name: nameValue,
-            email: emailValue,
-            password: passwordValue,
-            password_confirmation: passwordConfirmationValue,
+        return await register({
+            name,
+            email,
+            password,
+            password_confirmation,
         });
-        if (result._tag === 'ValidationError') {
-            setValidationErrors(result.errors);
+    };
+
+    const clientValidation = (
+        formData: FormData,
+    ): Record<string, readonly string[]> => {
+        const password = formData.get('password') as string;
+        const password_confirmation = formData.get(
+            'password_confirmation',
+        ) as string;
+
+        const errors: Record<string, readonly string[]> = {};
+
+        if (password.length < 8) {
+            errors['password'] = ['Password must be at least 8 characters'];
         }
-        // Success case is handled by AuthContext (redirect/navigation)
+
+        if (password !== password_confirmation) {
+            errors['password_confirmation'] = ['Passwords do not match'];
+        }
+
+        return errors;
     };
 
     return (
@@ -80,115 +59,44 @@ export function RegisterPage() {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label
-                            htmlFor="name"
-                            className="text-secondary mb-1 block text-sm font-medium"
-                        >
-                            Full Name
-                        </label>
-                        <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            defaultValue=""
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
-                                getFieldError('name')
-                                    ? 'border-danger focus:ring-danger'
-                                    : 'focus:ring-primary border-gray-300'
-                            }`}
-                            required
-                            disabled={isBlocked}
-                        />
-                        {getFieldError('name') && (
-                            <p className="text-danger mt-1 text-sm">
-                                {getFieldError('name')}
-                            </p>
-                        )}
-                    </div>
+                <Form
+                    onSubmit={handleSubmit}
+                    offlineBlock={{ isBlocked, blockReason }}
+                    clientValidation={clientValidation}
+                    className="space-y-4"
+                >
+                    <FormField
+                        type="text"
+                        id="name"
+                        name="name"
+                        label="Full Name"
+                        required
+                    />
 
-                    <div>
-                        <label
-                            htmlFor="email"
-                            className="text-secondary mb-1 block text-sm font-medium"
-                        >
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            defaultValue=""
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
-                                getFieldError('email')
-                                    ? 'border-danger focus:ring-danger'
-                                    : 'focus:ring-primary border-gray-300'
-                            }`}
-                            required
-                            disabled={isBlocked}
-                        />
-                        {getFieldError('email') && (
-                            <p className="text-danger mt-1 text-sm">
-                                {getFieldError('email')}
-                            </p>
-                        )}
-                    </div>
+                    <FormField
+                        type="email"
+                        id="email"
+                        name="email"
+                        label="Email"
+                        required
+                    />
 
-                    <div>
-                        <label
-                            htmlFor="password"
-                            className="text-secondary mb-1 block text-sm font-medium"
-                        >
-                            Password
-                        </label>
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            defaultValue=""
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
-                                getFieldError('password')
-                                    ? 'border-danger focus:ring-danger'
-                                    : 'focus:ring-primary border-gray-300'
-                            }`}
-                            required
-                            minLength={8}
-                            disabled={isBlocked}
-                        />
-                        {getFieldError('password') && (
-                            <p className="text-danger mt-1 text-sm">
-                                {getFieldError('password')}
-                            </p>
-                        )}
-                    </div>
+                    <FormField
+                        type="password"
+                        id="password"
+                        name="password"
+                        label="Password"
+                        required
+                        minLength={8}
+                    />
 
-                    <div>
-                        <label
-                            htmlFor="password_confirmation"
-                            className="text-secondary mb-1 block text-sm font-medium"
-                        >
-                            Confirm Password
-                        </label>
-                        <input
-                            type="password"
-                            id="password_confirmation"
-                            name="password_confirmation"
-                            defaultValue=""
-                            className={`w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none ${
-                                getFieldError('password_confirmation')
-                                    ? 'border-danger focus:ring-danger'
-                                    : 'focus:ring-primary border-gray-300'
-                            }`}
-                            required
-                            disabled={isBlocked}
-                        />
-                        {getFieldError('password_confirmation') && (
-                            <p className="text-danger mt-1 text-sm">
-                                {getFieldError('password_confirmation')}
-                            </p>
-                        )}
-                    </div>
+                    <FormField
+                        type="password"
+                        id="password_confirmation"
+                        name="password_confirmation"
+                        label="Confirm Password"
+                        required
+                    />
 
                     <Button
                         data-test="create-account"
@@ -198,12 +106,12 @@ export function RegisterPage() {
                     >
                         {isLoading ? 'Creating Account...' : 'Create Account'}
                     </Button>
-                </form>
+                </Form>
 
                 <div className="mt-6">
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300" />
+                            <div className="border-secondary w-full border-t" />
                         </div>
                         <div className="relative flex justify-center text-sm">
                             <span className="bg-card text-secondary px-2">

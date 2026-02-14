@@ -13,6 +13,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.24",
         "michael4d45/context-logging": "4.1.2",
+        "michael4d45/effect-schema-generator": "^0.2.9",
         "michael4d45/filament-system-info-widget": "^2.0",
         "spatie/laravel-data": "^4.18"
     },
@@ -23,7 +24,6 @@
         "laravel/boost": "^1.8",
         "laravel/tinker": "^2.10.1",
         "michael4d45/coverage-treemap": "^1.0",
-        "michael4d45/effect-schema-generator": "^0.1.0",
         "michael4d45/laravel-resource-checker": "^1.0",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
@@ -68,8 +68,7 @@
             "@php artisan filament:upgrade"
         ],
         "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
-            "@php artisan boost:update --ansi"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""

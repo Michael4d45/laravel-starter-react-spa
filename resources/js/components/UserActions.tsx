@@ -1,17 +1,70 @@
 import AppearanceToggleTab from '@/components/ui/AppearanceToggleTab';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogIn, LogOut, Shield, User, UserPlus } from 'lucide-react';
+import { useSidebarMode } from '@/hooks/useSidebarMode';
+import { cn } from '@/lib/utils';
+import {
+    LogIn,
+    LogOut,
+    LucideIcon,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Shield,
+    User,
+    UserPlus,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { IconButton } from './ui/IconButton';
 
 interface UserActionsProps {
-    onItemClick?: () => void;
+    onItemClick?: (() => void) | undefined;
+    compact?: boolean;
 }
 
-export default function UserActions({ onItemClick }: UserActionsProps) {
+interface ActionItemProps {
+    href: string;
+    label: string;
+    icon: LucideIcon;
+    onClick?: (() => void) | undefined;
+    compact: boolean;
+}
+
+function ActionItem({
+    href,
+    label,
+    icon: Icon,
+    onClick,
+    compact,
+}: ActionItemProps) {
+    return (
+        <Link
+            to={href}
+            className={cn(
+                'nav-item flex items-center rounded-md p-3 text-base font-semibold md:p-2 md:text-sm',
+                compact ? 'justify-center px-2' : 'gap-x-3',
+            )}
+            onClick={onClick}
+        >
+            <Icon className="h-6 w-6 shrink-0 text-primary-500 md:h-5 md:w-5" />
+            {compact ? <span className="sr-only">{label}</span> : label}
+        </Link>
+    );
+}
+
+export default function UserActions({
+    onItemClick,
+    compact = false,
+}: UserActionsProps) {
     const { user, logout } = useAuth();
+    const { isCompact, toggleSidebarMode } = useSidebarMode();
+    const useCompact = compact && isCompact;
 
     const handleLogout = async () => {
         await logout();
+        onItemClick?.();
+    };
+
+    const handleSidebarToggle = () => {
+        toggleSidebarMode();
         onItemClick?.();
     };
 
@@ -21,54 +74,67 @@ export default function UserActions({ onItemClick }: UserActionsProps) {
                 {user?.is_admin && (
                     <a
                         href="/admin"
-                        className="nav-item flex items-center gap-x-3 rounded-md p-3 text-base font-semibold md:p-2 md:text-sm"
+                        className={cn(
+                            'nav-item flex items-center rounded-md p-3 text-base font-semibold md:p-2 md:text-sm',
+                            useCompact ? 'justify-center px-2' : 'gap-x-3',
+                        )}
                         onClick={onItemClick}
                     >
                         <Shield className="h-6 w-6 shrink-0 text-primary-500 md:h-5 md:w-5" />
-                        Admin
+                        {useCompact ? (
+                            <span className="sr-only">Admin Panel</span>
+                        ) : (
+                            'Admin Panel'
+                        )}
                     </a>
                 )}
-                {user && (
-                    <Link
-                        to="/profile"
-                        className="nav-item flex items-center gap-x-3 rounded-md p-3 text-base font-semibold md:p-2 md:text-sm"
+                {user && !user.is_guest && (
+                    <ActionItem
+                        href="/profile"
+                        label={user.name ?? 'Profile'}
+                        icon={User}
                         onClick={onItemClick}
-                    >
-                        <User className="h-6 w-6 shrink-0 text-primary-500 md:h-5 md:w-5" />
-                        {user.name}
-                    </Link>
+                        compact={useCompact}
+                    />
                 )}
-                {!user && (
-                    <Link
-                        to="/login"
-                        className="nav-item flex items-center gap-x-3 rounded-md p-3 text-base font-semibold md:p-2 md:text-sm"
+                {user?.is_guest && (
+                    <ActionItem
+                        href="/login"
+                        label="Log in"
+                        icon={LogIn}
                         onClick={onItemClick}
-                    >
-                        <LogIn className="h-6 w-6 shrink-0 text-primary-500 md:h-5 md:w-5" />
-                        Log in
-                    </Link>
+                        compact={useCompact}
+                    />
                 )}
-                {!user && (
-                    <Link
-                        to="/register"
-                        className="nav-item flex items-center gap-x-3 rounded-md p-3 text-base font-semibold md:p-2 md:text-sm"
+                {user?.is_guest && (
+                    <ActionItem
+                        href="/register"
+                        label="Sign up"
+                        icon={UserPlus}
                         onClick={onItemClick}
-                    >
-                        <UserPlus className="h-6 w-6 shrink-0 text-primary-500 md:h-5 md:w-5" />
-                        Sign up
-                    </Link>
+                        compact={useCompact}
+                    />
                 )}
-                {user && (
-                    <button
+                {user && !user.is_guest && (
+                    <ActionItem
+                        href="/"
+                        label="Sign out"
+                        icon={LogOut}
                         onClick={handleLogout}
-                        className="nav-item flex items-center gap-x-3 rounded-md p-3 text-base font-semibold md:p-2 md:text-sm"
-                    >
-                        <LogOut className="h-6 w-6 shrink-0 text-primary-500 md:h-5 md:w-5" />
-                        Sign out
-                    </button>
+                        compact={useCompact}
+                    />
                 )}
             </div>
-            <AppearanceToggleTab showText={false} />
+            <div className="flex">
+                <IconButton
+                    type="button"
+                    className="hidden md:block"
+                    onClick={handleSidebarToggle}
+                >
+                    {useCompact ? <PanelLeftOpen /> : <PanelLeftClose />}
+                </IconButton>
+                {compact ? null : <AppearanceToggleTab showText={false} />}
+            </div>
         </div>
     );
 }

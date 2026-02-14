@@ -51,6 +51,8 @@ export interface BaseSearchSelectProps {
     disabled?: boolean;
     /** Additional CSS classes */
     className?: string;
+    /** Data test attribute for testing */
+    dataTest?: string;
     /** Callback fired when selection changes */
     onChange?: (value: SearchSelectValue) => void;
     /** Callback fired when search query changes */
@@ -59,6 +61,10 @@ export interface BaseSearchSelectProps {
     limit?: number;
     /** Debounce delay for API calls (ms) */
     debounceMs?: number;
+    /** Whether the component allows searching */
+    searchable?: boolean;
+    /** Whether to preload options on mount (API mode only) */
+    preload?: boolean;
 }
 
 export interface SingleSelectProps extends BaseSearchSelectProps {
@@ -88,6 +94,10 @@ export interface MultiSelectProps extends BaseSearchSelectProps {
 }
 
 export type SearchSelectProps = SingleSelectProps | MultiSelectProps;
+
+// ===== CONSTANTS =====
+
+const DROPDOWN_HEIGHT = 200; // Approximate max height for dropdown
 
 // ===== UTILITY FUNCTIONS =====
 
@@ -132,6 +142,7 @@ function useApiData(
     apiClient: SearchSelectApiClient | undefined,
     limit: number,
     debounceMs: number,
+    preload: boolean,
 ) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
@@ -142,8 +153,16 @@ function useApiData(
         Map<string, SearchSelectOption>
     >(new Map());
 
-    const searchFunction = async (query: string) => {
-        if (!apiClient || !query.trim()) {
+    const hasPreloaded = useRef(false);
+
+    const searchFunction = async (query: string, force = false) => {
+        if (!apiClient) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        if (!query.trim() && !force && !preload) {
             setSearchResults([]);
             setIsSearching(false);
             return;
@@ -186,8 +205,17 @@ function useApiData(
     };
 
     useEffect(() => {
-        debouncedSearch(searchQuery);
-    }, [searchQuery, debouncedSearch]);
+        if (preload && apiClient && !hasPreloaded.current) {
+            searchFunction('', true);
+            hasPreloaded.current = true;
+        }
+    }, [preload, apiClient]);
+
+    useEffect(() => {
+        if (!(preload && !searchQuery.trim())) {
+            debouncedSearch(searchQuery);
+        }
+    }, [searchQuery, debouncedSearch, preload]);
 
     return {
         searchQuery,
@@ -206,10 +234,11 @@ function getAvailableOptions(
     options: SearchSelectOption[] | undefined,
     searchResults: SearchSelectOption[],
     searchQuery: string,
+    searchable: boolean,
 ): SearchSelectOption[] {
     if (options) {
-        // Static options - filter by search query
-        return searchQuery
+        // Static options - filter by search query if searchable
+        return searchable && searchQuery
             ? options.filter((opt) =>
                   opt.label.toLowerCase().includes(searchQuery.toLowerCase()),
               )
@@ -231,12 +260,15 @@ export default function SearchSelect(props: SearchSelectProps) {
         placeholder = 'Search...',
         disabled = false,
         className = '',
+        dataTest,
         onChange,
         onSearch,
         options,
         apiClient,
         limit = 20,
         debounceMs = 300,
+        searchable = true,
+        preload = false,
         value: controlledValue,
         defaultValue,
     } = props;
@@ -254,10 +286,12 @@ export default function SearchSelect(props: SearchSelectProps) {
 
     const [isOpen, setIsOpen] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const [dropdownPositionClass, setDropdownPositionClass] = useState('mt-1');
 
     // ===== REFS =====
 
     const containerRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
 
@@ -270,7 +304,7 @@ export default function SearchSelect(props: SearchSelectProps) {
         searchResults,
         selectedItemsCache,
         loadSelectedItem,
-    } = useApiData(apiClient, limit, debounceMs);
+    } = useApiData(apiClient, limit, debounceMs, preload);
 
     // ===== COMPUTED VALUES =====
 
@@ -278,6 +312,7 @@ export default function SearchSelect(props: SearchSelectProps) {
         options,
         searchResults,
         searchQuery,
+        searchable,
     );
 
     const selectedOptions = (() => {
@@ -315,6 +350,23 @@ export default function SearchSelect(props: SearchSelectProps) {
 
     // ===== EFFECTS =====
 
+    // Calculate dropdown position based on available viewport space
+    const calculateDropdownPosition = () => {
+        if (!triggerRef.current) return;
+        const triggerRect = triggerRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const spaceAbove = triggerRect.top;
+
+        if (spaceBelow >= DROPDOWN_HEIGHT) {
+            setDropdownPositionClass('mt-1');
+        } else if (spaceAbove >= DROPDOWN_HEIGHT) {
+            setDropdownPositionClass('mb-1 -translate-y-full');
+        } else {
+            setDropdownPositionClass('mt-1');
+        }
+    };
+
     // Load selected items for API mode
     useEffect(() => {
         if (apiClient && currentValue) {
@@ -346,6 +398,7 @@ export default function SearchSelect(props: SearchSelectProps) {
             return () =>
                 document.removeEventListener('mousedown', handleClickOutside);
         }
+        return;
     }, [isOpen]);
 
     // Scroll highlighted option into view
@@ -460,8 +513,10 @@ export default function SearchSelect(props: SearchSelectProps) {
     const handleToggle = () => {
         if (disabled) return;
 
-        setIsOpen((prev) => !prev);
-        if (!isOpen) {
+        const newIsOpen = !isOpen;
+        setIsOpen(newIsOpen);
+        if (newIsOpen) {
+            calculateDropdownPosition();
             setTimeout(() => inputRef.current?.focus(), 0);
         }
     };
@@ -493,19 +548,21 @@ export default function SearchSelect(props: SearchSelectProps) {
 
             {/* Trigger button */}
             <div
+                ref={triggerRef}
                 role="combobox"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-controls={`${name}-listbox`}
                 aria-label={name}
-                className={`border-border relative flex w-full cursor-text items-center justify-between rounded-md border px-3 py-2 text-left shadow-sm ${disabled ? 'bg-muted cursor-not-allowed' : 'bg-background hover:border-accent'} ${isOpen ? 'ring-ring border-ring ring-2' : ''} focus:ring-ring focus:border-ring focus:ring-2 focus:outline-none`}
+                className={`search-select-trigger ${isOpen ? 'search-select-open' : ''} ${disabled ? 'search-select-disabled' : ''}`}
                 onClick={handleToggle}
                 onKeyDown={handleKeyDown}
                 tabIndex={disabled ? -1 : 0}
+                data-test={dataTest}
             >
                 <div className="flex min-w-0 flex-1 items-center">
                     {showPlaceholder && (
-                        <span className="text-muted-foreground truncate">
+                        <span className="text-muted truncate">
                             {placeholder}
                         </span>
                     )}
@@ -516,12 +573,12 @@ export default function SearchSelect(props: SearchSelectProps) {
                                 selectedOptions.map((option) => (
                                     <span
                                         key={option.value}
-                                        className="bg-accent text-accent-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm"
+                                        className="bg-primary inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-white"
                                     >
                                         {option.label}
                                         <button
                                             type="button"
-                                            className="hover:bg-accent-foreground hover:text-accent ml-1 rounded-full p-0.5"
+                                            className="hover:bg-secondary-bg hover:text-secondary ml-1 rounded-full p-0.5"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleSelect(option); // This will deselect it
@@ -549,9 +606,7 @@ export default function SearchSelect(props: SearchSelectProps) {
                     )}
 
                     {isSearching && (
-                        <span className="text-muted-foreground ml-2">
-                            Searching...
-                        </span>
+                        <span className="text-muted ml-2">Searching...</span>
                     )}
                 </div>
 
@@ -564,7 +619,7 @@ export default function SearchSelect(props: SearchSelectProps) {
                             aria-label="Clear selection"
                         >
                             <svg
-                                className="text-muted-foreground h-4 w-4"
+                                className="text-muted h-4 w-4"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -597,19 +652,23 @@ export default function SearchSelect(props: SearchSelectProps) {
 
             {/* Dropdown */}
             {isOpen && (
-                <div className="bg-popover border-border absolute z-50 mt-1 w-full rounded-md border shadow-lg">
+                <div
+                    className={`search-select-dropdown absolute z-50 w-full ${dropdownPositionClass}`}
+                >
                     {/* Search input */}
-                    <div className="border-border border-b p-2">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            className="border-border bg-popover focus:ring-ring focus:border-ring w-full rounded border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
-                            placeholder="Search..."
-                            value={searchQuery}
-                            onChange={handleSearchChange}
-                            onKeyDown={handleKeyDown}
-                        />
-                    </div>
+                    {searchable && (
+                        <div className="border-border border-b p-2">
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                className="search-select-search-input"
+                                placeholder="Search..."
+                                value={searchQuery}
+                                onChange={handleSearchChange}
+                                onKeyDown={handleKeyDown}
+                            />
+                        </div>
+                    )}
 
                     {/* Options list */}
                     <ul
@@ -617,10 +676,10 @@ export default function SearchSelect(props: SearchSelectProps) {
                         ref={listRef}
                         role="listbox"
                         aria-multiselectable={multiSelect}
-                        className="max-h-60 overflow-auto py-1"
+                        className="search-select-list"
                     >
                         {availableOptions.length === 0 && !isSearching && (
-                            <li className="text-muted-foreground px-3 py-2 text-sm">
+                            <li className="search-select-no-results">
                                 {searchQuery
                                     ? 'No results found'
                                     : 'No options available'}
@@ -641,10 +700,15 @@ export default function SearchSelect(props: SearchSelectProps) {
                                     key={option.value}
                                     role="option"
                                     aria-selected={isSelected}
-                                    className={`cursor-pointer px-3 py-2 text-sm ${isHighlighted ? 'bg-accent' : 'hover:bg-accent'} ${isSelected ? 'bg-accent text-accent-foreground font-medium' : ''} `}
+                                    className={`search-select-item ${isHighlighted ? 'search-select-item-highlighted' : ''} ${isSelected ? 'search-select-item-selected' : ''}`}
                                     onClick={() => handleSelect(option)}
                                     onMouseEnter={() =>
                                         setHighlightedIndex(index)
+                                    }
+                                    data-test={
+                                        dataTest
+                                            ? `${dataTest}-option-${option.value}`
+                                            : undefined
                                     }
                                 >
                                     {multiSelect && (
@@ -657,7 +721,7 @@ export default function SearchSelect(props: SearchSelectProps) {
                                         >
                                             {isSelected && (
                                                 <svg
-                                                    className="text-primary-foreground h-4 w-4"
+                                                    className="h-4 w-4 text-white"
                                                     fill="currentColor"
                                                     viewBox="0 0 20 20"
                                                 >

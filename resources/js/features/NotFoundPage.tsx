@@ -29,7 +29,9 @@ export function NotFoundPage() {
 
                 <div className="space-y-4">
                     <Link to="/" className="block">
-                        <Button className="w-full">Go Home</Button>
+                        <Button className="w-full" data-test="go-home">
+                            Go Home
+                        </Button>
                     </Link>
 
                     <Button
