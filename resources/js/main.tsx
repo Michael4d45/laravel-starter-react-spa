@@ -7,8 +7,6 @@ import { AuthProvider } from './contexts/AuthContext';
 import { initializeTheme } from './hooks/useAppearance';
 import { router } from './router';
 
-// Service worker is automatically registered by VitePWA plugin
-
 // Initialize theme on page load (for hard refreshes)
 initializeTheme();
 

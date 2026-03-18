@@ -1,4 +1,4 @@
-import { Home, LucideIcon, Settings, User } from 'lucide-react';
+import { Home, LucideIcon, Settings } from 'lucide-react';
 
 export interface NavigationItem {
     href: string;

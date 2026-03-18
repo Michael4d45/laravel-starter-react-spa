@@ -16,12 +16,16 @@ Route::get('reset-password/{email}/{token}', fn() => view('app'))->middleware([
 
 Route::post('login', \App\Features\Auth\Actions\Login::class);
 Route::post('register', \App\Features\Auth\Actions\Register::class);
-Route::middleware('auth')->post('logout', \App\Features\Auth\Actions\Logout::class);
+Route::middleware('auth')->post(
+    'logout',
+    \App\Features\Auth\Actions\Logout::class,
+);
 
 // Google OAuth routes
-Route::get('auth/google', \App\Features\Auth\Actions\RedirectToGoogle::class)->name(
-    'auth.google',
-);
+Route::get(
+    'auth/google',
+    \App\Features\Auth\Actions\RedirectToGoogle::class,
+)->name('auth.google');
 Route::get(
     'auth/google/callback',
     \App\Features\Auth\Actions\HandleGoogleCallback::class,

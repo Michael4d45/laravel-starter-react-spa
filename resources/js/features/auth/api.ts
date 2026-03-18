@@ -2,12 +2,12 @@
  * Auth feature API – re-exports auth-related methods from the shared API client.
  */
 export {
-    login,
-    register,
-    logout,
-    sendPasswordResetLink,
-    resetPassword,
-    resendVerificationEmail,
     disconnectGoogle,
+    login,
+    logout,
+    register,
+    resendVerificationEmail,
+    resetPassword,
+    sendPasswordResetLink,
     showUser,
 } from '@/lib/apiClient';

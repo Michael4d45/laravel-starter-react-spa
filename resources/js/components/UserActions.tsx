@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import {
     LogIn,
     LogOut,
-    LucideIcon,
+    type LucideIcon,
     PanelLeftClose,
     PanelLeftOpen,
     Shield,
@@ -97,7 +97,7 @@ export default function UserActions({
                         compact={useCompact}
                     />
                 )}
-                {user?.is_guest && (
+                {!user && (
                     <ActionItem
                         href="/login"
                         label="Log in"
@@ -106,7 +106,7 @@ export default function UserActions({
                         compact={useCompact}
                     />
                 )}
-                {user?.is_guest && (
+                {!user && (
                     <ActionItem
                         href="/register"
                         label="Sign up"
@@ -125,10 +125,15 @@ export default function UserActions({
                     />
                 )}
             </div>
-            <div className="flex">
+            <div
+                className={cn(
+                    'flex items-center',
+                    compact ? 'justify-center' : 'gap-2',
+                )}
+            >
                 <IconButton
                     type="button"
-                    className="hidden md:block"
+                    className="hidden h-10 w-10 shrink-0 p-2 md:block"
                     onClick={handleSidebarToggle}
                 >
                     {useCompact ? <PanelLeftOpen /> : <PanelLeftClose />}

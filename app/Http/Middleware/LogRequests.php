@@ -30,11 +30,15 @@ class LogRequests
                 'url' => $request->fullUrl(),
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
-                'headers' => LoggingHelper::maskHeaders($request->headers->all()),
+                'headers' => LoggingHelper::maskHeaders(
+                    $request->headers->all(),
+                ),
                 'body' => LoggingHelper::maskSensitiveData($body), // Sensitive data is now masked
                 'query_params' => LoggingHelper::maskSensitiveData($queryParams), // Query params may also contain sensitive data
                 'timestamp' => now()->toISOString(),
-                'cookies' => LoggingHelper::maskCookies($request->cookies->all()),
+                'cookies' => LoggingHelper::maskCookies(
+                    $request->cookies->all(),
+                ),
             ]);
         }
 

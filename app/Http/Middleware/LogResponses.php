@@ -46,7 +46,9 @@ class LogResponses
             $logData = [
                 'status_code' => $response->getStatusCode(),
                 'content_type' => $response->headers->get('content-type'),
-                'headers' => LoggingHelper::maskHeaders($response->headers->all()),
+                'headers' => LoggingHelper::maskHeaders(
+                    $response->headers->all(),
+                ),
                 'content_length' => is_string($content) ? strlen($content) : 0,
                 'timestamp' => now()->toISOString(),
             ];

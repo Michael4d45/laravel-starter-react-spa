@@ -1,30 +1,11 @@
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
 
 export function OfflineBanner() {
-    const [isOffline, setIsOffline] = useState(!navigator.onLine);
-    const [isVisible, setIsVisible] = useState(!navigator.onLine);
+    const isOnline = useOnlineStatus();
+    const isOffline = !isOnline;
 
-    useEffect(() => {
-        const handleOnline = () => {
-            setIsOffline(false);
-            setIsVisible(false);
-        };
-        const handleOffline = () => {
-            setIsOffline(true);
-            setIsVisible(true);
-        };
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
-    }, []);
-
-    if (!isOffline || !isVisible) return null;
+    if (!isOffline) return null;
 
     return (
         <div
