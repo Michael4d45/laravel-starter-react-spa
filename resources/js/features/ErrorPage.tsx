@@ -6,7 +6,7 @@ export function ErrorPage() {
 
     if (isRouteErrorResponse(error)) {
         return (
-            <div className="bg-primary flex min-h-screen items-center justify-center">
+            <div className="bg-primary flex min-h-full items-center justify-center">
                 <div className="bg-card w-full max-w-md rounded-lg p-8 shadow-lg">
                     <div className="text-center">
                         <h1 className="text-secondary mb-4 text-6xl font-bold">
@@ -41,7 +41,7 @@ export function ErrorPage() {
 
     // For non-route errors (like thrown errors from loaders)
     return (
-        <div className="bg-primary flex min-h-screen items-center justify-center">
+        <div className="bg-primary flex min-h-full items-center justify-center">
             <div className="bg-card w-full max-w-md rounded-lg p-8 shadow-lg">
                 <div className="text-center">
                     <h1 className="text-secondary mb-4 text-6xl font-bold">

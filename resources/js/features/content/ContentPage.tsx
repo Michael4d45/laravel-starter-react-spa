@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { showContent } from '@/lib/apiClient';
-import { ContentItems } from '@/schemas/App/Data/Response';
+import { ContentItems } from '@/schemas/App/Data/ContentItems';
 import toast from 'react-hot-toast';
 import { Link, useLoaderData } from 'react-router-dom';
 

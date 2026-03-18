@@ -1,9 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { App } from './app';
-import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage';
-import { LoginPage } from './features/auth/LoginPage';
-import { RegisterPage } from './features/auth/RegisterPage';
-import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
+import { authRoutes } from './features/auth/routes';
 import { ContentPage, contentLoader } from './features/content/ContentPage';
 import { ErrorPage } from './features/ErrorPage';
 import { HomePage } from './features/home/HomePage';
@@ -32,26 +29,7 @@ export const router = createBrowserRouter([
                 errorElement: <ErrorPage />,
                 handle: { isProtected: true },
             },
-            {
-                path: 'login',
-                element: <LoginPage />,
-                handle: { isAuthPage: true },
-            },
-            {
-                path: 'register',
-                element: <RegisterPage />,
-                handle: { isAuthPage: true },
-            },
-            {
-                path: 'forgot-password',
-                element: <ForgotPasswordPage />,
-                handle: { isAuthPage: true },
-            },
-            {
-                path: 'reset-password/:email/:token',
-                element: <ResetPasswordPage />,
-                handle: { isAuthPage: true },
-            },
+            ...authRoutes,
         ],
     },
     {

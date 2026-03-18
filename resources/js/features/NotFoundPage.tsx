@@ -13,7 +13,7 @@ export function NotFoundPage() {
     };
 
     return (
-        <div className="bg-primary flex min-h-screen items-center justify-center">
+        <div className="bg-primary flex min-h-full items-center justify-center">
             <div className="w-full max-w-md text-center">
                 <div className="mb-8">
                     <h1 className="text-secondary mb-4 text-6xl font-bold">

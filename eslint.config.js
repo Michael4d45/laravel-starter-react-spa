@@ -93,8 +93,6 @@ export default [
             'storage',
             'bootstrap/ssr',
             'tailwind.config.js',
-            'resources/js/routes',
-            'resources/js/actions',
             'eslint.config.js',
             'laravelDataTypes.ts',
             'vite.config.js',

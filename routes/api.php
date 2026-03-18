@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 
+Route::middleware(['web', 'throttle:5,1'])->group(function (): void {
+    require base_path('app/Features/Auth/password-reset-routes.php');
+});
+
+Route::middleware(['web'])->group(function (): void {
+    require base_path('app/Features/Content/routes.php');
+});
+
 Route::middleware([
     'web',
     'auth:sanctum',
-])->group(function () {
-    // Authenticated routes for user-specific data and actions
+])->group(function (): void {
+    require base_path('app/Features/Auth/routes.php');
+    require base_path('app/Features/Broadcasting/routes.php');
 });
-
-Route::middleware(['web'])->group(function () {
-    // Routes that allow unauthenticated access for public data
-    Route::get('content', \App\Actions\Content\ShowContent::class);
-});
-
-require __DIR__ . '/auth.php';

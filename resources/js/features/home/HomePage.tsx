@@ -8,8 +8,8 @@ export function HomePage() {
 
     if (!isAuthenticated) {
         return (
-            <div className="mx-auto max-w-7xl">
-                <div className="flex h-screen flex-col items-center justify-center text-center">
+            <div className="mx-auto flex h-full min-h-full w-full max-w-7xl">
+                <div className="flex w-full flex-1 flex-col items-center justify-center text-center">
                     <h1 className="text-4xl">Welcome</h1>
                     <p className="text-muted mt-4 text-lg">
                         Get started by signing in or creating an account

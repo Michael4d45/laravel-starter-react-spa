@@ -7,8 +7,9 @@ import {
     showUser,
 } from '@/lib/apiClient';
 import { authManager, AuthState } from '@/lib/auth';
-import { UserData } from '@/schemas/App/Data/Models';
-import { LoginRequest, RegisterRequest } from '@/schemas/App/Data/Requests';
+import { UserData } from '@/schemas/App/Data/Models/UserData';
+import { LoginRequest } from '@/schemas/App/Features/Auth/Requests/LoginRequest';
+import { RegisterRequest } from '@/schemas/App/Features/Auth/Requests/RegisterRequest';
 import {
     createContext,
     ReactNode,
@@ -38,6 +39,35 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const OFFLINE_AUTH_TRUST_KEY = 'auth_user_trusted_offline';
+
+const setOfflineAuthTrust = (trusted: boolean): void => {
+    if (trusted) {
+        localStorage.setItem(OFFLINE_AUTH_TRUST_KEY, '1');
+        return;
+    }
+
+    localStorage.removeItem(OFFLINE_AUTH_TRUST_KEY);
+};
+
+const isOfflineAuthTrusted = (): boolean => {
+    return localStorage.getItem(OFFLINE_AUTH_TRUST_KEY) === '1';
+};
+
+const getInitialAuthState = (): AuthState & { hasFetchedUser: boolean } => {
+    const cachedAuthState = authManager.getAuthState();
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+    if (
+        isOffline &&
+        isOfflineAuthTrusted() &&
+        cachedAuthState.isAuthenticated
+    ) {
+        return { ...cachedAuthState, hasFetchedUser: false };
+    }
+
+    return { user: null, isAuthenticated: false, hasFetchedUser: false };
+};
 
 interface AuthProviderProps {
     children: ReactNode;
@@ -48,7 +78,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         AuthState & {
             hasFetchedUser: boolean;
         }
-    >({ ...authManager.getAuthState(), hasFetchedUser: false });
+    >(getInitialAuthState);
     const [isLoading, setIsLoading] = useState(false);
     const hasMounted = useRef(false);
     const isOnline = useOnlineStatus();
@@ -58,29 +88,45 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const user = authState.user;
 
     const handleSetAuthState = (state: AuthState) => {
-        if (
-            JSON.stringify({ ...state, hasFetchedUser: true }) ===
-            JSON.stringify(authState)
-        ) {
-            return;
-        }
-        console.log('[AuthContext] Auth state changed:', state);
-        setAuthState({ ...state, hasFetchedUser: true });
+        setAuthState((previousState) => {
+            const nextState = { ...state, hasFetchedUser: true };
+
+            if (JSON.stringify(previousState) === JSON.stringify(nextState)) {
+                return previousState;
+            }
+
+            console.log('[AuthContext] Auth state changed:', state);
+            return nextState;
+        });
     };
 
     const getUser = () => {
         if (isFetchingUser.current) return;
         isFetchingUser.current = true;
 
-        return showUser().then((result) => {
-            if (result._tag === 'Success') {
-                authManager.setUser(result.data);
-                console.log('[AuthContext] Fetched user data');
-            }
+        return showUser()
+            .then((result) => {
+                if (result._tag === 'Success') {
+                    setOfflineAuthTrust(true);
+                    authManager.setUser(result.data);
+                    console.log('[AuthContext] Fetched user data');
+                } else if (result._tag === 'AuthenticationError') {
+                    setOfflineAuthTrust(false);
+                    authManager.clearAuthData();
+                }
 
-            isFetchingUser.current = false;
-            return result;
-        });
+                return result;
+            })
+            .finally(() => {
+                isFetchingUser.current = false;
+                setAuthState((previousState) => {
+                    if (previousState.hasFetchedUser) {
+                        return previousState;
+                    }
+
+                    return { ...previousState, hasFetchedUser: true };
+                });
+            });
     };
 
     useEffect(() => {
@@ -109,7 +155,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
         url.searchParams.delete('auth');
         url.searchParams.delete('message');
         window.history.replaceState({}, document.title, url.toString());
-        if (isOnline) getUser();
+        if (isOnline) {
+            getUser();
+        } else {
+            const cachedAuthState = authManager.getAuthState();
+
+            if (isOfflineAuthTrusted() && cachedAuthState.isAuthenticated) {
+                authManager.setUser(cachedAuthState.user);
+            } else {
+                authManager.clearAuthData();
+            }
+        }
+
         return unsubscribe;
     }, [isOnline]);
 
@@ -142,6 +199,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         if (response._tag === 'Success') {
             // Clear client-side authentication data
+            setOfflineAuthTrust(false);
             authManager.clearAuthData();
 
             toast.success(response.data.message);
@@ -159,6 +217,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const result = await apiDisconnectGoogle();
         if (result._tag === 'Success') {
             // Update user data after disconnecting Google
+            setOfflineAuthTrust(true);
             authManager.setUser(result.data.user);
             toast.success(result.data.message);
         }

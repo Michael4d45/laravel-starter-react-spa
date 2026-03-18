@@ -14,7 +14,7 @@ export function App() {
     const { isCompact } = useSidebarMode();
 
     return (
-        <div className="bg-primary flex h-screen flex-col">
+        <div className="bg-primary flex h-dvh flex-col">
             <OfflineBanner />
             <GlobalRealtimeListener />
 

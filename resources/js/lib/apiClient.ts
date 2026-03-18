@@ -1,22 +1,22 @@
+import { UserDataSchema } from '@/schemas/App/Data/Models';
 import {
-    UserDataSchema,
-} from '@/schemas/App/Data/Models';
-import {
-    AuthenticateBroadcastingRequest,
-    AuthenticateBroadcastingRequestSchema,
     LoginRequest,
     LoginRequestSchema,
     RegisterRequest,
     RegisterRequestSchema,
     ResetPasswordRequest,
     ResetPasswordRequestSchema,
-} from '@/schemas/App/Data/Requests';
+} from '@/schemas/App/Features/Auth/Requests';
+import {
+    AuthenticateBroadcastingRequest,
+    AuthenticateBroadcastingRequestSchema,
+} from '@/schemas/App/Features/Broadcasting/Requests/AuthenticateBroadcastingRequest';
 import {
     AuthenticateBroadcastingResponseSchema,
-    ContentItemsSchema,
-    DisconnectGoogleResponseSchema,
-    MessageResponseSchema,
-} from '@/schemas/App/Data/Response';
+} from '@/schemas/App/Features/Broadcasting/Responses/AuthenticateBroadcastingResponse';
+import { DisconnectGoogleResponseSchema } from '@/schemas/App/Features/Auth/Responses/DisconnectGoogleResponse';
+import { ContentItemsSchema } from '@/schemas/App/Data/ContentItems';
+import { MessageResponseSchema } from '@/schemas/App/Data/MessageResponse';
 import { Effect, pipe, Schema } from 'effect';
 import { apiCache } from './apiCache';
 import {

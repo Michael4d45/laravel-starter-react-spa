@@ -246,6 +246,101 @@ it('can logout', function (): void {
     assert_no_log_errors($logPath);
 });
 
+it('does not restore stale cached user when booting offline', function (): void {
+    $staleUserName = 'Stale Offline User';
+
+    visit_with_error_init(
+        '/profile',
+        [],
+        [
+            <<<'JS'
+                Object.defineProperty(Navigator.prototype, 'onLine', {
+                    configurable: true,
+                    get: () => false,
+                });
+
+                window.fetch = async () => {
+                    throw new TypeError('Failed to fetch');
+                };
+
+                localStorage.setItem('auth_user', JSON.stringify({
+                    id: '999',
+                    name: 'Stale Offline User',
+                    display_name: null,
+                    email: 'stale@example.com',
+                    verified_google_email: null,
+                    email_verified_at: null,
+                    strava_id: null,
+                    strava_token_expires_at: null,
+                    avatar: null,
+                    bio: null,
+                    location: null,
+                    units: 'imperial',
+                    timezone: null,
+                    visibility: 'Public',
+                    created_at: null,
+                    updated_at: null,
+                    deleted_at: null,
+                    is_admin: false,
+                }));
+
+                window.dispatchEvent(new Event('offline'));
+                JS,
+        ],
+    )
+        ->wait(2)
+        ->assertPathIs('/login')
+        ->assertDontSee($staleUserName);
+});
+
+it('restores trusted cached user when booting offline', function (): void {
+    $trustedUserName = 'Trusted Offline User';
+
+    visit_with_error_init(
+        '/profile',
+        [],
+        [
+            <<<'JS'
+                Object.defineProperty(Navigator.prototype, 'onLine', {
+                    configurable: true,
+                    get: () => false,
+                });
+
+                window.fetch = async () => {
+                    throw new TypeError('Failed to fetch');
+                };
+
+                localStorage.setItem('auth_user_trusted_offline', '1');
+                localStorage.setItem('auth_user', JSON.stringify({
+                    id: '1000',
+                    name: 'Trusted Offline User',
+                    display_name: null,
+                    email: 'trusted@example.com',
+                    verified_google_email: null,
+                    email_verified_at: null,
+                    strava_id: null,
+                    strava_token_expires_at: null,
+                    avatar: null,
+                    bio: null,
+                    location: null,
+                    units: 'imperial',
+                    timezone: null,
+                    visibility: 'Public',
+                    created_at: null,
+                    updated_at: null,
+                    deleted_at: null,
+                    is_admin: false,
+                }));
+
+                window.dispatchEvent(new Event('offline'));
+                JS,
+        ],
+    )
+        ->wait(2)
+        ->assertPathIs('/profile')
+        ->assertSee($trustedUserName);
+});
+
 it('shows forgot password page', function (): void {
     visit('/forgot-password')
         ->assertNoJavaScriptErrors()
@@ -258,7 +353,7 @@ it('shows forgot password page', function (): void {
 it('can navigate to forgot password from login page', function (): void {
     visit('/login')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Log in')
+        ->waitForText('Login')
         ->assertSee('Forgot password?')
         ->click('@forgot-password-link')
         ->assertSee('Forgot Password')
