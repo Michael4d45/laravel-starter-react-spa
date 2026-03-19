@@ -15,6 +15,7 @@ use Spatie\LaravelData\Data;
 /**
  * @mixin Data
  */
+/** @phpstan-ignore-next-line */
 trait HasPagination
 {
     public null|int $per_page = 15;

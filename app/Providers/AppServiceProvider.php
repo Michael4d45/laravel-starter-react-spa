@@ -33,15 +33,10 @@ class AppServiceProvider extends ServiceProvider
                 $user instanceof \App\Models\User,
                 'User must be an instance of App\Models\User',
             );
-            $email = $user->email;
-            assert(
-                is_string($email),
-                'User email must not be null for password reset URL',
-            );
 
             // The purpose of this custom registration is to generate a signed URL
             return \Illuminate\Support\Facades\URL::signedRoute('password.reset', [
-                'email' => $email,
+                'email' => $user->email,
                 'token' => $token,
             ]);
         });

@@ -318,6 +318,10 @@ return [
         // 'box2d' => '\\App\\Filament\\Fields\\MapBboxField',
     ],
 
+    'ignored_fields' => [
+        'remember_token' => ['resources'],
+    ],
+
     /*
      |--------------------------------------------------------------------------
      | Numeric Field Types
