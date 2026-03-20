@@ -1,5 +1,5 @@
 import AppearanceToggleTab from '@/components/ui/AppearanceToggleTab';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useSidebarMode } from '@/hooks/useSidebarMode';
 import { cn } from '@/lib/utils';
 import {

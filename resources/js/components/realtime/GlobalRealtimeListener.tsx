@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useNotificationsChannel } from '@/hooks/useNotificationsChannel';
 import { RealtimeMessageDataSchema } from '@/schemas/App/Data/Events';
 import { useEffect, useRef } from 'react';

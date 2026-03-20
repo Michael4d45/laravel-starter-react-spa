@@ -149,6 +149,8 @@ prefer-arrow-function = { enabled = false }
 no-assign-in-condition = { enabled = false }
 no-insecure-comparison = { enabled = false }
 
+function-name = { enabled = false }
+
 [analyzer]
 find-unused-definitions = true
 find-unused-expressions = false

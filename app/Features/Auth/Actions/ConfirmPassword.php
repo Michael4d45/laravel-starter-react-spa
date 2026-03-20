@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Auth\Actions;
 
-use App\Features\Auth\Requests\AuthRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -14,9 +14,9 @@ class ConfirmPassword
     /**
      * Confirm the user's password.
      */
-    public function __invoke(AuthRequest $request): RedirectResponse
+    public function __invoke(Request $request): RedirectResponse
     {
-        $user = $request->assertedUser();
+        $user = assertedUser();
 
         if (!Auth::guard('web')->validate([
             'email' => $user->email,

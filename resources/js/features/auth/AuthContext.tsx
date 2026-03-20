@@ -1,12 +1,5 @@
+import { authManager, AuthState } from '@/features/auth/authManager';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import {
-    disconnectGoogle as apiDisconnectGoogle,
-    login as apiLogin,
-    logout as apiLogout,
-    register as apiRegister,
-    showUser,
-} from '@/lib/apiClient';
-import { authManager, AuthState } from '@/lib/auth';
 import { UserData } from '@/schemas/App/Data/Models/UserData';
 import { LoginRequest } from '@/schemas/App/Features/Auth/Requests/LoginRequest';
 import { RegisterRequest } from '@/schemas/App/Features/Auth/Requests/RegisterRequest';
@@ -20,6 +13,13 @@ import {
 } from 'react';
 import toast from 'react-hot-toast';
 import { useMatches, useNavigate } from 'react-router';
+import {
+    disconnectGoogle as apiDisconnectGoogle,
+    login as apiLogin,
+    logout as apiLogout,
+    register as apiRegister,
+    showUser,
+} from './api';
 
 export interface AuthContextState {
     hasFetchedUser: boolean;

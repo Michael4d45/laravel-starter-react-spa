@@ -1,5 +1,5 @@
 import { exec } from 'child_process';
-import { minimatch } from 'minimatch';
+import minimatch from 'minimatch';
 import osPath from 'path';
 import { PluginContext } from 'rollup';
 import { promisify } from 'util';
@@ -19,8 +19,8 @@ let context: PluginContext;
 export const laravelDataTypes = ({
     patterns = [
         'app/Data/**/*.php',
-        'app/Enums/**/*.php',
         'app/Features/**/*.php',
+        'app/Enums/**/*.php',
     ],
     command = 'php artisan effect-schema:transform',
     path,
@@ -38,7 +38,14 @@ export const laravelDataTypes = ({
             await execAsync(`${command} ${args.join(' ')}`);
             context.info('[laravel-data] TypeScript types generated.');
         } catch (error) {
-            context.error('[laravel-data] Failed to generate types:\n' + error);
+            // Provide stdout/stderr details when available to aid debugging inside containers
+            const e: any = error;
+            const details = [e.message || '', e.stdout || '', e.stderr || '']
+                .filter(Boolean)
+                .join('\n');
+            context.error(
+                '[laravel-data] Failed to generate types:\n' + details,
+            );
         }
     };
 

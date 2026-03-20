@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Auth\Actions;
 
 use App\Data\Models\UserData;
-use App\Features\Auth\Requests\AuthRequest;
 use App\Features\Auth\Responses\DisconnectGoogleResponse;
 use Illuminate\Http\JsonResponse;
 
@@ -14,9 +13,9 @@ class DisconnectGoogle
     /**
      * Disconnect Google account from the authenticated user.
      */
-    public function __invoke(AuthRequest $request): JsonResponse
+    public function __invoke(): JsonResponse
     {
-        $user = $request->assertedUser();
+        $user = assertedUser();
 
         if (!$user->google_id) {
             return response()->json([

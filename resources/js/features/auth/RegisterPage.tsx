@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { Form, FormField } from '@/components/ui/Form';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { Link } from 'react-router-dom';
 

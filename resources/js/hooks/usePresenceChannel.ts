@@ -1,4 +1,4 @@
-import { AuthContextState } from '@/contexts/AuthContext';
+import { AuthContextState } from '@/features/auth/AuthContext';
 import { echoManager } from '@/lib/echoManager';
 import { useEffect, useState } from 'react';
 

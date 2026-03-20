@@ -5,13 +5,12 @@
     <meta charset="utf-8">
     <meta name="viewport"
         content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=auto, user-scalable=no, interactive-widget=resizes-content" />
-    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link rel="manifest" crossorigin="use-credentials" href="/build/manifest.webmanifest" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="mobile-web-app-title" content="React SPA" />
+    <meta name="mobile-web-app-title" content="{{ config('app.name', 'Laravel') }}" />
 
     {{-- Font Awesome CDN --}}
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">

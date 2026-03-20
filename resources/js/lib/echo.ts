@@ -1,6 +1,26 @@
+import {
+    AuthenticateBroadcastingRequest,
+    AuthenticateBroadcastingRequestSchema,
+} from '@/schemas/App/Features/Broadcasting/Requests/AuthenticateBroadcastingRequest';
+import { AuthenticateBroadcastingResponseSchema } from '@/schemas/App/Features/Broadcasting/Responses/AuthenticateBroadcastingResponse';
+import { pipe, Schema } from 'effect';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
-import { authenticateBroadcasting } from './apiClient';
+import { decodeJson, runEffect, sendWithPayload, withRetry } from './apiCore';
+
+export async function authenticateBroadcasting(
+    payload: AuthenticateBroadcastingRequest,
+) {
+    return runEffect(
+        pipe(
+            payload,
+            Schema.encodeUnknown(AuthenticateBroadcastingRequestSchema),
+            sendWithPayload('/api/broadcasting/auth'),
+            withRetry('authenticateBroadcasting'),
+            decodeJson(AuthenticateBroadcastingResponseSchema),
+        ),
+    );
+}
 
 // Echo instance type for Reverb broadcaster
 type ReverbEcho = InstanceType<typeof Echo<'reverb'>>;

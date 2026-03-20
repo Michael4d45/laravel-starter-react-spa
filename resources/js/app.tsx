@@ -5,7 +5,7 @@ import { ModalRenderer } from './components/ModalRenderer';
 import { OfflineBanner } from './components/offline/OfflineBanner';
 import { GlobalRealtimeListener } from './components/realtime/GlobalRealtimeListener';
 import Sidebar from './components/Sidebar';
-import { AuthGuard } from './contexts/AuthContext';
+import { AuthGuard } from './features/auth/AuthContext';
 import { useSidebarMode } from './hooks/useSidebarMode';
 import './lib/echo';
 import { cn } from './lib/utils';

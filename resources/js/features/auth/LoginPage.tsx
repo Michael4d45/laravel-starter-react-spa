@@ -2,7 +2,7 @@ import { Toggle } from '@/components/Toggle';
 import { Button } from '@/components/ui/Button';
 import { Form, FormField } from '@/components/ui/Form';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';

@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useNotificationsChannel } from '@/hooks/useNotificationsChannel';
 import { usePresenceChannel } from '@/hooks/usePresenceChannel';
 import { RealtimeMessageDataSchema } from '@/schemas/App/Data/Events';
