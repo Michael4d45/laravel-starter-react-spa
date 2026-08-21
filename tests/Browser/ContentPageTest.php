@@ -13,14 +13,14 @@ afterEach(function () {
 it('content page loads without JS errors', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         ->assertSee('Content List');
 });
 
 it('displays content list when content exists', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         ->assertSee('Content List')
         // Should show actual content instead of "No content available"
         ->assertDontSee('No content available');
@@ -29,7 +29,7 @@ it('displays content list when content exists', function (): void {
 it('displays back to home button', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         ->assertSee('Back to Home')
         ->screenshot(filename: 'content-page-navigation.png');
 });
@@ -37,7 +37,7 @@ it('displays back to home button', function (): void {
 it('displays refresh and create content buttons', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         ->assertSee('Refresh Content')
         ->assertSee('Create New Content')
         ->screenshot(filename: 'content-page-buttons.png');
@@ -46,7 +46,7 @@ it('displays refresh and create content buttons', function (): void {
 it('content page is responsive on different screen sizes', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         ->resize(375, 667) // Mobile size
         ->assertNoJavaScriptErrors()
         ->screenshot(filename: 'content-mobile.png')
@@ -61,7 +61,7 @@ it('content page is responsive on different screen sizes', function (): void {
 it('displays actual content items from loader', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         // Check for actual content titles from the API
         ->assertSee('Welcome to the Content Page')
         ->assertSee('Another Content Item')
@@ -72,7 +72,7 @@ it('displays actual content items from loader', function (): void {
 it('displays content items in proper grid layout', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         ->assertPresent('.grid')
         // Should have multiple content cards
         ->assertSee('Welcome to the Content Page')
@@ -83,7 +83,7 @@ it('displays content items in proper grid layout', function (): void {
 it('refresh button functionality works', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         ->assertSee('Refresh Content')
         ->click('Refresh Content')
         ->wait(2) // Give time for page reload
@@ -95,7 +95,7 @@ it('refresh button functionality works', function (): void {
 it('create content button shows success message', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         ->assertSee('Create New Content')
         ->click('Create New Content')
         ->wait(1)
@@ -108,20 +108,20 @@ it('create content button shows success message', function (): void {
 it('navigation back to home works', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         ->assertSee('Back to Home')
         ->click('Back to Home')
         ->wait(1)
         ->assertNoJavaScriptErrors()
         ->assertPathIs('/') // Should navigate to home page
-        ->waitForText('Welcome', 10)
+        ->assertSee('Welcome')
         ->assertSee('Welcome'); // Home page heading
 });
 
 it('displays complete content page view', function (): void {
     visit('/content')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Content List', 10)
+        ->assertSee('Content List')
         // Verify main heading
         ->assertSee('Content List')
         // Verify navigation

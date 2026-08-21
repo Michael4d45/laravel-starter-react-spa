@@ -3,6 +3,7 @@ parameters:
         - app/
         - database/
         - routes/
+        - tests/
 
     level: 9
     checkUninitializedProperties: true

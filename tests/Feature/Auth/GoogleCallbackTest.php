@@ -3,11 +3,8 @@
 declare(strict_types=1);
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteTwoUser;
-
-uses(RefreshDatabase::class);
 
 it('creates new user and logs them in when Google account is not linked', function (): void {
     // Mock Google user data

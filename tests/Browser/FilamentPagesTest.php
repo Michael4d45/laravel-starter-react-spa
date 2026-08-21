@@ -17,7 +17,7 @@ test('admin dashboard page loads', function (): void {
         ->type('#form\\.email', $this->admin->email)
         ->type('#form\\.password', 'password')
         ->submit()
-        ->waitForText('Dashboard')
+        ->assertSee('Dashboard')
         ->assertSee('Dashboard');
 });
 
@@ -28,7 +28,7 @@ test('admin dashboard page loads', function (): void {
 test('admin users page loads', function (): void {
     $this->actingAs($this->admin);
     visit(route('filament.admin.resources.users.index'))
-        ->waitForText('Users')
+        ->assertSee('Users')
         ->assertSee('Users')
         ->assertSee($this->admin->email); // Verify admin user is listed
 });
@@ -36,13 +36,13 @@ test('admin users page loads', function (): void {
 test('admin users edit page loads', function (): void {
     $this->actingAs($this->admin);
     visit(route('filament.admin.resources.users.edit', $this->admin))
-        ->waitForText('Edit User')
+        ->assertSee('Edit User')
         ->assertSee('Edit User');
 });
 
 test('admin users create page loads', function (): void {
     $this->actingAs($this->admin);
     visit(route('filament.admin.resources.users.create'))
-        ->waitForText('Create User')
+        ->assertSee('Create User')
         ->assertSee('Create User');
 });

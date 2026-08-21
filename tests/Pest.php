@@ -3,11 +3,14 @@
 declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Pest\Browser\Api\AwaitableWebpage;
 use Pest\Browser\Enums\Device;
 use Pest\Browser\Playwright\InitScript;
 use Pest\Browser\Playwright\Playwright;
 use Pest\Browser\Support\ComputeUrl;
+use Pest\Expectation;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->use(RefreshDatabase::class)->in(
@@ -16,7 +19,7 @@ pest()->extend(TestCase::class)->use(RefreshDatabase::class)->in(
     'Unit',
 );
 
-function enable_logs()
+function enable_logs(): void
 {
     config()->set('logging.should_log_user', true);
     config()->set('logging.should_log_request', true);
@@ -24,7 +27,11 @@ function enable_logs()
     config()->set('logging.should_log_validation_errors', true);
 }
 
-function assert_status($response, int $expectedStatus): \Pest\Expectation
+/**
+ * @param  TestResponse<Response>  $response
+ * @return Expectation<TestResponse<Response>>
+ */
+function assert_status(TestResponse $response, int $expectedStatus): Expectation
 {
     $actualStatus = $response->getStatusCode();
     if ($actualStatus !== $expectedStatus) {
@@ -52,18 +59,29 @@ function assert_no_log_errors(string $logPath): void
     expect($logContents)->not->toContain('"level_name":"ERROR"');
 }
 
-function get_console_messages($page): array
+/**
+ * @return list<mixed>
+ */
+function get_console_messages(AwaitableWebpage $page): array
 {
     $logs = $page->script('window.__pestBrowser.consoleLogs || []');
+
+    if (!is_array($logs)) {
+        return [];
+    }
 
     return array_column($logs, 'message');
 }
 
+/**
+ * @param  array<string, mixed>  $options
+ * @param  list<string>  $initScripts
+ */
 function visit_with_error_init(
     string $url,
     array $options = [],
     array $initScripts = [],
-): mixed {
+): AwaitableWebpage {
     // Add our custom error logging init script
     $initScripts[] = <<<'JS'
         const originalConsoleError = console.error;
@@ -85,11 +103,15 @@ function visit_with_error_init(
     return visit_with_custom_init($url, $options, $initScripts);
 }
 
+/**
+ * @param  array<string, mixed>  $options
+ * @param  list<string>  $initScripts
+ */
 function visit_with_custom_init(
     string $url,
     array $options = [],
     array $initScripts = [],
-): mixed {
+): AwaitableWebpage {
     // Create the page with custom init script for error logging
     $browserType = Playwright::defaultBrowserType();
     $device = Device::DESKTOP;

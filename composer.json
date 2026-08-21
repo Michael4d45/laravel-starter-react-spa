@@ -33,6 +33,7 @@
         "pestphp/pest": "^5.1.1",
         "pestphp/pest-plugin-browser": "^5.0.1",
         "pestphp/pest-plugin-laravel": "^5.0.1",
+        "pestphp/pest-plugin-phpstan": "^5.1",
         "phpstan/extension-installer": "^1.4.3",
         "phpstan/phpstan-deprecation-rules": "^2.0.5"
     },
@@ -68,6 +69,7 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "phpstan": "phpstan analyse --memory-limit=1G --ansi",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi",

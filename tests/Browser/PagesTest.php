@@ -54,7 +54,6 @@ it('can navigate home from 404 page', function (): void {
 it('can register a new user', function (): void {
     visit('/register')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Create Account', 5)
         ->assertSee('Create Account')
         ->assertSee('Full Name')
         ->assertSee('Email')
@@ -64,28 +63,23 @@ it('can register a new user', function (): void {
 it('can login with valid credentials', function (): void {
     visit('/login')
         ->assertNoJavaScriptErrors()
-        ->waitForText('Login', 5)
         ->assertSee('Login')
         ->assertSee('Email')
         ->assertSee('Password');
 });
 
 it('shows offline warning on login page when offline', function (): void {
-    visit('/login')->waitForText('Login', 5)->assertSee('Login');
+    visit('/login')->assertSee('Login');
 });
 
 it('shows offline warning on register page when offline', function (): void {
-    visit('/register')
-        ->waitForText('Create Account', 5)
-        ->assertSee('Create Account');
+    visit('/register')->assertSee('Create Account');
 });
 
 it('login form validation works', function (): void {
-    visit('/login')->waitForText('Login', 5)->assertSee('Login');
+    visit('/login')->assertSee('Login');
 });
 
 it('register form validation works', function (): void {
-    visit('/register')
-        ->waitForText('Create Account', 5)
-        ->assertSee('Create Account');
+    visit('/register')->assertSee('Create Account');
 });

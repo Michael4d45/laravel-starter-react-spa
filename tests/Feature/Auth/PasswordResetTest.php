@@ -9,6 +9,22 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 
+/**
+ * @throws RuntimeException
+ */
+function userPasswordHash(User $user): string
+{
+    $hash = $user->password;
+
+    if (!is_string($hash)) {
+        throw new RuntimeException(
+            'Expected the user password hash to be a string.',
+        );
+    }
+
+    return $hash;
+}
+
 beforeEach(function () {
     // Ensure clean state for password reset tests
     DB::table('password_reset_tokens')->truncate();
@@ -142,10 +158,16 @@ describe('Reset Password', function () {
 
         // Verify password was changed
         $user->refresh();
-        $this->assertTrue(Hash::check('new-password123', $user->password));
+        $this->assertTrue(Hash::check(
+            'new-password123',
+            userPasswordHash($user),
+        ));
 
         // Verify old password no longer works
-        $this->assertFalse(Hash::check('old-password', $user->password));
+        $this->assertFalse(Hash::check(
+            'old-password',
+            userPasswordHash($user),
+        ));
 
         // Verify token was deleted (one-time use)
         $this->assertDatabaseMissing('password_reset_tokens', [
@@ -167,7 +189,10 @@ describe('Reset Password', function () {
 
         // Verify password was not changed
         $user->refresh();
-        $this->assertFalse(Hash::check('new-password123', $user->password));
+        $this->assertFalse(Hash::check(
+            'new-password123',
+            userPasswordHash($user),
+        ));
     });
 
     test('rejects expired token', function () {
@@ -227,8 +252,14 @@ describe('Reset Password', function () {
 
         // Verify password is still the first one
         $user->refresh();
-        $this->assertTrue(Hash::check('new-password123', $user->password));
-        $this->assertFalse(Hash::check('another-password123', $user->password));
+        $this->assertTrue(Hash::check(
+            'new-password123',
+            userPasswordHash($user),
+        ));
+        $this->assertFalse(Hash::check(
+            'another-password123',
+            userPasswordHash($user),
+        ));
     });
 
     test('rejects mismatched password confirmation', function () {
@@ -373,7 +404,10 @@ describe('Password Reset Security', function () {
 
         // Verify user2's password was not changed
         $user2->refresh();
-        $this->assertFalse(Hash::check('new-password123', $user2->password));
+        $this->assertFalse(Hash::check(
+            'new-password123',
+            userPasswordHash($user2),
+        ));
     });
 
     test('clears all tokens for a user when password reset succeeds', function () {

@@ -11,7 +11,8 @@ it('can logout when authenticated', function () {
 
     $response = $this->postJson('/logout');
 
-    assert_status($response, 200)->assertJson([
+    assert_status($response, 200);
+    $response->assertJson([
         'message' => 'Logged out successfully',
     ]);
 });
