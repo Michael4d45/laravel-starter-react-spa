@@ -1,73 +1,67 @@
 # Laravel React SPA
 
-A modern, high-performance **Laravel 13 + React 19** Single Page Application featuring an **Effect-based architecture**, **type-safe API client**, **real-time WebSockets**, **PWA capabilities**, and **Google OAuth integration**.
+A **Laravel 13 + React 19** single-page application with an Effect-based frontend, type-safe API client, Reverb WebSockets, PWA support, and Google OAuth.
 
 ---
 
-## 🚀 Tech Stack
+## Tech Stack
 
 ### Backend (Laravel 13)
-- **PHP 8.5+** with strict typing and modern features.
-- **Laravel 13** - Streamlined API-first framework.
-- **Sanctum 4** - Token-based API authentication.
-- **Socialite 5** - Google OAuth integration.
-- **Reverb 1.7** - First-party WebSocket server for real-time features.
-- **Spatie Laravel Data** - DTOs with auto-validation and TypeScript generation.
-- **Filament 5** - Advanced admin panel.
-- **Pest 5** - Modern testing suite with browser testing support.
+- **PHP 8.5+** with strict typing.
+- **Laravel 13** — API + SPA shell.
+- **Sanctum 4** — cookie/session SPA authentication (`statefulApi()`).
+- **Socialite 5** — Google OAuth.
+- **Reverb 1.11** — first-party WebSocket server.
+- **Spatie Laravel Data** — DTOs with validation; TypeScript Effect schemas via `effect-schema-generator`.
+- **Filament 5** — admin panel.
+- **Pest 5** — unit, feature, and browser tests.
 
 ### Frontend (React 19)
-- **React 19** - Optimized UI with the new React Compiler.
-- **React Router 8** - Declarative routing with pre-fetching loaders.
-- **Effect** - Functional programming library for type-safe async operations and error handling.
-- **Laravel Echo** - WebSocket client with automatic authentication via Sanctum tokens.
-- **Tailwind CSS 4** - Modern, CSS-first utility styling.
-- **Effect-based API Client** - Type-safe communication using `@effect/platform`.
-- **Dexie/IDB** - IndexedDB for robust offline data caching.
-- **Lucide React** - Icon library.
+- **React 19** with the React Compiler.
+- **React Router 8** — loaders fetch data before render.
+- **Effect** — type-safe async work and tagged error handling.
+- **Laravel Echo** — Reverb client; private channels authenticate over `/api/broadcasting/auth`.
+- **Tailwind CSS 4** — CSS-first utilities.
+- **Dexie/IDB** — IndexedDB cache for offline use.
+- **Lucide React** — icons.
 
 ---
 
-## 🏗️ Architecture & Layers
+## Architecture
 
-### Backend: Action-Oriented Design
-Instead of traditional controllers, business logic is encapsulated in single-responsibility **Action classes** (`app/Actions/`).
-- **Data Layer**: `app/Data/` contains Models (DTOs), Requests (Validation), and Responses.
-- **Type Safety**: PHP Data classes generate TypeScript **Effect Schemas** via `effect-schema-generator`.
+### Backend: feature folders
+Business logic lives in single-responsibility **Action** classes under `app/Features/{Feature}/Actions/`. Each feature owns its routes, requests, and responses.
 
-### Frontend: Effect-Based Data Management
-The frontend leverages the **Effect** library to handle side effects, ensuring type safety and explicit error handling.
-- **API Client**: Effect-based helpers in `lib/apiCore.ts` that return tagged unions (`Success | ValidationError | ParseError | FatalError`).
-- **Loaders**: React Router loaders fetch data *before* component rendering, eliminating "loading state" flashes.
-- **Offline First**: Automatic caching of API responses in IndexedDB for seamless offline browsing.
+- **Shared DTOs**: `app/Data/` (models and event payloads used across features).
+- **Feature contracts**: `app/Features/{Feature}/Requests/` and `Responses/`.
+- **Type sync**: PHP Data/enum classes generate TypeScript Effect schemas (`npm run types:generate` → `resources/js/schemas/`).
 
----
-
-## 🔐 Authentication System
-
-The application uses a dual authentication strategy:
-
-1.  **Email/Password**: Standard Sanctum bearer token authentication.
-2.  **Google OAuth**: Integrated via Socialite. Tokens are securely passed from the server session to the SPA after callback, then stored in `localStorage`.
-
-### Auth Flow Highlights:
-- **Persistence**: Tokens and user data are managed by a singleton `AuthManager`.
-- **Reactivity**: `AuthContext` provides a reactive hook (`useAuth`) to access the current session.
-- **Security**: OAuth state is encrypted and timestamped to prevent replay attacks.
-- **WebSocket Auth**: Echo automatically includes Sanctum tokens in private channel subscriptions.
+### Frontend: Effect-based data
+- **API client**: helpers in `resources/js/lib/apiCore.ts`. Calls return tagged results (`Success`, `ValidationError`, `AuthenticationError`, `ParseError`, and related variants). Session cookies and CSRF (`/sanctum/csrf-cookie`) authenticate requests.
+- **Loaders**: React Router loaders fetch before the page renders.
+- **Offline**: API responses are cached in IndexedDB.
 
 ---
 
-## ⚡ Real-Time Features (Laravel Reverb)
+## Authentication
 
-The application includes full WebSocket support via **Laravel Reverb** for real-time updates.
+Cookie/session SPA auth, not API bearer tokens.
 
-### Setup
-- **Backend**: Events implementing `ShouldBroadcast` are automatically sent to connected clients.
-- **Frontend**: Laravel Echo (`lib/echo.ts`) connects to Reverb with auto-authentication.
-- **Private Channels**: Echo uses Sanctum tokens to authenticate private channel subscriptions.
+1. **Email/password** — `Auth::attempt()` establishes a Laravel session; subsequent API calls use the session cookie.
+2. **Google OAuth** — Socialite callback logs the user in, then redirects to `/` or `/profile` with `?auth=success`.
 
-### Development
+### Auth flow
+- **Session**: Sanctum SPA (`auth:sanctum` on API routes with the `web` guard).
+- **Client cache**: `AuthManager` stores a user snapshot in `localStorage` for UI and trusted offline restore — not an access token.
+- **Reactivity**: `AuthContext` / `useAuth`.
+- **WebSockets**: Echo authorizes private channels via the same sessioned API.
+
+---
+
+## Real-time (Laravel Reverb)
+
+Events that implement `ShouldBroadcast` are pushed to connected clients. Echo (`resources/js/lib/echo.ts`) connects to Reverb and authenticates private channels with `POST /api/broadcasting/auth`.
+
 Vite, queue, and Reverb run as Lerd workers (see [`.lerd.yaml`](./.lerd.yaml)):
 
 ```bash
@@ -76,93 +70,105 @@ lerd worker list
 lerd worker start reverb
 ```
 
-### Testing
-Real-time features are tested using **mock broadcasting** (no Reverb required):
-```php
-Event::fake([TestRealtimeEvent::class]);
-// ... dispatch event ...
-Event::assertDispatched(TestRealtimeEvent::class);
-```
-
-See `tests/Browser/RealtimeTest.php` for examples.
+Feature tests fake broadcasting (no Reverb process required). Browser tests cover the UI. See `tests/Browser/RealtimeTest.php`.
 
 ---
 
-## 🛠️ Development Workflow
+## Development workflow
 
-When adding a new feature, follow this checklist:
+When adding a feature:
 
-1.  **Database**: Create migration and Eloquent model.
-2.  **Data Layer**: Create DTOs in `app/Data/Models/`, `app/Data/Requests/`, and `app/Data/Response/`.
-3.  **Business Logic**: Implement an Action class in `app/Actions/`.
-4.  **API Routes**: Register the action in `routes/api.php`.
-5.  **Type Sync**: Run `npm run types:generate` to update frontend schemas.
-6.  **Frontend**: 
-    - Add the endpoint to the feature API module.
-    - Create the React component and loader.
-    - Register the route in `router.tsx`.
-7.  **Testing**: Write Pest feature or browser tests.
+1. **Database** — migration and Eloquent model.
+2. **Feature** — Actions, Requests/Responses, and `routes.php` under `app/Features/{Feature}/`. Shared shapes go in `app/Data/`.
+3. **Routes** — `require` the feature routes from `routes/api.php` or `routes/web.php`.
+4. **Types** — `npm run types:generate`.
+5. **Frontend** — feature API module, page + loader, route in `resources/js/router.tsx`.
+6. **Tests** — Pest feature and/or browser tests.
 
 ---
 
-## 📦 Getting Started
+## Getting started
 
 ### Prerequisites
-- [Lerd](https://lerd.sh/) (PHP 8.5, Node, Postgres/PostGIS, Redis, Mailpit)
-- Composer & npm (installed by Lerd)
+- [Lerd](https://lerd.sh/) (PHP 8.5, Node, Postgres, Redis, Mailpit)
+- Composer and npm (provided by Lerd)
 
 ### Installation
+
 ```bash
-# 1. Link the site, write .env, migrate, and start workers
+# Link the site, write .env, migrate, and start workers
 lerd setup --all
 
-# Open https://react-spa.test (dashboard: http://lerd.localhost)
+# Generate frontend Effect schemas from PHP Data classes
+npm run types:generate
 ```
 
-Stack and env live in [`.lerd.yaml`](./.lerd.yaml). Re-run `lerd env` after changing `env_overrides`. Vite, queue, and Reverb run as Lerd workers (`lerd worker list`). Mail UI: `http://127.0.0.1:8025`.
+Open **https://react-spa.test**. Dashboard: **http://lerd.localhost**. Mail: **http://127.0.0.1:8025**.
 
-### Key Commands
-- `npm run types:generate` - Sync PHP types to TypeScript Effect schemas.
-- `vendor/bin/model-schema check` - Report drift between migrations, models, and Filament forms.
-- `lerd worker list` - Status of Vite, queue, and Reverb workers.
-- `php artisan test` - Run the Pest test suite.
-- `npm run lint` - Run ESLint and Prettier.
-- `npm run types` - Check TypeScript types.
+Stack and env live in [`.lerd.yaml`](./.lerd.yaml). Re-run `lerd env` after changing `env_overrides`.
+
+### Browser tests
+
+Pest browser tests run Chromium **inside** the PHP-FPM container. One-time:
+
+```bash
+lerd pest:browser install
+lerd pest:browser doctor
+```
+
+Browser tests ignore Vite’s `hot` file and use compiled assets, so run `npm run build` before the browser suite (or after frontend changes). Re-run `lerd pest:browser install` after bumping Playwright.
+
+### Key commands
+
+| Command | Purpose |
+| --- | --- |
+| `php artisan test` / `composer test` | Pest (unit, feature, browser) |
+| `composer phpstan` | PHPStan (level 9, including tests) |
+| `vendor/bin/mago lint` / `vendor/bin/mago format` | PHP lint / format (analyzer is off) |
+| `npm run types:generate` | PHP → TypeScript Effect schemas |
+| `vendor/bin/model-schema check` | Migration / model / Filament drift |
+| `lerd worker list` | Vite, queue, Reverb workers |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier |
+| `npm run types` | `tsc --noEmit` |
 
 ---
 
-## 📱 PWA & Offline Support
-- **Service Worker**: Automatically handled by `vite-plugin-pwa`.
-- **Caching**: API responses are cached using IndexedDB (`apiCache.ts`).
-- **Offline Banner**: Notifies users when connection is lost.
+## PWA and offline
+- **Service worker**: `vite-plugin-pwa`.
+- **Cache**: IndexedDB via `resources/js/lib/apiCache.ts`.
+- **Offline banner**: shown when the connection drops.
 
 ---
 
-## 📊 Project Structure
+## Project structure
+
 ```
 ├── app/
-│   ├── Actions/          # Single-responsibility business logic
-│   ├── Data/             # DTOs, Requests, Responses (Type Source)
-│   ├── Events/           # Broadcastable events for real-time
-│   └── Models/           # Eloquent Models
+│   ├── Data/             # Shared DTOs (models, event payloads)
+│   ├── Enums/
+│   ├── Features/         # Actions, feature routes, requests, responses
+│   ├── Filament/         # Admin panel
+│   └── Models/
 ├── resources/js/
-│   ├── components/       # Reusable UI (Button, Input, etc.)
-│   ├── contexts/         # Auth & Global state
-│   ├── features/         # Feature-based pages and logic
-│   ├── hooks/            # Custom React hooks (usePrivateChannel, etc.)
-│   ├── lib/              # API Client (Effect), Auth Manager, Echo
-│   └── schemas/          # Generated Effect Schemas
+│   ├── components/
+│   ├── features/         # Pages, feature API modules, AuthContext
+│   ├── hooks/
+│   ├── lib/              # apiCore, Echo, IndexedDB cache
+│   └── schemas/          # Generated Effect schemas (gitignored)
 ├── routes/
-│   ├── api.php           # API routes
-│   ├── channels.php      # Broadcasting channel authorization
-│   └── web.php           # Web routes
+│   ├── api.php           # Requires feature route files
+│   ├── channels.php
+│   └── web.php           # SPA shell, login/register, Google OAuth
 ├── tests/
-│   ├── Feature/          # Backend API tests
-│   └── Browser/          # E2E Pest Browser tests
-└── vite.config.js        # Tailwind 4 & PWA config
+│   ├── Unit/
+│   ├── Feature/
+│   └── Browser/
+└── vite.config.js
 ```
 
 ---
 
-## 📄 License
-MIT License.
+## License
+
+[MIT](LICENSE).
