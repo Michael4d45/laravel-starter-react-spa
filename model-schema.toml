@@ -1,0 +1,56 @@
+# laravel-model-schema 0.2.x. Omitted keys keep Laravel defaults.
+
+model_paths = ["app/Models"]
+filament_paths = ["app/Filament/Resources"]
+migration_paths = ["database/migrations"]
+output_path = "reports/model_schema_report.json"
+
+[checks]
+filament = true
+models = true
+phpdoc = true
+
+# Extra tables beyond the built-in Laravel ignores (jobs, sessions, cache, …).
+[ignore]
+tables = [
+    "spatial_ref_sys",
+    "addr",
+    "addrfeat",
+    "bg",
+    "county",
+    "county_lookup",
+    "countysub_lookup",
+    "cousub",
+    "direction_lookup",
+    "edges",
+    "faces",
+    "featnames",
+    "geocode_settings",
+    "geocode_settings_default",
+    "loader_lookuptables",
+    "loader_platform",
+    "loader_variables",
+    "pagc_gaz",
+    "pagc_lex",
+    "pagc_rules",
+    "place",
+    "place_lookup",
+    "secondary_unit_lookup",
+    "state",
+    "state_lookup",
+    "street_type_lookup",
+    "tabblock",
+    "tabblock20",
+    "tract",
+    "zcta5",
+    "zip_lookup",
+    "zip_lookup_all",
+    "zip_lookup_base",
+    "zip_state",
+    "zip_state_loc",
+    "layer",
+    "topology",
+]
+
+[ignore.filament]
+fields = ["remember_token"]

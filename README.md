@@ -1,24 +1,24 @@
 # Laravel React SPA
 
-A modern, high-performance **Laravel 12 + React 19** Single Page Application featuring an **Effect-based architecture**, **type-safe API client**, **real-time WebSockets**, **PWA capabilities**, and **Google OAuth integration**.
+A modern, high-performance **Laravel 13 + React 19** Single Page Application featuring an **Effect-based architecture**, **type-safe API client**, **real-time WebSockets**, **PWA capabilities**, and **Google OAuth integration**.
 
 ---
 
 ## 🚀 Tech Stack
 
-### Backend (Laravel 12)
+### Backend (Laravel 13)
 - **PHP 8.5+** with strict typing and modern features.
-- **Laravel 12** - Streamlined API-first framework.
+- **Laravel 13** - Streamlined API-first framework.
 - **Sanctum 4** - Token-based API authentication.
 - **Socialite 5** - Google OAuth integration.
 - **Reverb 1.7** - First-party WebSocket server for real-time features.
 - **Spatie Laravel Data** - DTOs with auto-validation and TypeScript generation.
-- **Filament 4** - Advanced admin panel.
-- **Pest 4** - Modern testing suite with browser testing support.
+- **Filament 5** - Advanced admin panel.
+- **Pest 5** - Modern testing suite with browser testing support.
 
 ### Frontend (React 19)
 - **React 19** - Optimized UI with the new React Compiler.
-- **React Router 7** - Declarative routing with pre-fetching loaders.
+- **React Router 8** - Declarative routing with pre-fetching loaders.
 - **Effect** - Functional programming library for type-safe async operations and error handling.
 - **Laravel Echo** - WebSocket client with automatic authentication via Sanctum tokens.
 - **Tailwind CSS 4** - Modern, CSS-first utility styling.
@@ -33,11 +33,11 @@ A modern, high-performance **Laravel 12 + React 19** Single Page Application fea
 ### Backend: Action-Oriented Design
 Instead of traditional controllers, business logic is encapsulated in single-responsibility **Action classes** (`app/Actions/`).
 - **Data Layer**: `app/Data/` contains Models (DTOs), Requests (Validation), and Responses.
-- **Type Safety**: PHP Data classes automatically generate TypeScript **Effect Schemas** via `spatie/laravel-typescript-transformer`.
+- **Type Safety**: PHP Data classes generate TypeScript **Effect Schemas** via `effect-schema-generator`.
 
 ### Frontend: Effect-Based Data Management
 The frontend leverages the **Effect** library to handle side effects, ensuring type safety and explicit error handling.
-- **API Client**: A singleton (`lib/apiClient.ts`) that returns tagged unions (`Success | ValidationError | ParseError | FatalError`).
+- **API Client**: Effect-based helpers in `lib/apiCore.ts` that return tagged unions (`Success | ValidationError | ParseError | FatalError`).
 - **Loaders**: React Router loaders fetch data *before* component rendering, eliminating "loading state" flashes.
 - **Offline First**: Automatic caching of API responses in IndexedDB for seamless offline browsing.
 
@@ -68,16 +68,12 @@ The application includes full WebSocket support via **Laravel Reverb** for real-
 - **Private Channels**: Echo uses Sanctum tokens to authenticate private channel subscriptions.
 
 ### Development
+Vite, queue, and Reverb run as Lerd workers (see [`.lerd.yaml`](./.lerd.yaml)):
+
 ```bash
-# Start Reverb server (required for real-time features)
-php artisan reverb:start
-
-# Or use the dev script
-composer run dev
-
-# Or use tmux-dev.sh for a complete 5-panel development environment
-./tmux-dev.sh          # Starts: logs, backend, frontend, queue, reverb
-./tmux-dev.sh --docker # Adds docker panel as 6th pane
+lerd setup --all        # start configured workers
+lerd worker list
+lerd worker start reverb
 ```
 
 ### Testing
@@ -100,9 +96,9 @@ When adding a new feature, follow this checklist:
 2.  **Data Layer**: Create DTOs in `app/Data/Models/`, `app/Data/Requests/`, and `app/Data/Response/`.
 3.  **Business Logic**: Implement an Action class in `app/Actions/`.
 4.  **API Routes**: Register the action in `routes/api.php`.
-5.  **Type Sync**: Run `php artisan effect-schema:transform` to update frontend schemas.
+5.  **Type Sync**: Run `npm run types:generate` to update frontend schemas.
 6.  **Frontend**: 
-    - Add the endpoint to `apiClient.ts`.
+    - Add the endpoint to the feature API module.
     - Create the React component and loader.
     - Register the route in `router.tsx`.
 7.  **Testing**: Write Pest feature or browser tests.
@@ -112,22 +108,23 @@ When adding a new feature, follow this checklist:
 ## 📦 Getting Started
 
 ### Prerequisites
-- PHP 8.5+
-- Node.js 18+
-- Composer & npm
+- [Lerd](https://lerd.sh/) (PHP 8.5, Node, Postgres/PostGIS, Redis, Mailpit)
+- Composer & npm (installed by Lerd)
 
 ### Installation
 ```bash
-# 1. Setup backend & frontend
-composer run setup
+# 1. Link the site, write .env, migrate, and start workers
+lerd setup --all
 
-# 2. Run development servers (Vite + Laravel + Queue)
-composer run dev
+# Open https://react-spa.test (dashboard: http://lerd.localhost)
 ```
 
+Stack and env live in [`.lerd.yaml`](./.lerd.yaml). Re-run `lerd env` after changing `env_overrides`. Vite, queue, and Reverb run as Lerd workers (`lerd worker list`). Mail UI: `http://127.0.0.1:8025`.
+
 ### Key Commands
-- `php artisan effect-schema:transform` - Sync PHP types to TypeScript.
-- `php artisan reverb:start` - Start the WebSocket server for real-time features.
+- `npm run types:generate` - Sync PHP types to TypeScript Effect schemas.
+- `vendor/bin/model-schema check` - Report drift between migrations, models, and Filament forms.
+- `lerd worker list` - Status of Vite, queue, and Reverb workers.
 - `php artisan test` - Run the Pest test suite.
 - `npm run lint` - Run ESLint and Prettier.
 - `npm run types` - Check TypeScript types.
@@ -154,7 +151,7 @@ composer run dev
 │   ├── features/         # Feature-based pages and logic
 │   ├── hooks/            # Custom React hooks (usePrivateChannel, etc.)
 │   ├── lib/              # API Client (Effect), Auth Manager, Echo
-│   └── types/            # Generated Effect Schemas
+│   └── schemas/          # Generated Effect Schemas
 ├── routes/
 │   ├── api.php           # API routes
 │   ├── channels.php      # Broadcasting channel authorization

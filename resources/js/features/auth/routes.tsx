@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router-dom';
+import type { RouteObject } from 'react-router';
 import { ForgotPasswordPage } from './ForgotPasswordPage';
 import { LoginPage } from './LoginPage';
 import { RegisterPage } from './RegisterPage';

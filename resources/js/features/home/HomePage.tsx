@@ -1,6 +1,6 @@
 import { RealtimeNotifications } from '@/components/realtime/RealtimeNotifications';
 import { useAuth } from '@/features/auth/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 export function HomePage() {
     const { user } = useAuth();

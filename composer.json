@@ -10,31 +10,31 @@
     "license": "Proprietary",
     "require": {
         "php": "^8.5",
-        "filament/filament": "^5.4",
-        "laravel/framework": "^13.1",
-        "laravel/reverb": "^1.8",
-        "laravel/sanctum": "^4.3",
-        "laravel/socialite": "^5.25",
-        "michael4d45/context-logging": "^6.0",
-        "michael4d45/effect-schema-generator": "^0.6",
+        "filament/filament": "^5.7.6",
+        "laravel/framework": "^13.26.1",
+        "laravel/reverb": "^1.11.1",
+        "laravel/sanctum": "^4.3.3",
+        "laravel/socialite": "^5.30",
+        "michael4d45/context-logging": "^6.15",
+        "michael4d45/effect-schema-generator": "^0.7.1",
         "michael4d45/filament-system-info-widget": "^2.2",
-        "spatie/laravel-data": "^4.20"
+        "spatie/laravel-data": "^4.23"
     },
     "require-dev": {
-        "carthage-software/mago": "^1.15",
-        "fakerphp/faker": "^1.24",
-        "larastan/larastan": "^3.9",
-        "laravel/boost": "^2.3",
-        "laravel/tinker": "^3.0",
-        "michael4d45/coverage-treemap": "^1.0",
-        "michael4d45/laravel-resource-checker": "^1.2",
-        "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.6",
-        "pestphp/pest": "^4.4",
-        "pestphp/pest-plugin-browser": "^4.3",
-        "pestphp/pest-plugin-laravel": "^4.1",
-        "phpstan/extension-installer": "^1.4",
-        "phpstan/phpstan-deprecation-rules": "^2.0"
+        "carthage-software/mago": "^1.47.2",
+        "fakerphp/faker": "^1.24.1",
+        "larastan/larastan": "^3.10",
+        "laravel/boost": "^2.5.5",
+        "laravel/tinker": "^3.0.2",
+        "michael4d45/coverage-treemap": "^1.0.1",
+        "michael4d45/laravel-model-schema": "^0.2",
+        "mockery/mockery": "^1.6.15",
+        "nunomaduro/collision": "^8.9.5",
+        "pestphp/pest": "^5.1.1",
+        "pestphp/pest-plugin-browser": "^5.0.1",
+        "pestphp/pest-plugin-laravel": "^5.0.1",
+        "phpstan/extension-installer": "^1.4.3",
+        "phpstan/phpstan-deprecation-rules": "^2.0.5"
     },
     "autoload": {
         "psr-4": {
@@ -96,6 +96,7 @@
         "sort-packages": true,
         "allow-plugins": {
             "carthage-software/mago": true,
+            "michael4d45/context-logging": true,
             "pestphp/pest-plugin": true,
             "php-http/discovery": true,
             "phpstan/extension-installer": true

@@ -1,5 +1,5 @@
 import { Toaster } from 'react-hot-toast';
-import { Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router';
 import Header from './components/Header';
 import { ModalRenderer } from './components/ModalRenderer';
 import { OfflineBanner } from './components/offline/OfflineBanner';

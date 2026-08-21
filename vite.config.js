@@ -5,14 +5,14 @@ import { resolve } from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import { laravelDataTypes } from './laravelDataTypes';
+import { laravelDataTypes } from '@michael4d45/effect-schema-generator/vite';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
     // Single dev URL: hot file, script tags, and HMR. From VITE_DEV_SERVER_URL or built from APP_*.
     const s = env.APP_SCHEME || 'http';
     const h = env.HOST_NAME || 'localhost';
-    const p = env.APP_PORT || '8080';
+    const p = env.APP_PORT || '80';
     const built = `${s}://${h}${p ? `:${p}` : ''}`;
     const devServerUrl = env.VITE_DEV_SERVER_URL || built;
     let parsed;

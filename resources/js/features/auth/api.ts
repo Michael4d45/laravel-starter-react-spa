@@ -8,17 +8,21 @@ import {
     sendWithPayload,
     withRetry,
 } from '@/lib/apiCore';
-import { MessageResponseSchema } from '@/schemas/App/Data/MessageResponse';
-import { UserDataSchema } from '@/schemas/App/Data/Models';
+import { UserDataSchema } from '@/schemas/App/Data/Models/UserData';
 import {
     LoginRequest,
     LoginRequestSchema,
+} from '@/schemas/App/Features/Auth/Requests/LoginRequest';
+import {
     RegisterRequest,
     RegisterRequestSchema,
+} from '@/schemas/App/Features/Auth/Requests/RegisterRequest';
+import {
     ResetPasswordRequest,
     ResetPasswordRequestSchema,
-} from '@/schemas/App/Features/Auth/Requests';
+} from '@/schemas/App/Features/Auth/Requests/ResetPasswordRequest';
 import { DisconnectGoogleResponseSchema } from '@/schemas/App/Features/Auth/Responses/DisconnectGoogleResponse';
+import { MessageResponseSchema } from '@/schemas/App/Features/Auth/Responses/MessageResponse';
 import { Effect, pipe, Schema } from 'effect';
 
 export async function login(payload: LoginRequest) {

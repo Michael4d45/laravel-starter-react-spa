@@ -94,7 +94,6 @@ export default [
             'bootstrap/ssr',
             'tailwind.config.js',
             'eslint.config.js',
-            'laravelDataTypes.ts',
             'vite.config.js',
             'reports',
             'resources/js/schemas',

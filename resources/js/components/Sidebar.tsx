@@ -3,7 +3,7 @@ import NavigationList from '@/components/NavigationList';
 import UserActions from '@/components/UserActions';
 import { useSidebarMode } from '@/hooks/useSidebarMode';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 export default function Sidebar() {
     const { isCompact } = useSidebarMode();

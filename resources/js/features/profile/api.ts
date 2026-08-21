@@ -1,5 +1,5 @@
 import { decodeJson, httpRequest, runEffect, withRetry } from '@/lib/apiCore';
-import { MessageResponseSchema } from '@/schemas/App/Data/MessageResponse';
+import { MessageResponseSchema } from '@/schemas/App/Features/Auth/Responses/MessageResponse';
 import { pipe } from 'effect';
 
 export async function resendVerificationEmail() {

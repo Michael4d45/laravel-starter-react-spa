@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { buttonBaseClasses, buttonSizeClasses, ButtonSize, buttonVariantClasses, ButtonVariant } from '@/components/ui/Button';
 
 interface ButtonLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {

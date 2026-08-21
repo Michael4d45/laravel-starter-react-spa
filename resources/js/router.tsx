@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router';
 import { App } from './app';
 import { authRoutes } from './features/auth/routes';
 import { ContentPage, contentLoader } from './features/content/ContentPage';

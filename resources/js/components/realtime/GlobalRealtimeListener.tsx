@@ -1,6 +1,6 @@
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNotificationsChannel } from '@/hooks/useNotificationsChannel';
-import { RealtimeMessageDataSchema } from '@/schemas/App/Data/Events';
+import { RealtimeMessageDataSchema } from '@/schemas/App/Data/Events/RealtimeMessageData';
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 

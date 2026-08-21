@@ -1,0 +1,19 @@
+# Paths are relative to the project that owns this file.
+data_paths = ["app/Data", "app/Features"]
+enum_paths = ["app/Enums"]
+output_directory = "resources/js/schemas"
+clear_output_directory_before_write = true
+phpdoc_overrides_types = true
+
+# Built-in IR transformers. App-specific FQCN mappings go in [[type_maps]].
+plugins = [
+    "length_aware_paginator",
+    "lazy_optional",
+    "hidden",
+    "snake_case",
+    "date",
+    "collection",
+    "type_enum",
+    "effect_schema_enum",
+    "const_object_enum",
+]

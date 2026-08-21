@@ -1,7 +1,7 @@
 import { useAuth } from '@/features/auth/AuthContext';
 import { useNotificationsChannel } from '@/hooks/useNotificationsChannel';
 import { usePresenceChannel } from '@/hooks/usePresenceChannel';
-import { RealtimeMessageDataSchema } from '@/schemas/App/Data/Events';
+import { RealtimeMessageDataSchema } from '@/schemas/App/Data/Events/RealtimeMessageData';
 import { Bell, WifiOff, X } from 'lucide-react';
 
 export function RealtimeNotifications() {

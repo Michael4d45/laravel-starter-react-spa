@@ -3,7 +3,7 @@ import NavigationList from '@/components/NavigationList';
 import UserActions from '@/components/UserActions';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 interface HeaderProps {
     children?: React.ReactNode;

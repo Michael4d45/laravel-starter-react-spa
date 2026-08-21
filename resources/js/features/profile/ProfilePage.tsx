@@ -3,10 +3,10 @@ import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/features/auth/AuthContext';
 import { resendVerificationEmail } from './api';
 import { authManager } from '@/features/auth/authManager';
-import { UserData } from '@/schemas/App/Data/Models';
+import { UserData } from '@/schemas/App/Data/Models/UserData';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { useLoaderData, useNavigate } from 'react-router-dom';
+import { useLoaderData, useNavigate } from 'react-router';
 
 interface ProfileData {
     user: UserData | null;

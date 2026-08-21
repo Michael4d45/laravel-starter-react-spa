@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/Button';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
-import { ContentItems } from '@/schemas/App/Data/ContentItems';
+import { ContentItems } from '@/schemas/App/Features/Content/Responses/ContentItems';
 import toast from 'react-hot-toast';
-import { Link, useLoaderData } from 'react-router-dom';
+import { Link, useLoaderData } from 'react-router';
 import { showContent } from './api';
 
 /**

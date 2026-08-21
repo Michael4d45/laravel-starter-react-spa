@@ -12,7 +12,7 @@ import {
     User,
     UserPlus,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { IconButton } from './ui/IconButton';
 
 interface UserActionsProps {

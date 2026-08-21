@@ -3,7 +3,7 @@ import { Form, FormField } from '@/components/ui/Form';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 export function RegisterPage() {
     const { register, googleLogin, isLoading } = useAuth();

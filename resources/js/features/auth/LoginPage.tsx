@@ -5,7 +5,7 @@ import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 export function LoginPage() {
     const { login, googleLogin, isLoading } = useAuth();

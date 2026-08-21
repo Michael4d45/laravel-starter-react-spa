@@ -1,4 +1,4 @@
-import { UserData } from '@/schemas/App/Data/Models';
+import { UserData } from '@/schemas/App/Data/Models/UserData';
 
 const USER_KEY = 'auth_user';
 
