@@ -4,9 +4,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport"
-        content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=auto, user-scalable=no, interactive-widget=resizes-content" />
+        content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=auto, user-scalable=no, interactive-widget=resizes-content"/>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <link rel="manifest" crossorigin="use-credentials" href="/build/manifest.webmanifest" />
+    @if (file_exists(public_path('build/manifest.json')))
+        <link rel="manifest" crossorigin="use-credentials" href="/build/manifest.webmanifest" />
+    @endif
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -39,7 +44,7 @@
         })();
     </script>
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ config()->string('app.name', 'Laravel') }}</title>
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/favicon.ico">
@@ -49,10 +54,10 @@
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
     @viteReactRefresh
-    @vite(['resources/css/app.css', 'resources/js/main.tsx'])
+    @vite(['resources/web/styles/app.css', 'resources/web/src/main.tsx'])
 </head>
 
-<body class="font-sans antialiased">
+<body class="font-sans antialiased overflow-x-hidden overflow-y-auto theme-color">
     <div id="app"></div>
 </body>
 

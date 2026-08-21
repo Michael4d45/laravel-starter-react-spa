@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Vite;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -21,5 +22,9 @@ abstract class TestCase extends BaseTestCase
             config('database.default'),
             'Database connection is not sqlite, make sure to clear cache. `php artisan config:clear`',
         );
+
+        if (str_starts_with(static::class, 'Tests\\Browser\\')) {
+            Vite::useHotFile(base_path('tests/.vite-hot-disabled'));
+        }
     }
 }
