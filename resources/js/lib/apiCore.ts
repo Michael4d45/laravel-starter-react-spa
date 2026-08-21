@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect';
-import { apiCache } from './apiCache';
 import { authManager } from '../features/auth/authManager';
+import { apiCache } from './apiCache';
 import { db } from './db';
 import { getCookieValue } from './utils';
 

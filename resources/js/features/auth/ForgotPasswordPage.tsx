@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/Button';
 import { Form, FormField } from '@/components/ui/Form';
+import { sendPasswordResetLink } from '@/features/auth/api';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useOfflineBlock } from '@/hooks/useOfflineBlock';
-import { sendPasswordResetLink } from '@/features/auth/api';
 import { useState } from 'react';
 import { Link } from 'react-router';
 

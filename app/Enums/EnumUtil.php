@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+/**
+ * @mixin \BackedEnum
+ * 
+ * @method static static[] cases()
+ */
 trait EnumUtil
 {
     /**
@@ -11,7 +16,7 @@ trait EnumUtil
      *
      * @return list<value-of<static>>
      */
-    public static function getValues(): array
+    public static function values(): array
     {
         return array_column(static::cases(), 'value');
     }

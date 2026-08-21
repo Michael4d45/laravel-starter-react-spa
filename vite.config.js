@@ -169,6 +169,7 @@ export default defineConfig(({ mode }) => {
                     '**/.vscode/**',
                     '**/tests/**',
                     '**/database/**',
+                    '**/reports/**',
                     '**/mago.toml',
                     '**/storage/framework/views/**',
                 ],

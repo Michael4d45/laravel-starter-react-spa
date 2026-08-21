@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { Form, FormField } from '@/components/ui/Form';
-import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { resetPassword } from '@/features/auth/api';
+import { useOfflineBlock } from '@/hooks/useOfflineBlock';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useParams } from 'react-router';

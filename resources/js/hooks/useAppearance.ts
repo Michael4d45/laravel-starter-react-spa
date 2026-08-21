@@ -43,8 +43,7 @@ const mediaQuery = () => {
 
 const handleSystemThemeChange = () => {
     const currentAppearance = localStorage.getItem('appearance') as
-        | Appearance
-        | undefined;
+        Appearance | undefined;
     applyTheme(currentAppearance || 'system');
 };
 

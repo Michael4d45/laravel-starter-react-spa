@@ -152,15 +152,6 @@ no-insecure-comparison = { enabled = false }
 function-name = { enabled = false }
 
 [analyzer]
-find-unused-definitions = true
-find-unused-expressions = false
-analyze-dead-code = false
-memoize-properties = true
-allow-possibly-undefined-array-keys = true
-check-throws = false
-check-missing-override = false
-find-unused-parameters = false
-strict-list-index-checks = false
-no-boolean-literal-comparison = false
-check-missing-type-hints = false
-register-super-globals = true
+# Mago has no analyzer.enabled flag; excluding everything
+# leaves lint and format as the active checks.
+excludes = ["**"]

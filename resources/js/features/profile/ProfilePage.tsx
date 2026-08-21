@@ -1,12 +1,12 @@
 import { Button } from '@/components/ui/Button';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { useAuth } from '@/features/auth/AuthContext';
-import { resendVerificationEmail } from './api';
 import { authManager } from '@/features/auth/authManager';
 import { UserData } from '@/schemas/App/Data/Models/UserData';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useLoaderData, useNavigate } from 'react-router';
+import { resendVerificationEmail } from './api';
 
 interface ProfileData {
     user: UserData | null;
