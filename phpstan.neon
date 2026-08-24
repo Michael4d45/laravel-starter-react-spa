@@ -4,6 +4,7 @@ parameters:
         - database/
         - routes/
         - tests/
+        - bootstrap/app.php
 
     level: 9
     checkUninitializedProperties: true

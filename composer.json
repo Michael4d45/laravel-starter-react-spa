@@ -26,7 +26,6 @@
         "larastan/larastan": "^3.10",
         "laravel/boost": "^2.5.5",
         "laravel/tinker": "^3.0.2",
-        "michael4d45/coverage-treemap": "^1.0.1",
         "michael4d45/laravel-model-schema": "^0.2",
         "mockery/mockery": "^1.6.15",
         "nunomaduro/collision": "^8.9.5",

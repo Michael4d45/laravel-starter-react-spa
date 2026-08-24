@@ -5,11 +5,6 @@
          colors="true"
          defaultTimeLimit="30"
 >
-    <extensions>
-        <bootstrap class="CoverageTreemap\Extension">
-            <parameter name="outputDirectory" value="reports/coverage-treemap" />
-        </bootstrap>
-    </extensions>
     <testsuites>
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
